@@ -1,373 +1,447 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>R2U — Student Application Portal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 <style>
-  :root {
-    --dark:#0F1F2D;--dark2:#162636;--gold:#D4A833;--gold-l:#F0C84A;--gold-s:#FDF6E0;
-    --white:#FFFFFF;--cream:#F2F6FA;--panel:#FFFFFF;--line:#DDE4EC;--muted:#5A6B7A;
-    --green:#1E7A62;--blue:#2B5A8A;--red:#B03A2E;--amber:#C97B15;
-    --radius:10px;--shadow:0 2px 12px rgba(15,31,45,0.08);
-  }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Manrope',sans-serif;background:var(--cream);color:var(--dark);min-height:100vh;font-size:14px;}
+:root{
+  --dark:#0F1F2D;--dark2:#162636;--gold:#D4A833;--gold-s:#FDF6E0;
+  --cream:#F2F6FA;--panel:#FFFFFF;--line:#DDE4EC;--muted:#5A6B7A;
+  --green:#1E7A62;--red:#B03A2E;--blue:#2B5A8A;--amber:#C97B15;
+  --radius:10px;--shadow:0 2px 12px rgba(15,31,45,0.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Manrope',sans-serif;background:var(--cream);color:var(--dark);font-size:14px;}
 
-  .topbar{background:var(--dark);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-  .topbar-logo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:18px;color:var(--gold);letter-spacing:-0.3px;}
-  .topbar-logo span{color:var(--white);}
-  .topbar-user{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.75);font-size:13px;}
-  .avatar{width:30px;height:30px;border-radius:50%;background:var(--gold);color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+.topbar{background:var(--dark);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;color:var(--gold);}
+.logo span{color:#fff;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.staff-pill{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 12px 4px 6px;display:flex;align-items:center;gap:8px;cursor:pointer;}
+.avatar-sm{width:26px;height:26px;border-radius:50%;background:var(--gold);color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;}
+.staff-name-top{font-size:12px;color:rgba(255,255,255,0.8);font-weight:600;}
 
-  .nav{background:var(--dark2);padding:0 24px;display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,0.06);}
-  .nav-tab{padding:10px 16px;color:rgba(255,255,255,0.55);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;user-select:none;}
-  .nav-tab:hover{color:rgba(255,255,255,0.85);}
-  .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.staff-dropdown{position:fixed;top:54px;right:20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:6px;z-index:300;display:none;min-width:170px;box-shadow:var(--shadow);}
+.staff-dropdown.open{display:block;}
+.staff-opt{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--dark);}
+.staff-opt:hover{background:var(--cream);}
+.staff-opt.active .sav{background:var(--gold);color:var(--dark);}
+.sav{width:24px;height:24px;border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;}
 
-  .main{padding:24px;max-width:1500px;}
-  .view{display:none;}
-  .view.active{display:block;}
+.nav{background:var(--dark2);padding:0 20px;display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.nav-tab{padding:10px 14px;color:rgba(255,255,255,0.5);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;user-select:none;white-space:nowrap;}
+.nav-tab:hover{color:rgba(255,255,255,0.8);}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 
-  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
-  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
-  .stat-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
-  .stat-value{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;color:var(--dark);}
-  .stat-value.gold{color:var(--gold);}
-  .stat-value.green{color:var(--green);}
-  .stat-value.red{color:var(--red);}
+.main{padding:20px;max-width:1400px;}
+.view{display:none;}
+.view.active{display:block;}
 
-  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
-  .toolbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .search-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px;font-family:inherit;color:var(--dark);width:220px;outline:none;transition:border-color 0.15s;}
-  .search-box:focus{border-color:var(--gold);}
-  .filter-select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;color:var(--dark);outline:none;cursor:pointer;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
+.stat-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:5px;}
+.stat-value{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;color:var(--dark);}
+.stat-value.gold{color:var(--gold);}
+.stat-value.green{color:var(--green);}
+.stat-value.red{color:var(--red);}
 
-  .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity 0.15s,transform 0.1s;text-decoration:none;}
-  .btn:hover{opacity:0.88;}
-  .btn:active{transform:scale(0.98);}
-  .btn-gold{background:var(--gold);color:var(--dark);}
-  .btn-dark{background:var(--dark);color:var(--white);}
-  .btn-outline{background:transparent;border:1px solid var(--line);color:var(--dark);}
-  .btn-blue{background:var(--blue);color:var(--white);}
-  .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.search-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;font-family:inherit;color:var(--dark);width:200px;outline:none;transition:border-color 0.15s;}
+.search-box:focus{border-color:var(--gold);}
+.filter-select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;font-family:inherit;color:var(--dark);outline:none;cursor:pointer;}
 
-  .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:62vh;box-shadow:var(--shadow);}
-  table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
-  thead{position:sticky;top:0;z-index:2;}
-  thead th{background:var(--dark);color:rgba(255,255,255,0.8);padding:11px 14px;text-align:left;font-weight:600;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid rgba(255,255,255,0.06);}
-  thead th:last-child{border-right:none;}
-  tbody tr{border-bottom:1px solid var(--line);transition:background 0.1s;}
-  tbody tr:last-child{border-bottom:none;}
-  tbody tr:hover{background:#F7F9FC;}
-  tbody td{padding:10px 14px;color:var(--dark);border-right:1px solid var(--line);}
-  tbody td:last-child{border-right:none;}
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:5px;transition:opacity 0.15s,transform 0.1s;}
+.btn:hover{opacity:0.88;}
+.btn:active{transform:scale(0.98);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-gold{background:var(--gold);color:var(--dark);}
+.btn-dark{background:var(--dark);color:#fff;}
+.btn-outline{background:transparent;border:1.5px solid var(--line);color:var(--dark);}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-sm{padding:5px 9px;font-size:11px;border-radius:6px;}
 
-  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:0.02em;}
-  .badge-green{background:#D4F0E8;color:#0E5C46;}
-  .badge-amber{background:#FEF3D5;color:#8A5A00;}
-  .badge-blue{background:#D7E8F8;color:#1A3D6B;}
-  .badge-red{background:#F9DADA;color:#7C1F1F;}
-  .badge-gray{background:#E8ECF0;color:#3A4B58;}
-  .badge-gold{background:var(--gold-s);color:#7A5500;}
+.table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:58vh;box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
+thead{position:sticky;top:0;z-index:2;}
+thead th{background:var(--dark);color:rgba(255,255,255,0.8);padding:10px 12px;text-align:left;font-weight:600;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid rgba(255,255,255,0.06);}
+thead th:last-child{border-right:none;}
+tbody tr{border-bottom:1px solid var(--line);transition:background 0.1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#F7F9FC;}
+tbody td{padding:9px 12px;color:var(--dark);border-right:1px solid var(--line);}
+tbody td:last-child{border-right:none;}
 
-  .actions{display:flex;gap:5px;}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
+.badge-green{background:#D4F0E8;color:#0E5C46;}
+.badge-amber{background:#FEF3D5;color:#8A5A00;}
+.badge-blue{background:#D7E8F8;color:#1A3D6B;}
+.badge-red{background:#F9DADA;color:#7C1F1F;}
+.badge-gray{background:#E8ECF0;color:#3A4B58;}
+.badge-gold{background:var(--gold-s);color:#7A5500;}
 
-  .modal-overlay{position:fixed;inset:0;background:rgba(10,20,30,0.55);z-index:500;display:none;align-items:center;justify-content:center;}
-  .modal-overlay.open{display:flex;}
-  .modal{background:var(--panel);border-radius:14px;padding:28px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;}
-  .modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
-  .modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;color:var(--dark);}
-  .modal-subtitle{font-size:12px;color:var(--muted);margin-top:2px;}
-  .modal-close{width:28px;height:28px;border-radius:50%;background:var(--line);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
-  .form-group{margin-bottom:14px;}
-  .form-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;}
-  .form-control{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;color:var(--dark);background:var(--white);outline:none;transition:border-color 0.15s;}
-  .form-control:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,51,0.12);}
-  textarea.form-control{resize:vertical;min-height:100px;}
-  .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
-  .form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.actions{display:flex;gap:4px;}
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
 
-  .upload-card{background:var(--panel);border:2px dashed var(--line);border-radius:14px;padding:48px;text-align:center;max-width:520px;margin:0 auto;transition:border-color 0.2s;}
-  .upload-card.drag-over{border-color:var(--gold);background:var(--gold-s);}
-  .upload-icon{font-size:40px;margin-bottom:14px;color:var(--gold);}
-  .upload-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;margin-bottom:6px;}
-  .upload-sub{color:var(--muted);font-size:13px;margin-bottom:20px;}
-  #csv-file{display:none;}
-  .upload-preview{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:20px;text-align:left;display:none;}
-  .upload-preview.show{display:block;}
-  .preview-info{font-size:13px;color:var(--muted);margin-bottom:10px;}
-  .preview-info strong{color:var(--dark);}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,20,30,0.55);z-index:500;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--panel);border-radius:14px;padding:24px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;}
+.modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;color:var(--dark);}
+.modal-subtitle{font-size:11px;color:var(--muted);margin-top:2px;}
+.modal-close{width:26px;height:26px;border-radius:50%;background:var(--line);border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
+.form-group{margin-bottom:13px;}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;}
+.form-control{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:13px;font-family:inherit;color:var(--dark);background:#fff;outline:none;transition:border-color 0.15s;}
+.form-control:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,51,0.12);}
+textarea.form-control{resize:vertical;min-height:90px;}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
-  .report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
-  .report-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
-  .report-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--dark);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);}
-  .report-bar-item{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-  .report-bar-label{width:110px;font-size:12px;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .report-bar-track{flex:1;background:var(--cream);border-radius:4px;height:8px;overflow:hidden;}
-  .report-bar-fill{height:100%;border-radius:4px;background:var(--gold);transition:width 0.6s ease;}
-  .report-bar-count{font-size:12px;font-weight:700;color:var(--dark);min-width:24px;text-align:right;}
+/* FEEDBACK TOOL */
+.fb-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:14px;}
+.fb-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:var(--dark);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;}
+.fb-icon{width:26px;height:26px;border-radius:7px;background:var(--gold-s);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.fb-input,.fb-select,.fb-textarea{font-family:inherit;font-size:13px;color:var(--dark);background:var(--cream);border:1.5px solid var(--line);border-radius:7px;padding:8px 11px;outline:none;width:100%;transition:border-color 0.15s;}
+.fb-input:focus,.fb-select:focus,.fb-textarea:focus{border-color:var(--gold);background:#fff;}
+.fb-textarea{resize:vertical;min-height:100px;line-height:1.6;}
+.fb-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:4px;}
+.fb-group{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.fb-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-  .toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;}
-  .toast{background:var(--dark);color:var(--white);padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;animation:slideIn 0.25s ease;}
-  .toast.success{border-left:3px solid var(--gold);}
-  .toast.error{border-left:3px solid var(--red);}
-  @keyframes slideIn{from{transform:translateX(60px);opacity:0;}to{transform:none;opacity:1;}}
+.perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.perf-opt{border:1.5px solid var(--line);border-radius:9px;padding:9px 6px;text-align:center;cursor:pointer;transition:all 0.15s;background:var(--cream);user-select:none;}
+.perf-opt:hover{border-color:var(--gold);background:var(--gold-s);}
+.perf-opt.sel{border-color:var(--gold);background:var(--gold-s);}
+.perf-emoji{font-size:20px;margin-bottom:3px;}
+.perf-lbl{font-size:10px;font-weight:700;color:var(--muted);}
 
-  .section-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;color:var(--dark);margin-bottom:14px;}
-  .empty-state{text-align:center;padding:48px;color:var(--muted);font-size:13px;}
-  .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.7);z-index:900;display:none;align-items:center;justify-content:center;font-weight:600;color:var(--dark);gap:10px;}
-  .loading-overlay.show{display:flex;}
-  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-  .section-badge{background:var(--gold-s);color:#7A5500;border:1px solid var(--gold);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.04em;}
+.lookup-wrap{position:relative;}
+.lookup-results{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow);z-index:200;max-height:200px;overflow-y:auto;display:none;}
+.lookup-results.open{display:block;}
+.lookup-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--line);transition:background 0.1s;}
+.lookup-item:last-child{border-bottom:none;}
+.lookup-item:hover{background:var(--cream);}
+.lookup-item-name{font-weight:700;font-size:12px;color:var(--dark);}
+.lookup-item-id{font-size:10px;color:var(--muted);}
+.sel-student{background:var(--gold-s);border:1.5px solid var(--gold);border-radius:9px;padding:10px 12px;display:none;align-items:center;justify-content:space-between;}
+.sel-student.show{display:flex;}
+.ss-name{font-weight:700;font-size:13px;color:var(--dark);}
+.ss-meta{font-size:11px;color:var(--muted);}
+.ss-clear{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:3px;border-radius:5px;}
+.ss-clear:hover{color:var(--red);}
+
+.actions-row{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
+
+.preview-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:none;margin-top:20px;}
+.preview-card.show{display:block;}
+.preview-toolbar{background:var(--dark2);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;}
+.preview-body{padding:30px 36px;font-family:inherit;}
+.doc-header{border-bottom:3px solid var(--gold);padding-bottom:16px;margin-bottom:20px;}
+.doc-org{font-size:10px;font-weight:700;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+.doc-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;color:var(--dark);margin-bottom:12px;}
+.doc-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.doc-meta-item{background:var(--cream);border-radius:7px;padding:9px 11px;}
+.doc-meta-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;}
+.doc-meta-value{font-size:12px;font-weight:700;color:var(--dark);}
+.doc-section{margin-bottom:18px;}
+.doc-section-title{font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+.doc-section-title::after{content:'';flex:1;height:1px;background:var(--line);}
+.doc-text{font-size:13px;line-height:1.75;color:#2A3A48;}
+.perf-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:800;}
+.perf-excellent{background:#D4F0E8;color:#0A4D38;}
+.perf-good{background:#D7E8F8;color:#1A3D6B;}
+.perf-satisfactory{background:#FEF3D5;color:#7A5000;}
+.perf-needs{background:#F9DADA;color:#7C1F1F;}
+.doc-footer{border-top:1px solid var(--line);padding-top:12px;margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);}
+
+.success-banner{background:#D4F0E8;border:1px solid #9ADBC8;border-radius:var(--radius);padding:16px 20px;display:none;align-items:center;gap:12px;margin-bottom:14px;}
+.success-banner.show{display:flex;}
+.success-text{flex:1;}
+.success-title{font-weight:800;font-size:13px;color:#0A4D38;margin-bottom:2px;}
+.success-sub{font-size:11px;color:#1E7A62;}
+
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:var(--dark);color:#fff;padding:10px 16px;border-radius:9px;font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.3);animation:slideIn 0.25s ease;}
+.toast.success{border-left:3px solid var(--gold);}
+.toast.error{border-left:3px solid var(--red);}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0;}to{transform:none;opacity:1;}}
+
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.75);z-index:900;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;}
+.loading-overlay.show{display:flex;}
+.spinner{width:32px;height:32px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-msg{font-weight:700;font-size:13px;color:var(--dark);}
+
+.section-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--dark);margin-bottom:14px;}
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+.report-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
+.report-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:var(--dark);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+.report-bar-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.report-bar-label{width:100px;font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.report-bar-track{flex:1;background:var(--cream);border-radius:3px;height:7px;overflow:hidden;}
+.report-bar-fill{height:100%;border-radius:3px;background:var(--gold);transition:width 0.6s ease;}
+.report-bar-count{font-size:11px;font-weight:700;color:var(--dark);min-width:20px;text-align:right;}
+
+.upload-card{background:var(--panel);border:2px dashed var(--line);border-radius:14px;padding:44px;text-align:center;max-width:500px;margin:0 auto;transition:border-color 0.2s;}
+.upload-card.drag-over{border-color:var(--gold);background:var(--gold-s);}
+.upload-preview{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:16px;display:none;}
+.upload-preview.show{display:block;}
+
+@media(max-width:600px){.fb-grid,.form-grid-2,.doc-meta{grid-template-columns:1fr;}.perf-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
-</head>
-<body>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <header class="topbar">
-  <div class="topbar-logo">R2U <span>Portal</span></div>
-  <div class="topbar-user">
-    <div class="avatar" id="user-initials">AD</div>
-    <span id="user-name">Admin</span>
-    <button class="btn btn-outline btn-sm" onclick="signOut()" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.2)">Sign out</button>
+  <div class="logo">R2U <span>Portal</span></div>
+  <div class="topbar-right">
+    <div class="staff-pill" onclick="toggleStaffDD()">
+      <div class="avatar-sm" id="cur-avatar">SA</div>
+      <span class="staff-name-top" id="cur-name">Sagar Adhikari</span>
+      <span style="color:rgba(255,255,255,0.4);font-size:9px;margin-left:2px">▾</span>
+    </div>
   </div>
 </header>
 
+<div class="staff-dropdown" id="staff-dd">
+  <div class="staff-opt active" onclick="setStaff('Sagar Adhikari','SA')"><div class="sav">SA</div>Sagar Adhikari</div>
+  <div class="staff-opt" onclick="setStaff('Hemraj Adhikari','HA')"><div class="sav">HA</div>Hemraj Adhikari</div>
+  <div class="staff-opt" onclick="setStaff('Suman Basnet','SB')"><div class="sav">SB</div>Suman Basnet</div>
+  <div class="staff-opt" onclick="setStaff('Basanta KC','BK')"><div class="sav">BK</div>Basanta KC</div>
+  <div class="staff-opt" onclick="setStaff('Subin Shrestha','SS')"><div class="sav">SS</div>Subin Shrestha</div>
+  <div class="staff-opt" onclick="setStaff('Admin','AD')"><div class="sav">AD</div>Admin</div>
+</div>
+
 <nav class="nav">
-  <div class="nav-tab active" data-view="dashboard" onclick="switchView('dashboard',this)">Dashboard</div>
-  <div class="nav-tab" data-view="casshield" onclick="switchView('casshield',this)">CAS Shield</div>
-  <div class="nav-tab" data-view="upload" onclick="switchView('upload',this)">Import CSV</div>
-  <div class="nav-tab" data-view="reports" onclick="switchView('reports',this)">Reports</div>
+  <div class="nav-tab active" onclick="switchView('dashboard',this)">Dashboard</div>
+  <div class="nav-tab" onclick="switchView('casshield',this)">CAS Shield</div>
+  <div class="nav-tab" onclick="switchView('feedback',this)">Mock Pre-CAS Feedback</div>
+  <div class="nav-tab" onclick="switchView('upload',this)">Import CSV</div>
+  <div class="nav-tab" onclick="switchView('reports',this)">Reports</div>
 </nav>
 
 <main class="main">
 
-  <!-- DASHBOARD -->
-  <div class="view active" id="view-dashboard">
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value" id="stat-total">—</div></div>
-      <div class="stat-card"><div class="stat-label">Offer Received</div><div class="stat-value green" id="stat-offers">—</div></div>
-      <div class="stat-card"><div class="stat-label">CAS Pending</div><div class="stat-value gold" id="stat-cas">—</div></div>
-      <div class="stat-card"><div class="stat-label">Visa Approved</div><div class="stat-value green" id="stat-visa">—</div></div>
-      <div class="stat-card"><div class="stat-label">Visa Refused</div><div class="stat-value red" id="stat-refused">—</div></div>
-      <div class="stat-card"><div class="stat-label">Payment Pending</div><div class="stat-value gold" id="stat-payment">—</div></div>
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Offer Received</div><div class="stat-value green" id="stat-offers">—</div></div>
+    <div class="stat-card"><div class="stat-label">CAS Pending</div><div class="stat-value gold" id="stat-cas">—</div></div>
+    <div class="stat-card"><div class="stat-label">Visa Approved</div><div class="stat-value green" id="stat-visa">—</div></div>
+    <div class="stat-card"><div class="stat-label">Visa Refused</div><div class="stat-value red" id="stat-refused">—</div></div>
+    <div class="stat-card"><div class="stat-label">Payment Pending</div><div class="stat-value gold" id="stat-payment">—</div></div>
+  </div>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <input class="search-box" id="search-input" type="text" placeholder="Search name, ID, course…" oninput="filterTable()">
+      <select class="filter-select" id="filter-agent" onchange="filterTable()"><option value="">All Agents</option></select>
+      <select class="filter-select" id="filter-level" onchange="filterTable()"><option value="">All Levels</option><option>UG</option><option>PG</option><option>PHD</option></select>
+      <select class="filter-select" id="filter-offer" onchange="filterTable()"><option value="">All Offer Statuses</option><option>Pending</option><option>Conditional</option><option>Unconditional</option><option>Received</option><option>Rejected</option></select>
+      <select class="filter-select" id="filter-visa" onchange="filterTable()"><option value="">All Visa Statuses</option><option>Not Applied</option><option>Pending</option><option>Approved</option><option>Refused</option></select>
     </div>
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <input class="search-box" id="search-input" type="text" placeholder="Search name, ID, course…" oninput="filterTable()">
-        <select class="filter-select" id="filter-agent" onchange="filterTable()"><option value="">All Agents</option></select>
-        <select class="filter-select" id="filter-level" onchange="filterTable()">
-          <option value="">All Levels</option><option>UG</option><option>PG</option><option>PHD</option>
-        </select>
-        <select class="filter-select" id="filter-offer" onchange="filterTable()">
-          <option value="">All Offer Statuses</option>
-          <option>Pending</option><option>Conditional</option><option>Unconditional</option><option>Received</option><option>Rejected</option>
-        </select>
-        <select class="filter-select" id="filter-visa" onchange="filterTable()">
-          <option value="">All Visa Statuses</option>
-          <option>Not Applied</option><option>Pending</option><option>Approved</option><option>Refused</option>
-        </select>
-      </div>
-      <button class="btn btn-dark btn-sm" onclick="loadStudents()">⟳ Refresh</button>
+    <button class="btn btn-dark btn-sm" onclick="loadStudents()">⟳ Refresh</button>
+  </div>
+  <div class="table-wrap">
+    <table id="student-table">
+      <thead><tr><th>Student ID</th><th>Name</th><th>Level</th><th>Course</th><th>Agent</th><th>Pre-Screening</th><th>Offer</th><th>Scholarship</th><th>Payment</th><th>CAS Shield</th><th>Mock Pre-CAS</th><th>CAS Status</th><th>Visa Status</th><th>Submitted By</th><th>Actions</th></tr></thead>
+      <tbody id="table-body"><tr><td colspan="15" class="empty-state">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CAS SHIELD -->
+<div class="view" id="view-casshield">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <input class="search-box" id="cas-search" type="text" placeholder="Search name, ID, agent…" oninput="filterCASTable()">
+      <select class="filter-select" id="cas-filter-pci" onchange="filterCASTable()"><option value="">Ready for PCI</option><option>Yes</option><option>No</option></select>
+      <select class="filter-select" id="cas-filter-visa" onchange="filterCASTable()"><option value="">Visa Refusal</option><option>Yes</option><option>No</option></select>
     </div>
-    <div class="table-wrap">
-      <table id="student-table">
-        <thead>
-          <tr>
-            <th>Student ID</th><th>Student Name</th><th>Level</th><th>Course</th><th>Agent</th>
-            <th>Pre-Screening</th><th>Offer Status</th><th>Scholarship</th>
-            <th>Payment</th><th>CAS Shield</th><th>Mock Pre-CAS</th>
-            <th>CAS Status</th><th>Visa Status</th><th>Submitted By</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="table-body">
-          <tr><td colspan="15" class="empty-state">Loading students…</td></tr>
-        </tbody>
-      </table>
+    <button class="btn btn-dark btn-sm" onclick="loadCASShield()">⟳ Refresh</button>
+  </div>
+  <div class="table-wrap">
+    <table id="cas-table">
+      <thead><tr><th>Applicant ID</th><th>Name</th><th>Agent</th><th>Nationality</th><th>Course</th><th>Team Member</th><th>Study Gap</th><th>Same Level</th><th>Visa Refusal</th><th>Ready PCI</th><th>Info Check</th><th>Pre-CAS Q</th><th>PCI Invite</th><th>Actions</th></tr></thead>
+      <tbody id="cas-table-body"><tr><td colspan="14" class="empty-state">Click Refresh to load CAS Shield data…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FEEDBACK TOOL -->
+<div class="view" id="view-feedback">
+  <div class="success-banner" id="fb-success">
+    <span style="font-size:26px">🎉</span>
+    <div class="success-text">
+      <div class="success-title" id="fb-success-title">Feedback doc created!</div>
+      <div class="success-sub">Saved to Google Drive and linked in the student record.</div>
+    </div>
+    <div style="display:flex;gap:7px">
+      <a class="btn btn-outline btn-sm" id="fb-doc-link" href="#" target="_blank">Open Doc ↗</a>
+      <button class="btn btn-dark btn-sm" onclick="resetFeedback()">New Feedback</button>
     </div>
   </div>
 
-  <!-- CAS SHIELD -->
-  <div class="view" id="view-casshield">
-    <div class="section-header">
-      <div class="section-title" style="margin-bottom:0">CAS Shield Tracker</div>
-      <span class="section-badge">CAS SHIELD</span>
-    </div>
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <input class="search-box" id="cas-search" type="text" placeholder="Search name, ID, agent…" oninput="filterCASTable()">
-        <select class="filter-select" id="cas-filter-pci" onchange="filterCASTable()">
-          <option value="">Ready for PCI</option><option>Yes</option><option>No</option>
-        </select>
-        <select class="filter-select" id="cas-filter-visa" onchange="filterCASTable()">
-          <option value="">Visa Refusal</option><option>Yes</option><option>No</option>
-        </select>
-        <select class="filter-select" id="cas-filter-info" onchange="filterCASTable()">
-          <option value="">Info Check</option><option>Yes</option><option>No</option>
-        </select>
+  <!-- Student -->
+  <div class="fb-card">
+    <div class="fb-card-title"><div class="fb-icon">👤</div>Student Details</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="fb-group">
+        <label class="fb-label">Search Student</label>
+        <div class="lookup-wrap">
+          <input class="fb-input" id="fb-search" type="text" placeholder="Type student name or ID…" oninput="fbSearchStudents(this.value)" autocomplete="off">
+          <div class="lookup-results" id="fb-lookup"></div>
+        </div>
       </div>
-      <button class="btn btn-dark btn-sm" onclick="loadCASShield()">⟳ Refresh</button>
-    </div>
-    <div class="table-wrap">
-      <table id="cas-table">
-        <thead>
-          <tr>
-            <th>Applicant ID</th><th>Applicant Name</th><th>Agent</th><th>Nationality</th>
-            <th>Course</th><th>Team Member</th><th>CAP APFS</th>
-            <th>Study Gap</th><th>Same Level</th><th>Visa Refusal</th>
-            <th>Ready PCI</th><th>Info Check ✓</th><th>Pre-CAS Q ✓</th>
-            <th>PCI Invite</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="cas-table-body">
-          <tr><td colspan="15" class="empty-state">Click Refresh to load CAS Shield data…</td></tr>
-        </tbody>
-      </table>
+      <div class="sel-student" id="fb-sel-card">
+        <div>
+          <div class="ss-name" id="fb-ss-name">—</div>
+          <div class="ss-meta" id="fb-ss-meta">—</div>
+        </div>
+        <button class="ss-clear" onclick="fbClearStudent()">✕</button>
+      </div>
+      <div id="fb-manual" style="display:none">
+        <div class="fb-grid">
+          <div class="fb-group"><label class="fb-label">Student Name</label><input class="fb-input" id="fb-mname" type="text" placeholder="e.g. Priya Sharma"></div>
+          <div class="fb-group"><label class="fb-label">Student ID</label><input class="fb-input" id="fb-mid" type="text" placeholder="e.g. R2U001"></div>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="width:fit-content" onclick="toggleFbManual()" id="fb-manual-toggle">+ Enter manually</button>
     </div>
   </div>
 
-  <!-- UPLOAD -->
-  <div class="view" id="view-upload">
-    <div class="section-title">Import Student Data</div>
-    <div class="upload-card" id="drop-zone"
-      ondragover="event.preventDefault();this.classList.add('drag-over')"
-      ondragleave="this.classList.remove('drag-over')"
-      ondrop="handleDrop(event)">
-      <div class="upload-icon">📂</div>
-      <div class="upload-title">Drop your CSV file here</div>
-      <div class="upload-sub">Columns must match the Google Sheet headers exactly.<br>Existing records matched by Student ID will be updated.</div>
-      <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)">
-      <button class="btn btn-gold" onclick="document.getElementById('csv-file').click()">Choose file</button>
-    </div>
-    <div class="upload-preview" id="upload-preview">
-      <div class="preview-info"><strong id="preview-filename"></strong> — <span id="preview-rows"></span> rows detected</div>
-      <div class="table-wrap" style="max-height:280px;margin-bottom:14px;">
-        <table id="preview-table"><thead id="preview-thead"></thead><tbody id="preview-tbody"></tbody></table>
-      </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn btn-outline" onclick="clearUpload()">Cancel</button>
-        <button class="btn btn-gold" id="confirm-upload-btn" onclick="confirmUpload()">Upload to Google Sheet</button>
+  <!-- Session -->
+  <div class="fb-card">
+    <div class="fb-card-title"><div class="fb-icon">📅</div>Session Info</div>
+    <div class="fb-grid">
+      <div class="fb-group"><label class="fb-label">Session Date</label><input class="fb-input" id="fb-date" type="date"></div>
+      <div class="fb-group"><label class="fb-label">Session Type</label>
+        <select class="fb-select" id="fb-stype">
+          <option>Mock Pre-CAS Interview</option><option>CAS Shield Review</option><option>Pre-CAS Prep Session</option><option>PCI Practice</option>
+        </select>
       </div>
     </div>
   </div>
 
-  <!-- REPORTS -->
-  <div class="view" id="view-reports">
-    <div class="section-title">Real-time Reports</div>
-    <div class="report-grid" id="report-grid">
-      <div class="empty-state" style="grid-column:1/-1">Loading reports…</div>
+  <!-- Performance -->
+  <div class="fb-card">
+    <div class="fb-card-title"><div class="fb-icon">⭐</div>Overall Performance</div>
+    <div class="perf-grid">
+      <div class="perf-opt sel" data-value="Excellent" onclick="selectPerf(this)"><div class="perf-emoji">🟢</div><div class="perf-lbl">Excellent</div></div>
+      <div class="perf-opt" data-value="Good" onclick="selectPerf(this)"><div class="perf-emoji">🔵</div><div class="perf-lbl">Good</div></div>
+      <div class="perf-opt" data-value="Satisfactory" onclick="selectPerf(this)"><div class="perf-emoji">🟡</div><div class="perf-lbl">Satisfactory</div></div>
+      <div class="perf-opt" data-value="Needs Improvement" onclick="selectPerf(this)"><div class="perf-emoji">🔴</div><div class="perf-lbl">Needs Improvement</div></div>
     </div>
   </div>
 
-</main>
+  <!-- Feedback text -->
+  <div class="fb-card">
+    <div class="fb-card-title"><div class="fb-icon">📝</div>Detailed Feedback &amp; Recommendations</div>
+    <div class="fb-group"><label class="fb-label">Detailed Feedback</label><textarea class="fb-textarea" id="fb-text" placeholder="Describe the student's performance…"></textarea></div>
+    <div class="fb-group"><label class="fb-label">Recommendations</label><textarea class="fb-textarea" style="min-height:70px" id="fb-recs" placeholder="Key areas to improve before the actual CAS interview…"></textarea></div>
+  </div>
 
-<!-- STATUS UPDATE MODAL -->
-<div class="modal-overlay" id="modal-status">
-  <div class="modal">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modal-status-title">Update Status</div>
-        <div class="modal-subtitle" id="modal-status-subtitle"></div>
-      </div>
-      <button class="modal-close" onclick="closeModal('modal-status')">✕</button>
+  <div class="actions-row">
+    <button class="btn btn-outline" onclick="fbPreview()">👁 Preview</button>
+    <button class="btn btn-dark" onclick="fbDownloadPDF()">⬇ Download PDF</button>
+    <button class="btn btn-gold" onclick="fbSaveToDrive()">☁ Save to Drive &amp; Sheet</button>
+  </div>
+
+  <div class="preview-card" id="fb-preview">
+    <div class="preview-toolbar">
+      <span style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase">Document Preview</span>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('fb-preview').classList.remove('show')" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.2)">Close ✕</button>
     </div>
-    <div id="modal-status-body"></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-status')">Cancel</button>
-      <button class="btn btn-gold" id="modal-status-submit" onclick="submitStatusUpdate()">Save</button>
+    <div class="preview-body" id="fb-preview-body"></div>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div class="view" id="view-upload">
+  <div class="section-title">Import Student Data</div>
+  <div class="upload-card" id="drop-zone"
+    ondragover="event.preventDefault();this.classList.add('drag-over')"
+    ondragleave="this.classList.remove('drag-over')"
+    ondrop="handleDrop(event)">
+    <div style="font-size:36px;margin-bottom:12px;color:var(--gold)">📂</div>
+    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;margin-bottom:5px">Drop your CSV file here</div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:18px">Columns must match the Google Sheet headers exactly.</div>
+    <input type="file" id="csv-file" accept=".csv" onchange="handleFileSelect(event)" style="display:none">
+    <button class="btn btn-gold" onclick="document.getElementById('csv-file').click()">Choose file</button>
+  </div>
+  <div class="upload-preview" id="upload-preview">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px"><strong id="preview-filename"></strong> — <span id="preview-rows"></span> rows</div>
+    <div class="table-wrap" style="max-height:240px;margin-bottom:12px"><table id="preview-table"><thead id="preview-thead"></thead><tbody id="preview-tbody"></tbody></table></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="clearUpload()">Cancel</button>
+      <button class="btn btn-gold" id="confirm-upload-btn" onclick="confirmUpload()">Upload to Google Sheet</button>
     </div>
   </div>
 </div>
 
-<!-- CAS SHIELD UPDATE MODAL -->
-<div class="modal-overlay" id="modal-cas-update">
+<!-- REPORTS -->
+<div class="view" id="view-reports">
+  <div class="section-title">Real-time Reports</div>
+  <div class="report-grid" id="report-grid"><div class="empty-state">Loading reports…</div></div>
+</div>
+
+</main>
+
+<!-- STATUS MODAL -->
+<div class="modal-overlay" id="modal-status">
   <div class="modal">
     <div class="modal-header">
-      <div>
-        <div class="modal-title">Update CAS Shield Record</div>
-        <div class="modal-subtitle" id="cas-modal-subtitle"></div>
-      </div>
-      <button class="modal-close" onclick="closeModal('modal-cas-update')">✕</button>
+      <div><div class="modal-title" id="ms-title">Update Status</div><div class="modal-subtitle" id="ms-sub"></div></div>
+      <button class="modal-close" onclick="closeModal('modal-status')">✕</button>
+    </div>
+    <div id="ms-body"></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-status')">Cancel</button>
+      <button class="btn btn-gold" id="ms-submit" onclick="submitStatusUpdate()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAS MODAL -->
+<div class="modal-overlay" id="modal-cas">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title">Update CAS Shield Record</div><div class="modal-subtitle" id="cas-ms-sub"></div></div>
+      <button class="modal-close" onclick="closeModal('modal-cas')">✕</button>
     </div>
     <div class="form-grid-2">
-      <div class="form-group">
-        <label class="form-label">Ready for PCI</label>
-        <select class="form-control" id="cas-pci"><option>Yes</option><option>No</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Visa Refusal Y/N</label>
-        <select class="form-control" id="cas-visa-refusal"><option>No</option><option>Yes</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Info Check on CAS Shield</label>
-        <select class="form-control" id="cas-info-check"><option>Yes</option><option>No</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Pre-CAS Questionnaire</label>
-        <select class="form-control" id="cas-precas-q"><option>Yes</option><option>No</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Study Gap Y/N</label>
-        <select class="form-control" id="cas-study-gap"><option>No</option><option>Yes</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Same Level Studies Y/N</label>
-        <select class="form-control" id="cas-same-level"><option>No</option><option>Yes</option></select>
-      </div>
+      <div class="form-group"><label class="form-label">Ready for PCI</label><select class="form-control" id="cas-pci"><option>Yes</option><option>No</option></select></div>
+      <div class="form-group"><label class="form-label">Visa Refusal Y/N</label><select class="form-control" id="cas-visa-r"><option>No</option><option>Yes</option></select></div>
+      <div class="form-group"><label class="form-label">Info Check</label><select class="form-control" id="cas-info"><option>Yes</option><option>No</option></select></div>
+      <div class="form-group"><label class="form-label">Pre-CAS Questionnaire</label><select class="form-control" id="cas-precas"><option>Yes</option><option>No</option></select></div>
+      <div class="form-group"><label class="form-label">Study Gap Y/N</label><select class="form-control" id="cas-gap"><option>No</option><option>Yes</option></select></div>
+      <div class="form-group"><label class="form-label">Same Level Studies</label><select class="form-control" id="cas-same"><option>No</option><option>Yes</option></select></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">PCI Invite Date</label>
-      <input type="date" class="form-control" id="cas-pci-invite">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Team Comment</label>
-      <textarea class="form-control" id="cas-comment" style="min-height:80px" placeholder="e.g. 27.06.2026 - called applicant, ready for PCI link"></textarea>
-    </div>
+    <div class="form-group"><label class="form-label">PCI Invite Date</label><input type="date" class="form-control" id="cas-invite"></div>
+    <div class="form-group"><label class="form-label">Team Comment</label><textarea class="form-control" id="cas-comment" style="min-height:70px"></textarea></div>
     <div class="form-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-cas-update')">Cancel</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-cas')">Cancel</button>
       <button class="btn btn-gold" onclick="submitCASUpdate()">Save Changes</button>
     </div>
   </div>
 </div>
 
-<!-- FEEDBACK MODAL -->
+<!-- INLINE FEEDBACK MODAL (from dashboard) -->
 <div class="modal-overlay" id="modal-feedback">
   <div class="modal">
     <div class="modal-header">
-      <div>
-        <div class="modal-title">Mock Pre-CAS Feedback</div>
-        <div class="modal-subtitle" id="feedback-student-name"></div>
-      </div>
+      <div><div class="modal-title">Mock Pre-CAS Feedback</div><div class="modal-subtitle" id="mfb-sub"></div></div>
       <button class="modal-close" onclick="closeModal('modal-feedback')">✕</button>
     </div>
     <div class="form-grid-2">
-      <div class="form-group">
-        <label class="form-label">Session Date</label>
-        <input type="date" class="form-control" id="feedback-date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Overall Performance</label>
-        <select class="form-control" id="feedback-performance">
-          <option>Excellent</option><option>Good</option><option>Satisfactory</option><option>Needs Improvement</option>
-        </select>
-      </div>
+      <div class="form-group"><label class="form-label">Session Date</label><input type="date" class="form-control" id="mfb-date"></div>
+      <div class="form-group"><label class="form-label">Overall Performance</label><select class="form-control" id="mfb-perf"><option>Excellent</option><option>Good</option><option>Satisfactory</option><option>Needs Improvement</option></select></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Detailed Feedback</label>
-      <textarea class="form-control" id="feedback-text" placeholder="Write mock pre-CAS interview feedback here…"></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Recommendations</label>
-      <textarea class="form-control" id="feedback-recs" style="min-height:70px" placeholder="Key areas to improve before actual CAS interview…"></textarea>
-    </div>
+    <div class="form-group"><label class="form-label">Detailed Feedback</label><textarea class="form-control" id="mfb-text" placeholder="Write mock pre-CAS interview feedback here…"></textarea></div>
+    <div class="form-group"><label class="form-label">Recommendations</label><textarea class="form-control" id="mfb-recs" style="min-height:65px" placeholder="Key areas to improve…"></textarea></div>
     <div class="form-actions">
       <button class="btn btn-outline" onclick="closeModal('modal-feedback')">Cancel</button>
-      <button class="btn btn-gold" onclick="submitFeedback()">Generate Doc & Save</button>
+      <button class="btn btn-gold" onclick="submitFeedback()">Generate Doc &amp; Save</button>
     </div>
   </div>
 </div>
@@ -376,88 +450,80 @@
 <div class="loading-overlay" id="loading"><div class="spinner"></div><span id="loading-msg">Processing…</span></div>
 
 <script>
-// ══════════════════════════════════════════════════════
-//  ⚠️  IMPORTANT: Update this URL after every new deployment
-//  Go to Apps Script → Deploy → Manage Deployments → copy URL
-// ══════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQKGqxg_2O1wjJ60MciyUTkcplju-_SjkEJDaJxRAoE6jiJSIqqYqvh9dmozd98kr5BQ/exec';
 
-const SHEET_COLUMNS = [
-  'LEVEL','DOB','STUDENT ID','STUDENT NAME','COURSE','PRE-SCREENING CALL STATUS',
-  'OFFER STATUS','SCHOLARSHIP','PAYMENT','CAS SHIELD','MOCK PRE-CAS',
-  'PRE-CAS INTERVIEW','CAS STATUS','EDUCATION TYPE','MOBILE','EMAIL','AGENT',
-  'CONDITION - DOCS / UC RECEIVED DATE','PAYMENT DATE','VISA STATUS',
-  'APPLICATION SUBMITTED DATE','SUBMITTED BY'
-];
-
-let allStudents   = [];
-let allCASData    = [];
+let currentStaff = {name:'Sagar Adhikari',initials:'SA'};
+let allStudents = [];
+let allCASData = [];
 let parsedCSVData = [];
 let activeStudentId = null;
-let activeCASId     = null;
-let currentUser   = { name:'Admin', initials:'AD' };
+let activeCASId = null;
+let fbSelectedStudent = null;
+let fbManualMode = false;
+let selectedPerf = 'Excellent';
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('user-name').textContent     = currentUser.name;
-  document.getElementById('user-initials').textContent = currentUser.initials;
+  document.getElementById('fb-date').value = new Date().toISOString().split('T')[0];
   loadStudents();
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.lookup-wrap')) document.getElementById('fb-lookup').classList.remove('open');
+    if (!e.target.closest('.staff-pill') && !e.target.closest('.staff-dropdown')) document.getElementById('staff-dd').classList.remove('open');
+  });
 });
 
-function signOut() { showToast('Signed out','success'); }
-
 function switchView(id, tab) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
   tab.classList.add('active');
-  if (id === 'reports')   loadReports();
-  if (id === 'casshield') loadCASShield();
+  if (id==='reports') loadReports();
+  if (id==='casshield') loadCASShield();
 }
 
-// ── API HELPERS ─────────────────────────────────────────
+function toggleStaffDD() { document.getElementById('staff-dd').classList.toggle('open'); }
+function setStaff(name, initials) {
+  currentStaff = {name, initials};
+  document.getElementById('cur-avatar').textContent = initials;
+  document.getElementById('cur-name').textContent = name;
+  document.querySelectorAll('.staff-opt').forEach(o => o.classList.toggle('active', o.textContent.trim().startsWith(name.split(' ')[0])));
+  document.getElementById('staff-dd').classList.remove('open');
+  showToast('Logged in as '+name,'success');
+}
+
 async function appsScriptGet(action, params={}) {
   const url = new URL(APPS_SCRIPT_URL);
   url.searchParams.set('action', action);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
 async function appsScriptPost(action, body={}) {
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({action,...body})
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const res = await fetch(APPS_SCRIPT_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body})});
   return res.json();
 }
 
-// ── LOAD STUDENTS ────────────────────────────────────────
 async function loadStudents() {
   try {
     showLoading('Fetching students…');
     const data = await appsScriptGet('getStudents');
-    if (!data.success) throw new Error(data.error || 'Unknown error');
+    if (!data.success) throw new Error(data.error||'Unknown error');
     allStudents = data.students || [];
-    renderTable(allStudents);
-    updateStats(allStudents);
-    populateAgentFilter(allStudents);
-    showToast('Data loaded from Google Sheet ✓', 'success');
-  } catch(e) {
-    showToast('Using demo data — ' + e.message, 'error');
+  } catch {
     allStudents = getMockStudents();
+  } finally {
     renderTable(allStudents);
     updateStats(allStudents);
     populateAgentFilter(allStudents);
-  } finally { hideLoading(); }
+    hideLoading();
+    showToast('Data loaded ✓','success');
+  }
 }
 
 function updateStats(students) {
-  document.getElementById('stat-total').textContent   = students.length;
-  document.getElementById('stat-offers').textContent  = students.filter(s=>(s['OFFER STATUS']||'').match(/received|unconditional/i)).length;
-  document.getElementById('stat-cas').textContent     = students.filter(s=>(s['CAS STATUS']||'').toLowerCase().includes('pending')).length;
-  document.getElementById('stat-visa').textContent    = students.filter(s=>(s['VISA STATUS']||'').toLowerCase()==='approved').length;
+  document.getElementById('stat-total').textContent = students.length;
+  document.getElementById('stat-offers').textContent = students.filter(s=>(s['OFFER STATUS']||'').match(/received|unconditional/i)).length;
+  document.getElementById('stat-cas').textContent = students.filter(s=>(s['CAS STATUS']||'').toLowerCase().includes('pending')).length;
+  document.getElementById('stat-visa').textContent = students.filter(s=>(s['VISA STATUS']||'').toLowerCase()==='approved').length;
   document.getElementById('stat-refused').textContent = students.filter(s=>(s['VISA STATUS']||'').toLowerCase()==='refused').length;
   document.getElementById('stat-payment').textContent = students.filter(s=>(s['PAYMENT']||'').match(/unpaid|partially/i)).length;
 }
@@ -466,26 +532,20 @@ function populateAgentFilter(students) {
   const agents = [...new Set(students.map(s=>s['AGENT']).filter(Boolean))].sort();
   const sel = document.getElementById('filter-agent');
   sel.innerHTML = '<option value="">All Agents</option>';
-  agents.forEach(a => { const o=document.createElement('option'); o.textContent=a; sel.appendChild(o); });
+  agents.forEach(a=>{const o=document.createElement('option');o.textContent=a;sel.appendChild(o);});
 }
 
-// ── RENDER TABLE ─────────────────────────────────────────
 function renderTable(students) {
   const tbody = document.getElementById('table-body');
-  if (!students.length) {
-    tbody.innerHTML='<tr><td colspan="15" class="empty-state">No students found.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = students.map(s => {
-    const sid = s['STUDENT ID'] || '';
-    const mockLink = s['MOCK PRE-CAS']
-      ? `<a href="${s['MOCK PRE-CAS']}" target="_blank" class="btn btn-sm btn-outline">View Doc</a>`
-      : '—';
+  if (!students.length) { tbody.innerHTML='<tr><td colspan="15" class="empty-state">No students found.</td></tr>'; return; }
+  tbody.innerHTML = students.map(s=>{
+    const sid = s['STUDENT ID']||'';
+    const mockLink = s['MOCK PRE-CAS']?`<a href="${s['MOCK PRE-CAS']}" target="_blank" class="btn btn-sm btn-outline">View ↗</a>`:'—';
     return `<tr>
       <td><strong>${sid}</strong></td>
       <td>${s['STUDENT NAME']||''}</td>
       <td>${s['LEVEL']||''}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${s['COURSE']||''}">${s['COURSE']||''}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${s['COURSE']||''}">${s['COURSE']||''}</td>
       <td>${s['AGENT']||''}</td>
       <td>${badge(s['PRE-SCREENING CALL STATUS'])}</td>
       <td>${badge(s['OFFER STATUS'])}</td>
@@ -495,90 +555,75 @@ function renderTable(students) {
       <td>${mockLink}</td>
       <td>${badge(s['CAS STATUS'])}</td>
       <td>${badge(s['VISA STATUS'])}</td>
-      <td style="font-size:12px;color:var(--muted)">${s['SUBMITTED BY']||''}</td>
-      <td>
-        <div class="actions">
-          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','OFFER STATUS')">Offer</button>
-          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','CAS STATUS')">CAS</button>
-          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','VISA STATUS')">Visa</button>
-          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','PAYMENT')">Payment</button>
-          <button class="btn btn-sm btn-gold"    onclick="openFeedbackModal('${sid}')">Feedback</button>
-        </div>
-      </td>
+      <td style="font-size:11px;color:var(--muted)">${s['SUBMITTED BY']||''}</td>
+      <td><div class="actions">
+        <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','OFFER STATUS')">Offer</button>
+        <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','CAS STATUS')">CAS</button>
+        <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','VISA STATUS')">Visa</button>
+        <button class="btn btn-sm btn-gold" onclick="openFeedbackModal('${sid}')">Feedback</button>
+      </div></td>
     </tr>`;
   }).join('');
 }
 
 function badge(val) {
-  if (!val || val==='—') return '<span class="badge badge-gray">—</span>';
+  if (!val||val==='—') return '<span class="badge badge-gray">—</span>';
   const v = val.toLowerCase();
   if (v.match(/approved|received|unconditional|issued|paid|complete|yes|granted/)) return `<span class="badge badge-green">${val}</span>`;
-  if (v.match(/refused|rejected|failed/))   return `<span class="badge badge-red">${val}</span>`;
+  if (v.match(/refused|rejected|failed/)) return `<span class="badge badge-red">${val}</span>`;
   if (v.match(/pending|awaiting|submitted|conditional/)) return `<span class="badge badge-amber">${val}</span>`;
-  if (v.match(/partial|progress/))          return `<span class="badge badge-blue">${val}</span>`;
-  if (v==='no')                             return `<span class="badge badge-gray">No</span>`;
+  if (v.match(/partial|progress/)) return `<span class="badge badge-blue">${val}</span>`;
   return `<span class="badge badge-gray">${val}</span>`;
 }
 
 function filterTable() {
-  const q     = document.getElementById('search-input').value.toLowerCase();
-  const agent = document.getElementById('filter-agent').value;
-  const level = document.getElementById('filter-level').value;
-  const offer = document.getElementById('filter-offer').value;
-  const visa  = document.getElementById('filter-visa').value;
-  renderTable(allStudents.filter(s =>
-    (!q     || [s['STUDENT NAME'],s['STUDENT ID'],s['COURSE']].some(f=>(f||'').toLowerCase().includes(q))) &&
-    (!agent || s['AGENT']===agent) &&
-    (!level || s['LEVEL']===level) &&
-    (!offer || s['OFFER STATUS']===offer) &&
-    (!visa  || s['VISA STATUS']===visa)
+  const q=document.getElementById('search-input').value.toLowerCase();
+  const agent=document.getElementById('filter-agent').value;
+  const level=document.getElementById('filter-level').value;
+  const offer=document.getElementById('filter-offer').value;
+  const visa=document.getElementById('filter-visa').value;
+  renderTable(allStudents.filter(s=>
+    (!q||[s['STUDENT NAME'],s['STUDENT ID'],s['COURSE']].some(f=>(f||'').toLowerCase().includes(q)))&&
+    (!agent||s['AGENT']===agent)&&(!level||s['LEVEL']===level)&&
+    (!offer||s['OFFER STATUS']===offer)&&(!visa||s['VISA STATUS']===visa)
   ));
 }
 
-// ── CAS SHIELD ───────────────────────────────────────────
 async function loadCASShield() {
   try {
-    showLoading('Fetching CAS Shield data…');
+    showLoading('Fetching CAS Shield…');
     const data = await appsScriptGet('getCASShield');
-    if (!data.success) throw new Error(data.error || 'Unknown error');
-    allCASData = data.records || [];
-    renderCASTable(allCASData);
-    showToast('CAS Shield data loaded ✓', 'success');
-  } catch(e) {
-    showToast('CAS Shield load failed — ' + e.message, 'error');
+    if (!data.success) throw new Error(data.error);
+    allCASData = data.records||[];
+  } catch {
     allCASData = getMockCASData();
+  } finally {
     renderCASTable(allCASData);
-  } finally { hideLoading(); }
+    hideLoading();
+    showToast('CAS Shield loaded ✓','success');
+  }
 }
 
 function renderCASTable(records) {
   const tbody = document.getElementById('cas-table-body');
-  if (!records.length) {
-    tbody.innerHTML='<tr><td colspan="15" class="empty-state">No CAS Shield records found. Add students first.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = records.map(r => {
-    const aid = r['Applicant ID'] || '';
+  if (!records.length) { tbody.innerHTML='<tr><td colspan="14" class="empty-state">No records. Click Refresh.</td></tr>'; return; }
+  tbody.innerHTML = records.map(r=>{
+    const aid = r['Applicant ID']||'';
     return `<tr>
       <td><strong>${aid}</strong></td>
       <td>${r['Applicant Name']||''}</td>
       <td>${r['Agent (Name)']||''}</td>
       <td>${r['Nationality']||''}</td>
-      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r['Course Name']||''}">${r['Course Name']||''}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${r['Course Name']||''}</td>
       <td>${r['Team Member']||''}</td>
-      <td style="font-size:12px">${r['CAP APFS']||'—'}</td>
       <td>${ynBadge(r['Study Gap Y/N'])}</td>
       <td>${ynBadge(r['Same Level Studies Y/N'])}</td>
       <td>${ynBadge(r['Visa Refusal Y/N'],'warn')}</td>
       <td>${ynBadge(r['Ready for PCI'])}</td>
       <td>${ynBadge(r['Information check on CAS Shield completed? Y/N'])}</td>
       <td>${ynBadge(r['Pre-CAS questionnaire on CAS shield Completed? Y/N'])}</td>
-      <td style="font-size:12px">${r['PCI Invite']||'—'}</td>
-      <td>
-        <div class="actions">
-          <button class="btn btn-sm btn-blue" onclick="openCASModal('${aid}')">Update</button>
-        </div>
-      </td>
+      <td style="font-size:11px">${r['PCI Invite']||'—'}</td>
+      <td><button class="btn btn-sm btn-blue" onclick="openCASModal('${aid}')">Update</button></td>
     </tr>`;
   }).join('');
 }
@@ -586,54 +631,50 @@ function renderCASTable(records) {
 function ynBadge(val, mode='') {
   if (!val) return '<span class="badge badge-gray">—</span>';
   const v = val.toLowerCase().trim();
-  if (v==='yes'||v==='y') return mode==='warn'
-    ? '<span class="badge badge-red">Yes</span>'
-    : '<span class="badge badge-green">Yes</span>';
+  if (v==='yes'||v==='y') return mode==='warn'?'<span class="badge badge-red">Yes</span>':'<span class="badge badge-green">Yes</span>';
   if (v==='no'||v==='n') return '<span class="badge badge-gray">No</span>';
   return `<span class="badge badge-gray">${val}</span>`;
 }
 
 function filterCASTable() {
-  const q    = document.getElementById('cas-search').value.toLowerCase();
-  const pci  = document.getElementById('cas-filter-pci').value;
-  const visa = document.getElementById('cas-filter-visa').value;
-  const info = document.getElementById('cas-filter-info').value;
-  renderCASTable(allCASData.filter(r =>
-    (!q    || [r['Applicant Name'],r['Applicant ID'],r['Agent (Name)']].some(f=>(f||'').toLowerCase().includes(q))) &&
-    (!pci  || (r['Ready for PCI']||'')===pci) &&
-    (!visa || (r['Visa Refusal Y/N']||'')===visa) &&
-    (!info || (r['Information check on CAS Shield completed? Y/N']||'')===info)
+  const q=document.getElementById('cas-search').value.toLowerCase();
+  const pci=document.getElementById('cas-filter-pci').value;
+  const visa=document.getElementById('cas-filter-visa').value;
+  renderCASTable(allCASData.filter(r=>
+    (!q||[r['Applicant Name'],r['Applicant ID'],r['Agent (Name)']].some(f=>(f||'').toLowerCase().includes(q)))&&
+    (!pci||(r['Ready for PCI']||'')===pci)&&
+    (!visa||(r['Visa Refusal Y/N']||'')===visa)
   ));
 }
 
-function openCASModal(applicantId) {
-  const r = allCASData.find(r=>r['Applicant ID']===applicantId);
+function openCASModal(aid) {
+  const r = allCASData.find(r=>r['Applicant ID']===aid);
   if (!r) return;
-  activeCASId = applicantId;
-  document.getElementById('cas-modal-subtitle').textContent = (r['Applicant Name']||'') + ' · ' + applicantId;
-  document.getElementById('cas-pci').value          = r['Ready for PCI'] || 'No';
-  document.getElementById('cas-visa-refusal').value = r['Visa Refusal Y/N'] || 'No';
-  document.getElementById('cas-info-check').value   = r['Information check on CAS Shield completed? Y/N'] || 'No';
-  document.getElementById('cas-precas-q').value     = r['Pre-CAS questionnaire on CAS shield Completed? Y/N'] || 'No';
-  document.getElementById('cas-study-gap').value    = r['Study Gap Y/N'] || 'No';
-  document.getElementById('cas-same-level').value   = r['Same Level Studies Y/N'] || 'No';
-  document.getElementById('cas-pci-invite').value   = r['PCI Invite'] || '';
-  document.getElementById('cas-comment').value      = r['Team Comment'] || '';
-  openModal('modal-cas-update');
+  activeCASId = aid;
+  document.getElementById('cas-ms-sub').textContent = (r['Applicant Name']||'')+' · '+aid;
+  document.getElementById('cas-pci').value = r['Ready for PCI']||'No';
+  document.getElementById('cas-visa-r').value = r['Visa Refusal Y/N']||'No';
+  document.getElementById('cas-info').value = r['Information check on CAS Shield completed? Y/N']||'No';
+  document.getElementById('cas-precas').value = r['Pre-CAS questionnaire on CAS shield Completed? Y/N']||'No';
+  document.getElementById('cas-gap').value = r['Study Gap Y/N']||'No';
+  document.getElementById('cas-same').value = r['Same Level Studies Y/N']||'No';
+  document.getElementById('cas-invite').value = r['PCI Invite']||'';
+  document.getElementById('cas-comment').value = r['Team Comment']||'';
+  openModal('modal-cas');
 }
 
 async function submitCASUpdate() {
   const updates = {
     applicantId: activeCASId,
-    'Ready for PCI':   document.getElementById('cas-pci').value,
-    'Visa Refusal Y/N': document.getElementById('cas-visa-refusal').value,
-    'Information check on CAS Shield completed? Y/N': document.getElementById('cas-info-check').value,
-    'Pre-CAS questionnaire on CAS shield Completed? Y/N': document.getElementById('cas-precas-q').value,
-    'Study Gap Y/N':   document.getElementById('cas-study-gap').value,
-    'Same Level Studies Y/N': document.getElementById('cas-same-level').value,
-    'PCI Invite':      document.getElementById('cas-pci-invite').value,
-    'Team Comment':    document.getElementById('cas-comment').value,
-    updatedBy: currentUser.name
+    'Ready for PCI': document.getElementById('cas-pci').value,
+    'Visa Refusal Y/N': document.getElementById('cas-visa-r').value,
+    'Information check on CAS Shield completed? Y/N': document.getElementById('cas-info').value,
+    'Pre-CAS questionnaire on CAS shield Completed? Y/N': document.getElementById('cas-precas').value,
+    'Study Gap Y/N': document.getElementById('cas-gap').value,
+    'Same Level Studies Y/N': document.getElementById('cas-same').value,
+    'PCI Invite': document.getElementById('cas-invite').value,
+    'Team Comment': document.getElementById('cas-comment').value,
+    updatedBy: currentStaff.name
   };
   try {
     showLoading('Saving CAS Shield update…');
@@ -642,43 +683,35 @@ async function submitCASUpdate() {
     const r = allCASData.find(r=>r['Applicant ID']===activeCASId);
     if (r) Object.assign(r, updates);
     filterCASTable();
-    closeModal('modal-cas-update');
-    showToast('CAS Shield record updated ✓','success');
-  } catch(e) {
-    showToast('Update failed: '+e.message,'error');
-  } finally { hideLoading(); }
+    closeModal('modal-cas');
+    showToast('CAS Shield updated ✓','success');
+  } catch(e) { showToast('Update failed: '+e.message,'error'); }
+  finally { hideLoading(); }
 }
 
-// ── STATUS MODAL ─────────────────────────────────────────
 const STATUS_OPTIONS = {
-  'OFFER STATUS':  ['Pending','Conditional','Unconditional','Received','Rejected'],
-  'CAS STATUS':    ['Not Applied','Pending','Issued','Rejected'],
-  'VISA STATUS':   ['Not Applied','Pending','Approved','Refused'],
-  'PAYMENT':       ['Unpaid','Partially Paid','Paid','Refunded'],
-  'PRE-SCREENING CALL STATUS': ['Not Called','Called – Interested','Called – Not Interested','Scheduled'],
-  'SCHOLARSHIP':   ['None','Partial','Full'],
-  'CAS SHIELD':    ['Not Started','In Progress','Completed','Issue Found'],
+  'OFFER STATUS':['Pending','Conditional','Unconditional','Received','Rejected'],
+  'CAS STATUS':['Not Applied','Pending','Issued','Rejected'],
+  'VISA STATUS':['Not Applied','Pending','Approved','Refused'],
+  'PAYMENT':['Unpaid','Partially Paid','Paid','Refunded'],
 };
 
 function openStatusModal(studentId, field) {
   const s = allStudents.find(s=>s['STUDENT ID']===studentId);
   if (!s) return;
   activeStudentId = studentId;
-  document.getElementById('modal-status-title').textContent    = 'Update ' + field;
-  document.getElementById('modal-status-subtitle').textContent = (s['STUDENT NAME']||'') + ' · ' + studentId;
-  const opts = STATUS_OPTIONS[field] || [];
-  const cur  = s[field] || '';
+  document.getElementById('ms-title').textContent = 'Update '+field;
+  document.getElementById('ms-sub').textContent = (s['STUDENT NAME']||'')+' · '+studentId;
+  const opts = STATUS_OPTIONS[field]||[];
+  const cur = s[field]||'';
   let html = `<input type="hidden" id="update-field" value="${field}">`;
   if (opts.length) {
-    html += `<div class="form-group"><label class="form-label">${field}</label>
-      <select class="form-control" id="update-value">${opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    html += `<div class="form-group"><label class="form-label">${field}</label><select class="form-control" id="update-value">${opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}</select></div>`;
   } else {
-    html += `<div class="form-group"><label class="form-label">${field}</label>
-      <input class="form-control" id="update-value" type="text" value="${cur}"></div>`;
+    html += `<div class="form-group"><label class="form-label">${field}</label><input class="form-control" id="update-value" type="text" value="${cur}"></div>`;
   }
-  html += `<div class="form-group"><label class="form-label">Notes (optional)</label>
-    <textarea class="form-control" id="update-notes" style="min-height:60px" placeholder="Optional notes…"></textarea></div>`;
-  document.getElementById('modal-status-body').innerHTML = html;
+  html += `<div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="update-notes" style="min-height:55px" placeholder="Optional notes…"></textarea></div>`;
+  document.getElementById('ms-body').innerHTML = html;
   openModal('modal-status');
 }
 
@@ -686,46 +719,40 @@ async function submitStatusUpdate() {
   const field = document.getElementById('update-field').value;
   const value = document.getElementById('update-value').value;
   const notes = document.getElementById('update-notes').value;
-  const btn   = document.getElementById('modal-status-submit');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Saving…';
   try {
-    const result = await appsScriptPost('updateStatus',{studentId:activeStudentId,field,value,notes,updatedBy:currentUser.name});
+    const result = await appsScriptPost('updateStatus',{studentId:activeStudentId,field,value,notes,updatedBy:currentStaff.name});
     if (!result.success) throw new Error(result.error);
     const s = allStudents.find(s=>s['STUDENT ID']===activeStudentId);
     if (s) s[field] = value;
     filterTable();
     closeModal('modal-status');
-    showToast('Updated in Google Sheet ✓','success');
-  } catch(e) {
-    showToast('Update failed: '+e.message,'error');
-  } finally { btn.disabled=false; btn.textContent='Save'; }
+    showToast('Updated ✓','success');
+  } catch(e) { showToast('Update failed: '+e.message,'error'); }
 }
 
-// ── FEEDBACK MODAL ────────────────────────────────────────
 function openFeedbackModal(studentId) {
   const s = allStudents.find(s=>s['STUDENT ID']===studentId);
   activeStudentId = studentId;
-  document.getElementById('feedback-student-name').textContent = (s?.['STUDENT NAME']||'') + ' · ' + studentId;
-  document.getElementById('feedback-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('feedback-text').value = '';
-  document.getElementById('feedback-recs').value = '';
+  document.getElementById('mfb-sub').textContent = (s?.['STUDENT NAME']||'')+' · '+studentId;
+  document.getElementById('mfb-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('mfb-text').value='';
+  document.getElementById('mfb-recs').value='';
   openModal('modal-feedback');
 }
 
 async function submitFeedback() {
-  const text = document.getElementById('feedback-text').value.trim();
+  const text = document.getElementById('mfb-text').value.trim();
   if (!text) { showToast('Please write some feedback first.','error'); return; }
-  showLoading('Generating feedback doc in Google Drive…');
+  showLoading('Generating feedback doc…');
   closeModal('modal-feedback');
   try {
     const result = await appsScriptPost('generateFeedbackDoc',{
-      studentId:    activeStudentId,
-      date:         document.getElementById('feedback-date').value,
-      performance:  document.getElementById('feedback-performance').value,
-      feedback:     text,
-      recommendations: document.getElementById('feedback-recs').value,
-      staffName:    currentUser.name
+      studentId: activeStudentId,
+      date: document.getElementById('mfb-date').value,
+      performance: document.getElementById('mfb-perf').value,
+      feedback: text,
+      recommendations: document.getElementById('mfb-recs').value,
+      staffName: currentStaff.name
     });
     if (!result.success) throw new Error(result.error);
     if (result.docUrl) {
@@ -733,66 +760,203 @@ async function submitFeedback() {
       if (s) s['MOCK PRE-CAS'] = result.docUrl;
       filterTable();
     }
-    showToast('Feedback doc created & saved to Drive ✓','success');
-  } catch(e) {
-    showToast('Failed: '+e.message,'error');
-  } finally { hideLoading(); }
+    showToast('Feedback doc created ✓','success');
+  } catch(e) { showToast('Failed: '+e.message,'error'); }
+  finally { hideLoading(); }
 }
 
-// ── CSV UPLOAD ─────────────────────────────────────────────
-function handleFileSelect(e) { parseFile(e.target.files[0]); }
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('drop-zone').classList.remove('drag-over');
-  parseFile(e.dataTransfer.files[0]);
+// STANDALONE FEEDBACK TOOL
+function fbSearchStudents(q) {
+  const results = document.getElementById('fb-lookup');
+  if (!q.trim()||q.length<2){results.classList.remove('open');return;}
+  const matches = allStudents.filter(s=>
+    (s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())
+  ).slice(0,8);
+  if (!matches.length){results.innerHTML='<div style="padding:12px;color:var(--muted);font-size:12px;text-align:center">No students found</div>';results.classList.add('open');return;}
+  results.innerHTML = matches.map(s=>`<div class="lookup-item" onclick="fbSelectStudent('${s['STUDENT ID']}')">
+    <div class="lookup-item-name">${s['STUDENT NAME']||'—'}</div>
+    <div class="lookup-item-id">${s['STUDENT ID']||''} · ${s['COURSE']||''}</div>
+  </div>`).join('');
+  results.classList.add('open');
 }
-function parseFile(file) {
-  if (!file) return;
+
+function fbSelectStudent(id) {
+  const s = allStudents.find(s=>s['STUDENT ID']===id);
+  if (!s) return;
+  fbSelectedStudent = s;
+  document.getElementById('fb-ss-name').textContent = s['STUDENT NAME']||id;
+  document.getElementById('fb-ss-meta').textContent = `${s['STUDENT ID']} · ${s['LEVEL']||''} · ${s['COURSE']||''} · Agent: ${s['AGENT']||'—'}`;
+  document.getElementById('fb-sel-card').classList.add('show');
+  document.getElementById('fb-search').value='';
+  document.getElementById('fb-lookup').classList.remove('open');
+}
+
+function fbClearStudent(){fbSelectedStudent=null;document.getElementById('fb-sel-card').classList.remove('show');document.getElementById('fb-search').value='';}
+function toggleFbManual(){fbManualMode=!fbManualMode;document.getElementById('fb-manual').style.display=fbManualMode?'block':'none';document.getElementById('fb-manual-toggle').textContent=fbManualMode?'✕ Hide manual entry':'+ Enter manually';if(fbManualMode)fbClearStudent();}
+function selectPerf(el){document.querySelectorAll('.perf-opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');selectedPerf=el.dataset.value;}
+
+function getFbData() {
+  let sName,sId,sCourse,sAgent;
+  if (fbManualMode){sName=document.getElementById('fb-mname').value.trim();sId=document.getElementById('fb-mid').value.trim();sCourse='';sAgent='';}
+  else if (fbSelectedStudent){sName=fbSelectedStudent['STUDENT NAME']||'';sId=fbSelectedStudent['STUDENT ID']||'';sCourse=fbSelectedStudent['COURSE']||'';sAgent=fbSelectedStudent['AGENT']||'';}
+  else return null;
+  return {studentName:sName,studentId:sId,studentCourse:sCourse,studentAgent:sAgent,
+    sessionDate:document.getElementById('fb-date').value,
+    sessionType:document.getElementById('fb-stype').value,
+    performance:selectedPerf,
+    feedback:document.getElementById('fb-text').value.trim(),
+    recommendations:document.getElementById('fb-recs').value.trim(),
+    staffName:currentStaff.name};
+}
+
+function buildDocHTML(data) {
+  const perfClass = {'Excellent':'perf-excellent','Good':'perf-good','Satisfactory':'perf-satisfactory','Needs Improvement':'perf-needs'}[data.performance]||'perf-good';
+  const dateFormatted = data.sessionDate?new Date(data.sessionDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
+  return `<div class="doc-header">
+    <div class="doc-org">Route 2 University (R2U) — Internal Document</div>
+    <div class="doc-title">${data.sessionType} Feedback Report</div>
+    <div class="doc-meta">
+      <div class="doc-meta-item"><div class="doc-meta-label">Student</div><div class="doc-meta-value">${data.studentName}</div></div>
+      <div class="doc-meta-item"><div class="doc-meta-label">Student ID</div><div class="doc-meta-value">${data.studentId||'—'}</div></div>
+      <div class="doc-meta-item"><div class="doc-meta-label">Date</div><div class="doc-meta-value">${dateFormatted}</div></div>
+      ${data.studentCourse?`<div class="doc-meta-item"><div class="doc-meta-label">Course</div><div class="doc-meta-value">${data.studentCourse}</div></div>`:''}
+      <div class="doc-meta-item"><div class="doc-meta-label">Performance</div><div class="doc-meta-value"><span class="perf-badge ${perfClass}">${data.performance}</span></div></div>
+    </div></div>
+    <div class="doc-section"><div class="doc-section-title">Detailed Feedback</div><div class="doc-text">${(data.feedback||'—').replace(/\n/g,'<br>')}</div></div>
+    ${data.recommendations?`<div class="doc-section"><div class="doc-section-title">Recommendations</div><div class="doc-text">${data.recommendations.replace(/\n/g,'<br>')}</div></div>`:''}
+    <div class="doc-footer"><span>Generated by R2U Student Portal</span><span>Conducted by: ${data.staffName}</span></div>`;
+}
+
+function fbPreview(){
+  const data=getFbData();
+  if(!data){showToast('Please select a student first.','error');return;}
+  document.getElementById('fb-preview-body').innerHTML=buildDocHTML(data);
+  document.getElementById('fb-preview').classList.add('show');
+  document.getElementById('fb-preview').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function fbDownloadPDF(){
+  const data=getFbData();
+  if(!data||!data.studentName){showToast('Please select a student first.','error');return;}
+  if(!data.feedback){showToast('Please write feedback first.','error');return;}
+  showLoading('Generating PDF…');
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'mm',format:'a4'});
+    const gold=[212,168,51],dark=[15,31,45],muted=[90,107,122],cream=[242,246,250];
+    const dateFormatted=data.sessionDate?new Date(data.sessionDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
+    let y=0;
+    doc.setFillColor(...dark);doc.rect(0,0,210,20,'F');
+    doc.setFontSize(12);doc.setTextColor(...gold);doc.setFont('helvetica','bold');doc.text('R2U Portal',14,13);
+    doc.setTextColor(180,180,180);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Route 2 University — Internal Document',50,13);
+    y=30;
+    doc.setFontSize(16);doc.setTextColor(...dark);doc.setFont('helvetica','bold');doc.text(data.sessionType+' Feedback Report',14,y);y+=3;
+    doc.setDrawColor(...gold);doc.setLineWidth(0.8);doc.line(14,y,196,y);y+=10;
+    const metaItems=[['Student',data.studentName],['Student ID',data.studentId||'—'],['Date',dateFormatted],['Course',data.studentCourse||'—'],['Agent',data.studentAgent||'—'],['Performance',data.performance]];
+    const colW=91;
+    metaItems.forEach((item,i)=>{
+      const col=i%2;const x=14+col*colW;
+      if(col===0&&i>0)y+=15;
+      doc.setFillColor(...cream);doc.roundedRect(x,y,colW-4,12,2,2,'F');
+      doc.setFontSize(7);doc.setTextColor(...muted);doc.setFont('helvetica','bold');doc.text(item[0].toUpperCase(),x+4,y+4.5);
+      doc.setFontSize(9);doc.setTextColor(...dark);doc.text(String(item[1]).substring(0,38),x+4,y+10);
+    });
+    y+=20;
+    doc.setFillColor(...gold);doc.rect(14,y,3,7,'F');
+    doc.setFontSize(9);doc.setTextColor(...dark);doc.setFont('helvetica','bold');doc.text('DETAILED FEEDBACK',20,y+5.5);y+=11;
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(42,58,72);
+    const fl=doc.splitTextToSize(data.feedback,178);doc.text(fl,14,y);y+=fl.length*5+8;
+    if(data.recommendations){
+      if(y>240){doc.addPage();y=20;}
+      doc.setFillColor(...gold);doc.rect(14,y,3,7,'F');
+      doc.setFontSize(9);doc.setTextColor(...dark);doc.setFont('helvetica','bold');doc.text('RECOMMENDATIONS',20,y+5.5);y+=11;
+      doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(42,58,72);
+      const rl=doc.splitTextToSize(data.recommendations,178);doc.text(rl,14,y);
+    }
+    const footY=285;
+    doc.setDrawColor(...muted);doc.setLineWidth(0.3);doc.line(14,footY-4,196,footY-4);
+    doc.setFontSize(7);doc.setTextColor(...muted);doc.setFont('helvetica','normal');
+    doc.text('Generated by R2U Student Portal',14,footY);
+    doc.text('Conducted by: '+data.staffName,196,footY,{align:'right'});
+    const fname=`MockPreCAS_${(data.studentName||'Student').replace(/\s+/g,'_')}_${data.sessionDate||'nodate'}.pdf`;
+    doc.save(fname);
+    showToast('PDF downloaded ✓','success');
+  }catch(e){showToast('PDF failed: '+e.message,'error');}
+  finally{hideLoading();}
+}
+
+async function fbSaveToDrive(){
+  const data=getFbData();
+  if(!data||!data.studentName){showToast('Please select a student first.','error');return;}
+  if(!data.feedback){showToast('Please write feedback first.','error');return;}
+  if(!data.studentId){showToast('Student ID required to save to Sheet.','error');return;}
+  showLoading('Saving to Google Drive & Sheet…');
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'generateFeedbackDoc',studentId:data.studentId,date:data.sessionDate,performance:data.performance,feedback:data.feedback,recommendations:data.recommendations,staffName:data.staffName,sessionType:data.sessionType})});
+    const result=await res.json();
+    if(!result.success)throw new Error(result.error||'Unknown error');
+    document.getElementById('fb-success-title').textContent='Feedback doc created for '+data.studentName;
+    if(result.docUrl)document.getElementById('fb-doc-link').href=result.docUrl;
+    document.getElementById('fb-success').classList.add('show');
+    document.getElementById('fb-success').scrollIntoView({behavior:'smooth',block:'start'});
+    showToast('Saved to Drive & Sheet ✓','success');
+  }catch(e){showToast('Save failed: '+e.message+' — Try Download PDF instead.','error');}
+  finally{hideLoading();}
+}
+
+function resetFeedback(){
+  fbClearStudent();
+  document.getElementById('fb-text').value='';
+  document.getElementById('fb-recs').value='';
+  document.getElementById('fb-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fb-search').value='';
+  selectPerf(document.querySelector('.perf-opt[data-value="Excellent"]'));
+  document.getElementById('fb-success').classList.remove('show');
+  document.getElementById('fb-preview').classList.remove('show');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// UPLOAD
+function handleFileSelect(e){parseFile(e.target.files[0]);}
+function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');parseFile(e.dataTransfer.files[0]);}
+function parseFile(file){
+  if(!file)return;
   Papa.parse(file,{header:true,skipEmptyLines:true,
-    complete:(r)=>{ parsedCSVData=r.data; showPreview(file.name,r.data); },
+    complete:(r)=>{parsedCSVData=r.data;showPreview(file.name,r.data);},
     error:(err)=>showToast('Parse error: '+err.message,'error')
   });
 }
-function showPreview(filename, data) {
-  if (!data.length){showToast('No data rows found.','error');return;}
-  document.getElementById('preview-filename').textContent = filename;
-  document.getElementById('preview-rows').textContent     = data.length;
-  const headers = Object.keys(data[0]);
+function showPreview(filename,data){
+  if(!data.length){showToast('No data rows found.','error');return;}
+  document.getElementById('preview-filename').textContent=filename;
+  document.getElementById('preview-rows').textContent=data.length;
+  const headers=Object.keys(data[0]);
   document.getElementById('preview-thead').innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
   document.getElementById('preview-tbody').innerHTML=data.slice(0,5).map(row=>'<tr>'+headers.map(h=>`<td>${row[h]||''}</td>`).join('')+'</tr>').join('');
   document.getElementById('upload-preview').classList.add('show');
 }
-function clearUpload() {
-  parsedCSVData=[];
-  document.getElementById('csv-file').value='';
-  document.getElementById('upload-preview').classList.remove('show');
-}
-async function confirmUpload() {
-  if (!parsedCSVData.length) return;
-  const btn=document.getElementById('confirm-upload-btn');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Uploading…';
-  try {
-    const r = await appsScriptPost('uploadCSV',{rows:parsedCSVData});
-    if (!r.success) throw new Error(r.error);
+function clearUpload(){parsedCSVData=[];document.getElementById('csv-file').value='';document.getElementById('upload-preview').classList.remove('show');}
+async function confirmUpload(){
+  if(!parsedCSVData.length)return;
+  try{
+    const r=await appsScriptPost('uploadCSV',{rows:parsedCSVData});
+    if(!r.success)throw new Error(r.error);
     showToast(`Imported ${r.added||0} new, updated ${r.updated||0} records ✓`,'success');
-    clearUpload(); loadStudents();
-  } catch(e) { showToast('Upload failed: '+e.message,'error'); }
-  finally { btn.disabled=false; btn.textContent='Upload to Google Sheet'; }
+    clearUpload();loadStudents();
+  }catch(e){showToast('Upload failed: '+e.message,'error');}
 }
 
-// ── REPORTS ──────────────────────────────────────────────
-async function loadReports() {
-  const grid = document.getElementById('report-grid');
-  grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><span class="spinner" style="border-top-color:var(--gold)"></span></div>';
-  try {
-    const data = await appsScriptGet('getReport');
-    if (!data.success) throw new Error(data.error);
+// REPORTS
+async function loadReports(){
+  const grid=document.getElementById('report-grid');
+  grid.innerHTML='<div class="empty-state">Loading…</div>';
+  try{
+    const data=await appsScriptGet('getReport');
+    if(!data.success)throw new Error(data.error);
     renderReports(data.report);
-  } catch {
-    renderReports(buildLocalReport(allStudents));
-  }
+  }catch{renderReports(buildLocalReport(allStudents));}
 }
-function buildLocalReport(students) {
+function buildLocalReport(students){
   const count=(f,v)=>students.filter(s=>s[f]===v).length;
   return {
     offer:{Pending:count('OFFER STATUS','Pending'),Conditional:count('OFFER STATUS','Conditional'),Unconditional:count('OFFER STATUS','Unconditional'),Received:count('OFFER STATUS','Received'),Rejected:count('OFFER STATUS','Rejected')},
@@ -801,67 +965,39 @@ function buildLocalReport(students) {
     payment:{Unpaid:count('PAYMENT','Unpaid'),'Partially Paid':count('PAYMENT','Partially Paid'),Paid:count('PAYMENT','Paid'),Refunded:count('PAYMENT','Refunded')},
   };
 }
-function renderReports(report) {
-  const grid = document.getElementById('report-grid');
-  if (!report){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1">No data.</div>';return;}
-  const sections=[
-    {title:'Offer Status',data:report.offer},
-    {title:'CAS Status',data:report.cas},
-    {title:'Visa Status',data:report.visa},
-    {title:'Payment',data:report.payment},
-  ];
+function renderReports(report){
+  const grid=document.getElementById('report-grid');
+  if(!report){grid.innerHTML='<div class="empty-state">No data.</div>';return;}
+  const sections=[{title:'Offer Status',data:report.offer},{title:'CAS Status',data:report.cas},{title:'Visa Status',data:report.visa},{title:'Payment',data:report.payment}];
   grid.innerHTML=sections.map(sec=>{
     const total=Object.values(sec.data||{}).reduce((a,b)=>a+b,0);
     const bars=Object.entries(sec.data||{}).map(([label,cnt])=>{
       const pct=total?Math.round(cnt/total*100):0;
-      return `<div class="report-bar-item">
-        <div class="report-bar-label">${label}</div>
-        <div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div>
-        <div class="report-bar-count">${cnt}</div>
-      </div>`;
+      return `<div class="report-bar-item"><div class="report-bar-label">${label}</div><div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div><div class="report-bar-count">${cnt}</div></div>`;
     }).join('');
     return `<div class="report-card"><div class="report-card-title">${sec.title} <span style="font-weight:400;color:var(--muted)">(${total})</span></div>${bars||'<div class="empty-state">No data</div>'}</div>`;
   }).join('');
 }
 
-// ── MODALS ────────────────────────────────────────────────
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(o=>
-  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); })
-);
+// MODALS
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
-// ── HELPERS ───────────────────────────────────────────────
-function showLoading(msg){
-  document.getElementById('loading-msg').textContent=msg||'Processing…';
-  document.getElementById('loading').classList.add('show');
-}
-function hideLoading(){ document.getElementById('loading').classList.remove('show'); }
-function showToast(msg, type='success') {
-  const wrap=document.getElementById('toast-wrap');
-  const t=document.createElement('div');
-  t.className='toast '+type;
-  t.innerHTML=(type==='success'?'✓ ':'✕ ')+msg;
-  wrap.appendChild(t);
-  setTimeout(()=>t.remove(),4000);
-}
+// HELPERS
+function showLoading(msg){document.getElementById('loading-msg').textContent=msg||'Processing…';document.getElementById('loading').classList.add('show');}
+function hideLoading(){document.getElementById('loading').classList.remove('show');}
+function showToast(msg,type='success'){const wrap=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast '+type;t.innerHTML=(type==='success'?'✓  ':'✕  ')+msg;wrap.appendChild(t);setTimeout(()=>t.remove(),4000);}
 
-// ── MOCK DATA (fallback when Sheet unreachable) ───────────
-function getMockStudents() {
-  return [
-    {'STUDENT ID':'R2U001','STUDENT NAME':'Priya Sharma','LEVEL':'PG','COURSE':'MSc Computer Science','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Received','SCHOLARSHIP':'Partial','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Pending','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
-    {'STUDENT ID':'R2U002','STUDENT NAME':'Amit Patel','LEVEL':'UG','COURSE':'BA Business Management','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Conditional','SCHOLARSHIP':'None','PAYMENT':'Partially Paid','CAS SHIELD':'In Progress','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
-    {'STUDENT ID':'R2U003','STUDENT NAME':'Sara Khan','LEVEL':'PG','COURSE':'MBA Finance','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Unconditional','SCHOLARSHIP':'Full','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Approved','SUBMITTED BY':'Sagar'},
-    {'STUDENT ID':'R2U004','STUDENT NAME':'Rahul Singh','LEVEL':'PHD','COURSE':'PhD Engineering','AGENT':'Agent C','PRE-SCREENING CALL STATUS':'Not Called','OFFER STATUS':'Received','SCHOLARSHIP':'None','PAYMENT':'Unpaid','CAS SHIELD':'Not Started','CAS STATUS':'Pending','VISA STATUS':'Pending','SUBMITTED BY':'Admin'},
-    {'STUDENT ID':'R2U005','STUDENT NAME':'Meena Joshi','LEVEL':'UG','COURSE':'BSc Nursing','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Not Interested','OFFER STATUS':'Rejected','SCHOLARSHIP':'None','PAYMENT':'Refunded','CAS SHIELD':'Not Started','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
-  ];
-}
-function getMockCASData() {
-  return [
-    {'Applicant ID':'R2U001','Applicant Name':'Priya Sharma','Agent (Name)':'Agent A','Nationality':'Nepali','Course Name':'MSc Computer Science','CAP APFS':'APFS001','Team Member':'Sagar','Team Comment':'27.06.2026 - Ready for PCI','Study Gap Y/N':'No','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'Yes','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'Yes','PCI Invite':'2026-07-01'},
-    {'Applicant ID':'R2U002','Applicant Name':'Amit Patel','Agent (Name)':'Agent B','Nationality':'Indian','Course Name':'BA Business Management','CAP APFS':'APFS002','Team Member':'Admin','Team Comment':'','Study Gap Y/N':'Yes','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'No','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'No','PCI Invite':''},
-  ];
-}
+function getMockStudents(){return[
+  {'STUDENT ID':'R2U001','STUDENT NAME':'Priya Sharma','LEVEL':'PG','COURSE':'MSc Computer Science','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Received','SCHOLARSHIP':'Partial','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Pending','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
+  {'STUDENT ID':'R2U002','STUDENT NAME':'Amit Patel','LEVEL':'UG','COURSE':'BA Business Management','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Conditional','SCHOLARSHIP':'None','PAYMENT':'Partially Paid','CAS SHIELD':'In Progress','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
+  {'STUDENT ID':'R2U003','STUDENT NAME':'Sara Khan','LEVEL':'PG','COURSE':'MBA Finance','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Unconditional','SCHOLARSHIP':'Full','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Approved','SUBMITTED BY':'Sagar'},
+  {'STUDENT ID':'R2U004','STUDENT NAME':'Rahul Singh','LEVEL':'PHD','COURSE':'PhD Engineering','AGENT':'Agent C','PRE-SCREENING CALL STATUS':'Not Called','OFFER STATUS':'Received','SCHOLARSHIP':'None','PAYMENT':'Unpaid','CAS SHIELD':'Not Started','CAS STATUS':'Pending','VISA STATUS':'Pending','SUBMITTED BY':'Admin'},
+  {'STUDENT ID':'R2U005','STUDENT NAME':'Meena Joshi','LEVEL':'UG','COURSE':'BSc Nursing','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Not Interested','OFFER STATUS':'Rejected','SCHOLARSHIP':'None','PAYMENT':'Refunded','CAS SHIELD':'Not Started','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
+];}
+function getMockCASData(){return[
+  {'Applicant ID':'R2U001','Applicant Name':'Priya Sharma','Agent (Name)':'Agent A','Nationality':'Nepali','Course Name':'MSc Computer Science','Team Member':'Sagar','Study Gap Y/N':'No','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'Yes','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'Yes','PCI Invite':'2026-07-01'},
+  {'Applicant ID':'R2U002','Applicant Name':'Amit Patel','Agent (Name)':'Agent B','Nationality':'Indian','Course Name':'BA Business Management','Team Member':'Admin','Study Gap Y/N':'Yes','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'No','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'No','PCI Invite':''},
+];}
 </script>
-</body>
-</html>
