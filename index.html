@@ -1,5 +1,886 @@
-<docotype html!>
-  <html>
-    <head> hi this the project</head>
-    <body> ok love you </body>
-  </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R2U — Student Application Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --dark:#0F1F2D;--dark2:#162636;--gold:#D4A833;--gold-l:#F0C84A;--gold-s:#FDF6E0;
+    --white:#FFFFFF;--cream:#F2F6FA;--panel:#FFFFFF;--line:#DDE4EC;--muted:#5A6B7A;
+    --green:#1E7A62;--blue:#2B5A8A;--red:#B03A2E;--amber:#C97B15;
+    --radius:10px;--shadow:0 2px 12px rgba(15,31,45,0.08);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Manrope',sans-serif;background:var(--cream);color:var(--dark);min-height:100vh;font-size:14px;}
+
+  /* TOPBAR */
+  .topbar{background:var(--dark);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .topbar-logo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:18px;color:var(--gold);letter-spacing:-0.3px;}
+  .topbar-logo span{color:var(--white);}
+  .topbar-user{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.75);font-size:13px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--gold);color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;}
+
+  /* NAV */
+  .nav{background:var(--dark2);padding:0 24px;display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .nav-tab{padding:10px 16px;color:rgba(255,255,255,0.55);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;user-select:none;}
+  .nav-tab:hover{color:rgba(255,255,255,0.85);}
+  .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+  /* LAYOUT */
+  .main{padding:24px;max-width:1500px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* STATS */
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+  .stat-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
+  .stat-value{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;color:var(--dark);}
+  .stat-value.gold{color:var(--gold);}
+  .stat-value.green{color:var(--green);}
+  .stat-value.red{color:var(--red);}
+
+  /* TOOLBAR */
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .toolbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .search-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px;font-family:inherit;color:var(--dark);width:220px;outline:none;transition:border-color 0.15s;}
+  .search-box:focus{border-color:var(--gold);}
+  .filter-select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;color:var(--dark);outline:none;cursor:pointer;}
+
+  /* BUTTONS */
+  .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity 0.15s,transform 0.1s;text-decoration:none;}
+  .btn:hover{opacity:0.88;}
+  .btn:active{transform:scale(0.98);}
+  .btn-gold{background:var(--gold);color:var(--dark);}
+  .btn-dark{background:var(--dark);color:var(--white);}
+  .btn-outline{background:transparent;border:1px solid var(--line);color:var(--dark);}
+  .btn-blue{background:var(--blue);color:var(--white);}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+
+  /* TABLE */
+  .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;max-height:62vh;box-shadow:var(--shadow);}
+  table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
+  thead{position:sticky;top:0;z-index:2;}
+  thead th{background:var(--dark);color:rgba(255,255,255,0.8);padding:11px 14px;text-align:left;font-weight:600;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid rgba(255,255,255,0.06);}
+  thead th:last-child{border-right:none;}
+  tbody tr{border-bottom:1px solid var(--line);transition:background 0.1s;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:#F7F9FC;}
+  tbody td{padding:10px 14px;color:var(--dark);border-right:1px solid var(--line);}
+  tbody td:last-child{border-right:none;}
+
+  /* BADGES */
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:0.02em;}
+  .badge-green{background:#D4F0E8;color:#0E5C46;}
+  .badge-amber{background:#FEF3D5;color:#8A5A00;}
+  .badge-blue{background:#D7E8F8;color:#1A3D6B;}
+  .badge-red{background:#F9DADA;color:#7C1F1F;}
+  .badge-gray{background:#E8ECF0;color:#3A4B58;}
+  .badge-gold{background:var(--gold-s);color:#7A5500;}
+  .badge-yn-y{background:#D4F0E8;color:#0E5C46;}
+  .badge-yn-n{background:#E8ECF0;color:#3A4B58;}
+
+  .actions{display:flex;gap:5px;}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,20,30,0.55);z-index:500;display:none;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--panel);border-radius:14px;padding:28px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;}
+  .modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+  .modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;color:var(--dark);}
+  .modal-subtitle{font-size:12px;color:var(--muted);margin-top:2px;}
+  .modal-close{width:28px;height:28px;border-radius:50%;background:var(--line);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
+  .form-group{margin-bottom:14px;}
+  .form-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;}
+  .form-control{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;color:var(--dark);background:var(--white);outline:none;transition:border-color 0.15s;}
+  .form-control:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,51,0.12);}
+  textarea.form-control{resize:vertical;min-height:100px;}
+  .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+  /* TWO-COL FORM GRID */
+  .form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* UPLOAD */
+  .upload-card{background:var(--panel);border:2px dashed var(--line);border-radius:14px;padding:48px;text-align:center;max-width:520px;margin:0 auto;transition:border-color 0.2s;}
+  .upload-card.drag-over{border-color:var(--gold);background:var(--gold-s);}
+  .upload-icon{font-size:40px;margin-bottom:14px;color:var(--gold);}
+  .upload-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;margin-bottom:6px;}
+  .upload-sub{color:var(--muted);font-size:13px;margin-bottom:20px;}
+  #csv-file{display:none;}
+  .upload-preview{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:20px;text-align:left;display:none;}
+  .upload-preview.show{display:block;}
+  .preview-info{font-size:13px;color:var(--muted);margin-bottom:10px;}
+  .preview-info strong{color:var(--dark);}
+
+  /* REPORTS */
+  .report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
+  .report-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+  .report-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--dark);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .report-bar-item{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .report-bar-label{width:110px;font-size:12px;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .report-bar-track{flex:1;background:var(--cream);border-radius:4px;height:8px;overflow:hidden;}
+  .report-bar-fill{height:100%;border-radius:4px;background:var(--gold);transition:width 0.6s ease;}
+  .report-bar-count{font-size:12px;font-weight:700;color:var(--dark);min-width:24px;text-align:right;}
+
+  /* TOAST */
+  .toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+  .toast{background:var(--dark);color:var(--white);padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;animation:slideIn 0.25s ease;}
+  .toast.success{border-left:3px solid var(--gold);}
+  .toast.error{border-left:3px solid var(--red);}
+  @keyframes slideIn{from{transform:translateX(60px);opacity:0;}to{transform:none;opacity:1;}}
+
+  .section-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;color:var(--dark);margin-bottom:14px;}
+  .empty-state{text-align:center;padding:48px;color:var(--muted);font-size:13px;}
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.7);z-index:900;display:none;align-items:center;justify-content:center;font-weight:600;color:var(--dark);gap:10px;}
+  .loading-overlay.show{display:flex;}
+
+  /* CAS SHIELD section header */
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .section-badge{background:var(--gold-s);color:#7A5500;border:1px solid var(--gold);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.04em;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-logo">R2U <span>Portal</span></div>
+  <div class="topbar-user">
+    <div class="avatar" id="user-initials">AD</div>
+    <span id="user-name">Admin</span>
+    <button class="btn btn-outline btn-sm" onclick="signOut()" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.2)">Sign out</button>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="nav-tab active" data-view="dashboard" onclick="switchView('dashboard',this)">Dashboard</div>
+  <div class="nav-tab" data-view="casshield" onclick="switchView('casshield',this)">CAS Shield</div>
+  <div class="nav-tab" data-view="upload" onclick="switchView('upload',this)">Import CSV</div>
+  <div class="nav-tab" data-view="reports" onclick="switchView('reports',this)">Reports</div>
+</nav>
+
+<main class="main">
+
+  <!-- ── DASHBOARD ── -->
+  <div class="view active" id="view-dashboard">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value" id="stat-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">Offer Received</div><div class="stat-value green" id="stat-offers">—</div></div>
+      <div class="stat-card"><div class="stat-label">CAS Pending</div><div class="stat-value gold" id="stat-cas">—</div></div>
+      <div class="stat-card"><div class="stat-label">Visa Approved</div><div class="stat-value green" id="stat-visa">—</div></div>
+      <div class="stat-card"><div class="stat-label">Visa Refused</div><div class="stat-value red" id="stat-refused">—</div></div>
+      <div class="stat-card"><div class="stat-label">Payment Pending</div><div class="stat-value gold" id="stat-payment">—</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="search-box" id="search-input" type="text" placeholder="Search name, ID, course…" oninput="filterTable()">
+        <select class="filter-select" id="filter-agent" onchange="filterTable()"><option value="">All Agents</option></select>
+        <select class="filter-select" id="filter-level" onchange="filterTable()">
+          <option value="">All Levels</option>
+          <option>UG</option><option>PG</option><option>PHD</option>
+        </select>
+        <select class="filter-select" id="filter-offer" onchange="filterTable()">
+          <option value="">All Offer Statuses</option>
+          <option>Pending</option><option>Conditional</option><option>Unconditional</option><option>Received</option><option>Rejected</option>
+        </select>
+        <select class="filter-select" id="filter-visa" onchange="filterTable()">
+          <option value="">All Visa Statuses</option>
+          <option>Not Applied</option><option>Pending</option><option>Approved</option><option>Refused</option>
+        </select>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="loadStudents()">⟳ Refresh</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="student-table">
+        <thead>
+          <tr>
+            <th>Student ID</th><th>Student Name</th><th>Level</th><th>Course</th><th>Agent</th>
+            <th>Pre-Screening</th><th>Offer Status</th><th>Scholarship</th>
+            <th>Payment</th><th>CAS Shield</th><th>Mock Pre-CAS</th>
+            <th>CAS Status</th><th>Visa Status</th><th>Submitted By</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="15" class="empty-state">Loading students…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── CAS SHIELD ── -->
+  <div class="view" id="view-casshield">
+    <div class="section-header">
+      <div class="section-title" style="margin-bottom:0">CAS Shield Tracker</div>
+      <span class="section-badge">CAS SHIELD</span>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="search-box" id="cas-search" type="text" placeholder="Search name, ID, agent…" oninput="filterCASTable()">
+        <select class="filter-select" id="cas-filter-pci" onchange="filterCASTable()">
+          <option value="">Ready for PCI</option><option>Yes</option><option>No</option>
+        </select>
+        <select class="filter-select" id="cas-filter-visa" onchange="filterCASTable()">
+          <option value="">Visa Refusal</option><option>Yes</option><option>No</option>
+        </select>
+        <select class="filter-select" id="cas-filter-info" onchange="filterCASTable()">
+          <option value="">Info Check</option><option>Yes</option><option>No</option>
+        </select>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="loadCASShield()">⟳ Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table id="cas-table">
+        <thead>
+          <tr>
+            <th>Applicant ID</th><th>Applicant Name</th><th>Agent</th><th>Nationality</th>
+            <th>Course</th><th>Team Member</th><th>CAP APFS</th>
+            <th>Study Gap</th><th>Same Level</th><th>Visa Refusal</th>
+            <th>Ready PCI</th><th>Info Check ✓</th><th>Pre-CAS Q ✓</th>
+            <th>PCI Invite</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="cas-table-body">
+          <tr><td colspan="15" class="empty-state">Click Refresh to load CAS Shield data…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── UPLOAD ── -->
+  <div class="view" id="view-upload">
+    <div class="section-title">Import Student Data</div>
+    <div class="upload-card" id="drop-zone"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleDrop(event)">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">Drop your CSV or Excel file here</div>
+      <div class="upload-sub">Columns must match the Google Sheet headers exactly.<br>Existing records will not be duplicated (matched by Student ID).</div>
+      <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)">
+      <button class="btn btn-gold" onclick="document.getElementById('csv-file').click()">Choose file</button>
+    </div>
+    <div class="upload-preview" id="upload-preview">
+      <div class="preview-info"><strong id="preview-filename"></strong> — <span id="preview-rows"></span> rows detected</div>
+      <div class="table-wrap" style="max-height:280px;margin-bottom:14px;">
+        <table id="preview-table"><thead id="preview-thead"></thead><tbody id="preview-tbody"></tbody></table>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="clearUpload()">Cancel</button>
+        <button class="btn btn-gold" id="confirm-upload-btn" onclick="confirmUpload()">Upload to Google Sheet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REPORTS ── -->
+  <div class="view" id="view-reports">
+    <div class="section-title">Real-time Reports</div>
+    <div class="report-grid" id="report-grid">
+      <div class="empty-state" style="grid-column:1/-1">Loading reports…</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- STATUS UPDATE MODAL -->
+<div class="modal-overlay" id="modal-status">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-status-title">Update Status</div>
+        <div class="modal-subtitle" id="modal-status-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-status')">✕</button>
+    </div>
+    <div id="modal-status-body"></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-status')">Cancel</button>
+      <button class="btn btn-gold" id="modal-status-submit" onclick="submitStatusUpdate()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAS SHIELD UPDATE MODAL -->
+<div class="modal-overlay" id="modal-cas-update">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Update CAS Shield Record</div>
+        <div class="modal-subtitle" id="cas-modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-cas-update')">✕</button>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Ready for PCI</label>
+        <select class="form-control" id="cas-pci"><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Visa Refusal Y/N</label>
+        <select class="form-control" id="cas-visa-refusal"><option>No</option><option>Yes</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Info Check on CAS Shield</label>
+        <select class="form-control" id="cas-info-check"><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pre-CAS Questionnaire</label>
+        <select class="form-control" id="cas-precas-q"><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Study Gap Y/N</label>
+        <select class="form-control" id="cas-study-gap"><option>No</option><option>Yes</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Same Level Studies Y/N</label>
+        <select class="form-control" id="cas-same-level"><option>No</option><option>Yes</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">PCI Invite Date</label>
+      <input type="date" class="form-control" id="cas-pci-invite">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Team Comment</label>
+      <textarea class="form-control" id="cas-comment" style="min-height:80px" placeholder="e.g. 27.06.2026 - called applicant, ready for PCI link"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-cas-update')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitCASUpdate()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="modal-feedback">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Mock Pre-CAS Feedback</div>
+        <div class="modal-subtitle" id="feedback-student-name"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-feedback')">✕</button>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Session Date</label>
+        <input type="date" class="form-control" id="feedback-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Overall Performance</label>
+        <select class="form-control" id="feedback-performance">
+          <option>Excellent</option><option>Good</option><option>Satisfactory</option><option>Needs Improvement</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Detailed Feedback</label>
+      <textarea class="form-control" id="feedback-text" placeholder="Write mock pre-CAS interview feedback here…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recommendations</label>
+      <textarea class="form-control" id="feedback-recs" style="min-height:70px" placeholder="Key areas to improve before actual CAS interview…"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-feedback')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitFeedback()">Generate Doc &amp; Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+<div class="loading-overlay" id="loading"><div class="spinner"></div><span id="loading-msg">Processing…</span></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3U3qhoGW6ltANBtK568O1G_WbmmTgQ5RhjGQlJy47CWYj7yitz-JpP7Mj3KC2H-CCNQ/exec';
+
+const SHEET_COLUMNS = [
+  'LEVEL','DOB','STUDENT ID','STUDENT NAME','COURSE','PRE-SCREENING CALL STATUS',
+  'OFFER STATUS','SCHOLARSHIP','PAYMENT','CAS SHIELD','MOCK PRE-CAS',
+  'PRE-CAS INTERVIEW','CAS STATUS','EDUCATION TYPE','MOBILE','EMAIL','AGENT',
+  'CONDITION - DOCS / UC RECEIVED DATE','PAYMENT DATE','VISA STATUS',
+  'APPLICATION SUBMITTED DATE','SUBMITTED BY'
+];
+
+const CAS_SHIELD_COLUMNS = [
+  'Applicant ID','Applicant Name','Agent (Name)','Nationality','Country of Domicile',
+  'Course Name','CAP APFS','CAP SEQN','Ledger Debtor Balance','Phone Number','Email',
+  'Team Member','Team Comment','Study Gap Y/N','Same Level Studies Y/N',
+  'Visa Refusal Y/N','Ready for PCI','Information check on CAS Shield completed? Y/N',
+  'Pre-CAS questionnaire on CAS shield Completed? Y/N','PCI Invite','Notes'
+];
+
+// ── STATE ───────────────────────────────────────────────────────────
+let allStudents  = [];
+let allCASData   = [];
+let parsedCSVData = [];
+let activeStudentId = null;
+let activeCASId     = null;
+let currentUser  = { name:'Admin', initials:'AD' };
+
+// ── INIT ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('user-name').textContent     = currentUser.name;
+  document.getElementById('user-initials').textContent = currentUser.initials;
+  loadStudents();
+});
+
+function signOut() { showToast('Signed out','success'); }
+
+// ── NAV ─────────────────────────────────────────────────────────────
+function switchView(id, tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  tab.classList.add('active');
+  if (id === 'reports')   loadReports();
+  if (id === 'casshield') loadCASShield();
+}
+
+// ── API ─────────────────────────────────────────────────────────────
+async function appsScriptGet(action, params={}) {
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+async function appsScriptPost(action, body={}) {
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action,...body})
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ── LOAD STUDENTS ───────────────────────────────────────────────────
+async function loadStudents() {
+  try {
+    showLoading('Fetching students…');
+    const data = await appsScriptGet('getStudents');
+    allStudents = data.students || [];
+    renderTable(allStudents);
+    updateStats(allStudents);
+    populateAgentFilter(allStudents);
+  } catch(e) {
+    showToast('Using demo data ('+e.message+')','error');
+    allStudents = getMockStudents();
+    renderTable(allStudents);
+    updateStats(allStudents);
+    populateAgentFilter(allStudents);
+  } finally { hideLoading(); }
+}
+
+function updateStats(students) {
+  document.getElementById('stat-total').textContent   = students.length;
+  document.getElementById('stat-offers').textContent  = students.filter(s=>(s['OFFER STATUS']||'').match(/received|unconditional/i)).length;
+  document.getElementById('stat-cas').textContent     = students.filter(s=>(s['CAS STATUS']||'').toLowerCase().includes('pending')).length;
+  document.getElementById('stat-visa').textContent    = students.filter(s=>(s['VISA STATUS']||'').toLowerCase()==='approved').length;
+  document.getElementById('stat-refused').textContent = students.filter(s=>(s['VISA STATUS']||'').toLowerCase()==='refused').length;
+  document.getElementById('stat-payment').textContent = students.filter(s=>(s['PAYMENT']||'').match(/unpaid|partially/i)).length;
+}
+
+function populateAgentFilter(students) {
+  const agents = [...new Set(students.map(s=>s['AGENT']).filter(Boolean))].sort();
+  const sel = document.getElementById('filter-agent');
+  sel.innerHTML = '<option value="">All Agents</option>';
+  agents.forEach(a => { const o=document.createElement('option'); o.textContent=a; sel.appendChild(o); });
+}
+
+// ── RENDER MAIN TABLE ────────────────────────────────────────────────
+function renderTable(students) {
+  const tbody = document.getElementById('table-body');
+  if (!students.length) {
+    tbody.innerHTML='<tr><td colspan="15" class="empty-state">No students found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = students.map(s => {
+    const sid = s['STUDENT ID'] || '';
+    const mockLink = s['MOCK PRE-CAS']
+      ? `<a href="${s['MOCK PRE-CAS']}" target="_blank" class="btn btn-sm btn-outline">View Doc</a>`
+      : '—';
+    return `<tr>
+      <td><strong>${sid}</strong></td>
+      <td>${s['STUDENT NAME']||''}</td>
+      <td>${s['LEVEL']||''}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${s['COURSE']||''}">${s['COURSE']||''}</td>
+      <td>${s['AGENT']||''}</td>
+      <td>${badge(s['PRE-SCREENING CALL STATUS'])}</td>
+      <td>${badge(s['OFFER STATUS'])}</td>
+      <td>${badge(s['SCHOLARSHIP'])}</td>
+      <td>${badge(s['PAYMENT'])}</td>
+      <td>${badge(s['CAS SHIELD'])}</td>
+      <td>${mockLink}</td>
+      <td>${badge(s['CAS STATUS'])}</td>
+      <td>${badge(s['VISA STATUS'])}</td>
+      <td style="font-size:12px;color:var(--muted)">${s['SUBMITTED BY']||''}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','OFFER STATUS')">Offer</button>
+          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','CAS STATUS')">CAS</button>
+          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','VISA STATUS')">Visa</button>
+          <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','PAYMENT')">Payment</button>
+          <button class="btn btn-sm btn-gold"    onclick="openFeedbackModal('${sid}')">Feedback</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function badge(val) {
+  if (!val || val==='—') return '<span class="badge badge-gray">—</span>';
+  const v = val.toLowerCase();
+  if (v.match(/approved|received|unconditional|issued|paid|complete|yes/)) return `<span class="badge badge-green">${val}</span>`;
+  if (v.match(/refused|rejected|failed/))   return `<span class="badge badge-red">${val}</span>`;
+  if (v.match(/pending|awaiting|submitted|conditional/)) return `<span class="badge badge-amber">${val}</span>`;
+  if (v.match(/partial|progress/))          return `<span class="badge badge-blue">${val}</span>`;
+  if (v==='no')                             return `<span class="badge badge-gray">No</span>`;
+  return `<span class="badge badge-gray">${val}</span>`;
+}
+
+function filterTable() {
+  const q     = document.getElementById('search-input').value.toLowerCase();
+  const agent = document.getElementById('filter-agent').value;
+  const level = document.getElementById('filter-level').value;
+  const offer = document.getElementById('filter-offer').value;
+  const visa  = document.getElementById('filter-visa').value;
+  renderTable(allStudents.filter(s =>
+    (!q     || [s['STUDENT NAME'],s['STUDENT ID'],s['COURSE']].some(f=>(f||'').toLowerCase().includes(q))) &&
+    (!agent || s['AGENT']===agent) &&
+    (!level || s['LEVEL']===level) &&
+    (!offer || s['OFFER STATUS']===offer) &&
+    (!visa  || s['VISA STATUS']===visa)
+  ));
+}
+
+// ── CAS SHIELD ───────────────────────────────────────────────────────
+async function loadCASShield() {
+  try {
+    showLoading('Fetching CAS Shield data…');
+    const data = await appsScriptGet('getCASShield');
+    allCASData = data.records || [];
+    renderCASTable(allCASData);
+  } catch(e) {
+    showToast('CAS Shield load failed: '+e.message,'error');
+    allCASData = getMockCASData();
+    renderCASTable(allCASData);
+  } finally { hideLoading(); }
+}
+
+function renderCASTable(records) {
+  const tbody = document.getElementById('cas-table-body');
+  if (!records.length) {
+    tbody.innerHTML='<tr><td colspan="15" class="empty-state">No CAS Shield records found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = records.map(r => {
+    const aid = r['Applicant ID'] || '';
+    return `<tr>
+      <td><strong>${aid}</strong></td>
+      <td>${r['Applicant Name']||''}</td>
+      <td>${r['Agent (Name)']||''}</td>
+      <td>${r['Nationality']||''}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r['Course Name']||''}">${r['Course Name']||''}</td>
+      <td>${r['Team Member']||''}</td>
+      <td style="font-size:12px">${r['CAP APFS']||'—'}</td>
+      <td>${ynBadge(r['Study Gap Y/N'])}</td>
+      <td>${ynBadge(r['Same Level Studies Y/N'])}</td>
+      <td>${ynBadge(r['Visa Refusal Y/N'],'warn')}</td>
+      <td>${ynBadge(r['Ready for PCI'])}</td>
+      <td>${ynBadge(r['Information check on CAS Shield completed? Y/N'])}</td>
+      <td>${ynBadge(r['Pre-CAS questionnaire on CAS shield Completed? Y/N'])}</td>
+      <td style="font-size:12px">${r['PCI Invite']||'—'}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-sm btn-blue" onclick="openCASModal('${aid}')">Update</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function ynBadge(val, mode='') {
+  if (!val) return '<span class="badge badge-gray">—</span>';
+  const v = val.toLowerCase().trim();
+  if (v==='yes' || v==='y') return mode==='warn'
+    ? '<span class="badge badge-red">Yes</span>'
+    : '<span class="badge badge-green">Yes</span>';
+  if (v==='no'  || v==='n') return '<span class="badge badge-gray">No</span>';
+  return `<span class="badge badge-gray">${val}</span>`;
+}
+
+function filterCASTable() {
+  const q    = document.getElementById('cas-search').value.toLowerCase();
+  const pci  = document.getElementById('cas-filter-pci').value;
+  const visa = document.getElementById('cas-filter-visa').value;
+  const info = document.getElementById('cas-filter-info').value;
+  renderCASTable(allCASData.filter(r =>
+    (!q    || [r['Applicant Name'],r['Applicant ID'],r['Agent (Name)']].some(f=>(f||'').toLowerCase().includes(q))) &&
+    (!pci  || (r['Ready for PCI']||'')=== pci) &&
+    (!visa || (r['Visa Refusal Y/N']||'')=== visa) &&
+    (!info || (r['Information check on CAS Shield completed? Y/N']||'')=== info)
+  ));
+}
+
+function openCASModal(applicantId) {
+  const r = allCASData.find(r=>r['Applicant ID']===applicantId);
+  if (!r) return;
+  activeCASId = applicantId;
+  document.getElementById('cas-modal-subtitle').textContent = (r['Applicant Name']||'') + ' · ' + applicantId;
+  document.getElementById('cas-pci').value           = r['Ready for PCI'] || 'No';
+  document.getElementById('cas-visa-refusal').value  = r['Visa Refusal Y/N'] || 'No';
+  document.getElementById('cas-info-check').value    = r['Information check on CAS Shield completed? Y/N'] || 'No';
+  document.getElementById('cas-precas-q').value      = r['Pre-CAS questionnaire on CAS shield Completed? Y/N'] || 'No';
+  document.getElementById('cas-study-gap').value     = r['Study Gap Y/N'] || 'No';
+  document.getElementById('cas-same-level').value    = r['Same Level Studies Y/N'] || 'No';
+  document.getElementById('cas-pci-invite').value    = r['PCI Invite'] || '';
+  document.getElementById('cas-comment').value       = r['Team Comment'] || '';
+  openModal('modal-cas-update');
+}
+
+async function submitCASUpdate() {
+  const updates = {
+    applicantId: activeCASId,
+    'Ready for PCI':   document.getElementById('cas-pci').value,
+    'Visa Refusal Y/N': document.getElementById('cas-visa-refusal').value,
+    'Information check on CAS Shield completed? Y/N': document.getElementById('cas-info-check').value,
+    'Pre-CAS questionnaire on CAS shield Completed? Y/N': document.getElementById('cas-precas-q').value,
+    'Study Gap Y/N':   document.getElementById('cas-study-gap').value,
+    'Same Level Studies Y/N': document.getElementById('cas-same-level').value,
+    'PCI Invite':      document.getElementById('cas-pci-invite').value,
+    'Team Comment':    document.getElementById('cas-comment').value,
+    updatedBy: currentUser.name
+  };
+  try {
+    await appsScriptPost('updateCASShield', updates);
+    const r = allCASData.find(r=>r['Applicant ID']===activeCASId);
+    if (r) Object.assign(r, updates);
+    filterCASTable();
+    closeModal('modal-cas-update');
+    showToast('CAS Shield record updated ✓','success');
+  } catch(e) {
+    showToast('Update failed: '+e.message,'error');
+  }
+}
+
+// ── STATUS MODAL ────────────────────────────────────────────────────
+const STATUS_OPTIONS = {
+  'OFFER STATUS':  ['Pending','Conditional','Unconditional','Received','Rejected'],
+  'CAS STATUS':    ['Not Applied','Pending','Issued','Rejected'],
+  'VISA STATUS':   ['Not Applied','Pending','Approved','Refused'],
+  'PAYMENT':       ['Unpaid','Partially Paid','Paid','Refunded'],
+  'PRE-SCREENING CALL STATUS': ['Not Called','Called – Interested','Called – Not Interested','Scheduled'],
+  'SCHOLARSHIP':   ['None','Partial','Full'],
+  'CAS SHIELD':    ['Not Started','In Progress','Completed','Issue Found'],
+};
+
+function openStatusModal(studentId, field) {
+  const s = allStudents.find(s=>s['STUDENT ID']===studentId);
+  if (!s) return;
+  activeStudentId = studentId;
+  document.getElementById('modal-status-title').textContent    = 'Update ' + field;
+  document.getElementById('modal-status-subtitle').textContent = (s['STUDENT NAME']||'') + ' · ' + studentId;
+  const opts = STATUS_OPTIONS[field] || [];
+  const cur  = s[field] || '';
+  let html = `<input type="hidden" id="update-field" value="${field}">`;
+  if (opts.length) {
+    html += `<div class="form-group"><label class="form-label">${field}</label>
+      <select class="form-control" id="update-value">${opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}</select></div>`;
+  } else {
+    html += `<div class="form-group"><label class="form-label">${field}</label>
+      <input class="form-control" id="update-value" type="text" value="${cur}"></div>`;
+  }
+  html += `<div class="form-group"><label class="form-label">Notes (optional)</label>
+    <textarea class="form-control" id="update-notes" style="min-height:60px" placeholder="Optional notes…"></textarea></div>`;
+  document.getElementById('modal-status-body').innerHTML = html;
+  openModal('modal-status');
+}
+
+async function submitStatusUpdate() {
+  const field = document.getElementById('update-field').value;
+  const value = document.getElementById('update-value').value;
+  const notes = document.getElementById('update-notes').value;
+  const btn   = document.getElementById('modal-status-submit');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving…';
+  try {
+    await appsScriptPost('updateStatus',{studentId:activeStudentId,field,value,notes,updatedBy:currentUser.name});
+    const s = allStudents.find(s=>s['STUDENT ID']===activeStudentId);
+    if (s) s[field] = value;
+    filterTable();
+    closeModal('modal-status');
+    showToast('Updated successfully ✓','success');
+  } catch(e) {
+    showToast('Update failed: '+e.message,'error');
+  } finally { btn.disabled=false; btn.textContent='Save'; }
+}
+
+// ── FEEDBACK MODAL ───────────────────────────────────────────────────
+function openFeedbackModal(studentId) {
+  const s = allStudents.find(s=>s['STUDENT ID']===studentId);
+  activeStudentId = studentId;
+  document.getElementById('feedback-student-name').textContent = (s?.['STUDENT NAME']||'') + ' · ' + studentId;
+  document.getElementById('feedback-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('feedback-text').value = '';
+  document.getElementById('feedback-recs').value = '';
+  openModal('modal-feedback');
+}
+
+async function submitFeedback() {
+  const text = document.getElementById('feedback-text').value.trim();
+  if (!text) { showToast('Please write some feedback first.','error'); return; }
+  showLoading('Generating feedback doc…');
+  closeModal('modal-feedback');
+  try {
+    const result = await appsScriptPost('generateFeedbackDoc',{
+      studentId: activeStudentId,
+      date: document.getElementById('feedback-date').value,
+      performance: document.getElementById('feedback-performance').value,
+      feedback: text,
+      recommendations: document.getElementById('feedback-recs').value,
+      staffName: currentUser.name
+    });
+    if (result.docUrl) {
+      const s = allStudents.find(s=>s['STUDENT ID']===activeStudentId);
+      if (s) s['MOCK PRE-CAS'] = result.docUrl;
+      filterTable();
+    }
+    showToast('Feedback doc created & linked in Sheet ✓','success');
+  } catch(e) {
+    showToast('Failed: '+e.message,'error');
+  } finally { hideLoading(); }
+}
+
+// ── CSV UPLOAD ────────────────────────────────────────────────────────
+function handleFileSelect(e) { parseFile(e.target.files[0]); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  parseFile(e.dataTransfer.files[0]);
+}
+function parseFile(file) {
+  if (!file) return;
+  Papa.parse(file,{header:true,skipEmptyLines:true,
+    complete:(r)=>{ parsedCSVData=r.data; showPreview(file.name,r.data); },
+    error:(err)=>showToast('Parse error: '+err.message,'error')
+  });
+}
+function showPreview(filename,data) {
+  if (!data.length){showToast('No data rows found.','error');return;}
+  document.getElementById('preview-filename').textContent = filename;
+  document.getElementById('preview-rows').textContent     = data.length;
+  const headers = Object.keys(data[0]);
+  document.getElementById('preview-thead').innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+  document.getElementById('preview-tbody').innerHTML=data.slice(0,5).map(row=>'<tr>'+headers.map(h=>`<td>${row[h]||''}</td>`).join('')+'</tr>').join('');
+  document.getElementById('upload-preview').classList.add('show');
+}
+function clearUpload(){
+  parsedCSVData=[];
+  document.getElementById('csv-file').value='';
+  document.getElementById('upload-preview').classList.remove('show');
+}
+async function confirmUpload(){
+  if (!parsedCSVData.length) return;
+  const btn=document.getElementById('confirm-upload-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Uploading…';
+  try {
+    const r=await appsScriptPost('uploadCSV',{rows:parsedCSVData});
+    showToast(`Imported ${r.added||0} new, updated ${r.updated||0} records.`,'success');
+    clearUpload(); loadStudents();
+  } catch(e){ showToast('Upload failed: '+e.message,'error'); }
+  finally { btn.disabled=false; btn.textContent='Upload to Google Sheet'; }
+}
+
+// ── REPORTS ────────────────────────────────────────────────────────────
+async function loadReports() {
+  const grid=document.getElementById('report-grid');
+  grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><span class="spinner" style="border-top-color:var(--gold)"></span></div>';
+  try {
+    const data=await appsScriptGet('getReport');
+    renderReports(data.report);
+  } catch { renderReports(buildLocalReport(allStudents)); }
+}
+function buildLocalReport(students) {
+  const count=(f,v)=>students.filter(s=>s[f]===v).length;
+  return {
+    offer:{Pending:count('OFFER STATUS','Pending'),Conditional:count('OFFER STATUS','Conditional'),Unconditional:count('OFFER STATUS','Unconditional'),Received:count('OFFER STATUS','Received'),Rejected:count('OFFER STATUS','Rejected')},
+    cas:{'Not Applied':count('CAS STATUS','Not Applied'),Pending:count('CAS STATUS','Pending'),Issued:count('CAS STATUS','Issued'),Rejected:count('CAS STATUS','Rejected')},
+    visa:{'Not Applied':count('VISA STATUS','Not Applied'),Pending:count('VISA STATUS','Pending'),Approved:count('VISA STATUS','Approved'),Refused:count('VISA STATUS','Refused')},
+    payment:{Unpaid:count('PAYMENT','Unpaid'),'Partially Paid':count('PAYMENT','Partially Paid'),Paid:count('PAYMENT','Paid'),Refunded:count('PAYMENT','Refunded')},
+    scholarship:{None:count('SCHOLARSHIP','None'),Partial:count('SCHOLARSHIP','Partial'),Full:count('SCHOLARSHIP','Full')},
+  };
+}
+function renderReports(report) {
+  const grid=document.getElementById('report-grid');
+  if (!report){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1">No data.</div>';return;}
+  const sections=[
+    {title:'Offer Status',data:report.offer},
+    {title:'CAS Status',data:report.cas},
+    {title:'Visa Status',data:report.visa},
+    {title:'Payment',data:report.payment},
+    {title:'Scholarship',data:report.scholarship},
+  ];
+  grid.innerHTML=sections.map(sec=>{
+    const total=Object.values(sec.data||{}).reduce((a,b)=>a+b,0);
+    const bars=Object.entries(sec.data||{}).map(([label,cnt])=>{
+      const pct=total?Math.round(cnt/total*100):0;
+      return `<div class="report-bar-item">
+        <div class="report-bar-label">${label}</div>
+        <div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div>
+        <div class="report-bar-count">${cnt}</div>
+      </div>`;
+    }).join('');
+    return `<div class="report-card"><div class="report-card-title">${sec.title} <span style="font-weight:400;color:var(--muted)">(${total})</span></div>${bars||'<div class="empty-state">No data</div>'}</div>`;
+  }).join('');
+}
+
+// ── MODALS ──────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o=>
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); })
+);
+
+// ── HELPERS ─────────────────────────────────────────────────────────────
+function showLoading(msg){
+  document.getElementById('loading-msg').textContent=msg||'Processing…';
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoading(){document.getElementById('loading').classList.remove('show');}
+function showToast(msg,type='success'){
+  const wrap=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className='toast '+type;
+  t.innerHTML=(type==='success'?'✓ ':'✕ ')+msg;
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(),4000);
+}
+
+// ── MOCK DATA ────────────────────────────────────────────────────────────
+function getMockStudents(){
+  return [
+    {'STUDENT ID':'R2U001','STUDENT NAME':'Priya Sharma','LEVEL':'PG','COURSE':'MSc Computer Science','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Received','SCHOLARSHIP':'Partial','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Pending','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
+    {'STUDENT ID':'R2U002','STUDENT NAME':'Amit Patel','LEVEL':'UG','COURSE':'BA Business Management','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Conditional','SCHOLARSHIP':'None','PAYMENT':'Partially Paid','CAS SHIELD':'In Progress','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
+    {'STUDENT ID':'R2U003','STUDENT NAME':'Sara Khan','LEVEL':'PG','COURSE':'MBA Finance','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Unconditional','SCHOLARSHIP':'Full','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Approved','SUBMITTED BY':'Sagar'},
+    {'STUDENT ID':'R2U004','STUDENT NAME':'Rahul Singh','LEVEL':'PHD','COURSE':'PhD Engineering','AGENT':'Agent C','PRE-SCREENING CALL STATUS':'Not Called','OFFER STATUS':'Received','SCHOLARSHIP':'None','PAYMENT':'Unpaid','CAS SHIELD':'Not Started','CAS STATUS':'Pending','VISA STATUS':'Pending','SUBMITTED BY':'Admin'},
+    {'STUDENT ID':'R2U005','STUDENT NAME':'Meena Joshi','LEVEL':'UG','COURSE':'BSc Nursing','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Not Interested','OFFER STATUS':'Rejected','SCHOLARSHIP':'None','PAYMENT':'Refunded','CAS SHIELD':'Not Started','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
+  ];
+}
+function getMockCASData(){
+  return [
+    {'Applicant ID':'R2U001','Applicant Name':'Priya Sharma','Agent (Name)':'Agent A','Nationality':'Nepali','Country of Domicile':'Nepal','Course Name':'MSc Computer Science','CAP APFS':'APFS001','CAP SEQN':'001','Team Member':'Sagar','Team Comment':'27.06.2026 - Ready for PCI','Study Gap Y/N':'No','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'Yes','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'Yes','PCI Invite':'2026-07-01','Notes':''},
+    {'Applicant ID':'R2U002','Applicant Name':'Amit Patel','Agent (Name)':'Agent B','Nationality':'Indian','Country of Domicile':'India','Course Name':'BA Business Management','CAP APFS':'APFS002','CAP SEQN':'002','Team Member':'Admin','Team Comment':'','Study Gap Y/N':'Yes','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'No','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'No','PCI Invite':'','Notes':'Study gap explanation needed'},
+  ];
+}
+</script>
+</body>
+</html>
