@@ -1,4 +1,9 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R2U Student Portal</title>
 <style>
 :root{
   --dark:#0F1F2D;--dark2:#162636;--gold:#D4A833;--gold-s:#FDF6E0;
@@ -79,7 +84,6 @@ tbody td:last-child{border-right:none;}
 .actions{display:flex;gap:4px;}
 .empty-state{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
 
-/* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,20,30,0.55);z-index:500;display:none;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--panel);border-radius:14px;padding:24px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;}
@@ -95,7 +99,6 @@ textarea.form-control{resize:vertical;min-height:90px;}
 .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
 .form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
-/* FEEDBACK TOOL */
 .fb-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:14px;}
 .fb-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:var(--dark);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;}
 .fb-icon{width:26px;height:26px;border-radius:7px;background:var(--gold-s);display:flex;align-items:center;justify-content:center;font-size:13px;}
@@ -282,7 +285,6 @@ textarea.form-control{resize:vertical;min-height:90px;}
     </div>
   </div>
 
-  <!-- Student -->
   <div class="fb-card">
     <div class="fb-card-title"><div class="fb-icon">👤</div>Student Details</div>
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -310,7 +312,6 @@ textarea.form-control{resize:vertical;min-height:90px;}
     </div>
   </div>
 
-  <!-- Session -->
   <div class="fb-card">
     <div class="fb-card-title"><div class="fb-icon">📅</div>Session Info</div>
     <div class="fb-grid">
@@ -323,7 +324,6 @@ textarea.form-control{resize:vertical;min-height:90px;}
     </div>
   </div>
 
-  <!-- Performance -->
   <div class="fb-card">
     <div class="fb-card-title"><div class="fb-icon">⭐</div>Overall Performance</div>
     <div class="perf-grid">
@@ -334,7 +334,6 @@ textarea.form-control{resize:vertical;min-height:90px;}
     </div>
   </div>
 
-  <!-- Feedback text -->
   <div class="fb-card">
     <div class="fb-card-title"><div class="fb-icon">📝</div>Detailed Feedback &amp; Recommendations</div>
     <div class="fb-group"><label class="fb-label">Detailed Feedback</label><textarea class="fb-textarea" id="fb-text" placeholder="Describe the student's performance…"></textarea></div>
@@ -426,7 +425,7 @@ textarea.form-control{resize:vertical;min-height:90px;}
   </div>
 </div>
 
-<!-- INLINE FEEDBACK MODAL (from dashboard) -->
+<!-- INLINE FEEDBACK MODAL -->
 <div class="modal-overlay" id="modal-feedback">
   <div class="modal">
     <div class="modal-header">
@@ -450,6 +449,7 @@ textarea.form-control{resize:vertical;min-height:90px;}
 <div class="loading-overlay" id="loading"><div class="spinner"></div><span id="loading-msg">Processing…</span></div>
 
 <script>
+// ── CONFIG ─────────────────────────────────────────────────────────
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQKGqxg_2O1wjJ60MciyUTkcplju-_SjkEJDaJxRAoE6jiJSIqqYqvh9dmozd98kr5BQ/exec';
 
 let currentStaff = {name:'Sagar Adhikari',initials:'SA'};
@@ -472,12 +472,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function switchView(id, tab) {
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('view-'+id).classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
   tab.classList.add('active');
-  if (id==='reports') loadReports();
-  if (id==='casshield') loadCASShield();
+  if (id === 'reports') loadReports();
+  if (id === 'casshield') loadCASShield();
 }
 
 function toggleStaffDD() { document.getElementById('staff-dd').classList.toggle('open'); }
@@ -487,26 +487,46 @@ function setStaff(name, initials) {
   document.getElementById('cur-name').textContent = name;
   document.querySelectorAll('.staff-opt').forEach(o => o.classList.toggle('active', o.textContent.trim().startsWith(name.split(' ')[0])));
   document.getElementById('staff-dd').classList.remove('open');
-  showToast('Logged in as '+name,'success');
+  showToast('Logged in as ' + name, 'success');
 }
 
-async function appsScriptGet(action, params={}) {
+// ── API HELPERS (CORS-safe: all requests use GET) ──────────────────
+async function appsScriptGet(action, params = {}) {
   const url = new URL(APPS_SCRIPT_URL);
   url.searchParams.set('action', action);
-  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString());
   return res.json();
 }
-async function appsScriptPost(action, body={}) {
-  const res = await fetch(APPS_SCRIPT_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body})});
+
+// KEY FIX: was POST (caused CORS preflight failure from GitHub Pages).
+// Now sends all data as GET query params — Apps Script doGet() handles everything.
+async function appsScriptPost(action, body = {}) {
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+
+  if (action === 'uploadCSV') {
+    // Large payload — JSON-encode rows as single param
+    url.searchParams.set('rows', JSON.stringify(body.rows || []));
+  } else {
+    // All other actions — pass each field as its own param
+    Object.entries(body).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) {
+        url.searchParams.set(k, String(v));
+      }
+    });
+  }
+
+  const res = await fetch(url.toString());
   return res.json();
 }
 
+// ── STUDENTS ───────────────────────────────────────────────────────
 async function loadStudents() {
   try {
     showLoading('Fetching students…');
     const data = await appsScriptGet('getStudents');
-    if (!data.success) throw new Error(data.error||'Unknown error');
+    if (!data.success) throw new Error(data.error || 'Unknown error');
     allStudents = data.students || [];
   } catch {
     allStudents = getMockStudents();
@@ -515,38 +535,38 @@ async function loadStudents() {
     updateStats(allStudents);
     populateAgentFilter(allStudents);
     hideLoading();
-    showToast('Data loaded ✓','success');
+    showToast('Data loaded ✓', 'success');
   }
 }
 
 function updateStats(students) {
   document.getElementById('stat-total').textContent = students.length;
-  document.getElementById('stat-offers').textContent = students.filter(s=>(s['OFFER STATUS']||'').match(/received|unconditional/i)).length;
-  document.getElementById('stat-cas').textContent = students.filter(s=>(s['CAS STATUS']||'').toLowerCase().includes('pending')).length;
-  document.getElementById('stat-visa').textContent = students.filter(s=>(s['VISA STATUS']||'').toLowerCase()==='approved').length;
-  document.getElementById('stat-refused').textContent = students.filter(s=>(s['VISA STATUS']||'').toLowerCase()==='refused').length;
-  document.getElementById('stat-payment').textContent = students.filter(s=>(s['PAYMENT']||'').match(/unpaid|partially/i)).length;
+  document.getElementById('stat-offers').textContent = students.filter(s => (s['OFFER STATUS'] || '').match(/received|unconditional/i)).length;
+  document.getElementById('stat-cas').textContent = students.filter(s => (s['CAS STATUS'] || '').toLowerCase().includes('pending')).length;
+  document.getElementById('stat-visa').textContent = students.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'approved').length;
+  document.getElementById('stat-refused').textContent = students.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'refused').length;
+  document.getElementById('stat-payment').textContent = students.filter(s => (s['PAYMENT'] || '').match(/unpaid|partially/i)).length;
 }
 
 function populateAgentFilter(students) {
-  const agents = [...new Set(students.map(s=>s['AGENT']).filter(Boolean))].sort();
+  const agents = [...new Set(students.map(s => s['AGENT']).filter(Boolean))].sort();
   const sel = document.getElementById('filter-agent');
   sel.innerHTML = '<option value="">All Agents</option>';
-  agents.forEach(a=>{const o=document.createElement('option');o.textContent=a;sel.appendChild(o);});
+  agents.forEach(a => { const o = document.createElement('option'); o.textContent = a; sel.appendChild(o); });
 }
 
 function renderTable(students) {
   const tbody = document.getElementById('table-body');
-  if (!students.length) { tbody.innerHTML='<tr><td colspan="15" class="empty-state">No students found.</td></tr>'; return; }
-  tbody.innerHTML = students.map(s=>{
-    const sid = s['STUDENT ID']||'';
-    const mockLink = s['MOCK PRE-CAS']?`<a href="${s['MOCK PRE-CAS']}" target="_blank" class="btn btn-sm btn-outline">View ↗</a>`:'—';
+  if (!students.length) { tbody.innerHTML = '<tr><td colspan="15" class="empty-state">No students found.</td></tr>'; return; }
+  tbody.innerHTML = students.map(s => {
+    const sid = s['STUDENT ID'] || '';
+    const mockLink = s['MOCK PRE-CAS'] ? `<a href="${s['MOCK PRE-CAS']}" target="_blank" class="btn btn-sm btn-outline">View ↗</a>` : '—';
     return `<tr>
       <td><strong>${sid}</strong></td>
-      <td>${s['STUDENT NAME']||''}</td>
-      <td>${s['LEVEL']||''}</td>
-      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${s['COURSE']||''}">${s['COURSE']||''}</td>
-      <td>${s['AGENT']||''}</td>
+      <td>${s['STUDENT NAME'] || ''}</td>
+      <td>${s['LEVEL'] || ''}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${s['COURSE'] || ''}">${s['COURSE'] || ''}</td>
+      <td>${s['AGENT'] || ''}</td>
       <td>${badge(s['PRE-SCREENING CALL STATUS'])}</td>
       <td>${badge(s['OFFER STATUS'])}</td>
       <td>${badge(s['SCHOLARSHIP'])}</td>
@@ -555,7 +575,7 @@ function renderTable(students) {
       <td>${mockLink}</td>
       <td>${badge(s['CAS STATUS'])}</td>
       <td>${badge(s['VISA STATUS'])}</td>
-      <td style="font-size:11px;color:var(--muted)">${s['SUBMITTED BY']||''}</td>
+      <td style="font-size:11px;color:var(--muted)">${s['SUBMITTED BY'] || ''}</td>
       <td><div class="actions">
         <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','OFFER STATUS')">Offer</button>
         <button class="btn btn-sm btn-outline" onclick="openStatusModal('${sid}','CAS STATUS')">CAS</button>
@@ -567,7 +587,7 @@ function renderTable(students) {
 }
 
 function badge(val) {
-  if (!val||val==='—') return '<span class="badge badge-gray">—</span>';
+  if (!val || val === '—') return '<span class="badge badge-gray">—</span>';
   const v = val.toLowerCase();
   if (v.match(/approved|received|unconditional|issued|paid|complete|yes|granted/)) return `<span class="badge badge-green">${val}</span>`;
   if (v.match(/refused|rejected|failed/)) return `<span class="badge badge-red">${val}</span>`;
@@ -577,89 +597,90 @@ function badge(val) {
 }
 
 function filterTable() {
-  const q=document.getElementById('search-input').value.toLowerCase();
-  const agent=document.getElementById('filter-agent').value;
-  const level=document.getElementById('filter-level').value;
-  const offer=document.getElementById('filter-offer').value;
-  const visa=document.getElementById('filter-visa').value;
-  renderTable(allStudents.filter(s=>
-    (!q||[s['STUDENT NAME'],s['STUDENT ID'],s['COURSE']].some(f=>(f||'').toLowerCase().includes(q)))&&
-    (!agent||s['AGENT']===agent)&&(!level||s['LEVEL']===level)&&
-    (!offer||s['OFFER STATUS']===offer)&&(!visa||s['VISA STATUS']===visa)
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const agent = document.getElementById('filter-agent').value;
+  const level = document.getElementById('filter-level').value;
+  const offer = document.getElementById('filter-offer').value;
+  const visa = document.getElementById('filter-visa').value;
+  renderTable(allStudents.filter(s =>
+    (!q || [s['STUDENT NAME'], s['STUDENT ID'], s['COURSE']].some(f => (f || '').toLowerCase().includes(q))) &&
+    (!agent || s['AGENT'] === agent) && (!level || s['LEVEL'] === level) &&
+    (!offer || s['OFFER STATUS'] === offer) && (!visa || s['VISA STATUS'] === visa)
   ));
 }
 
+// ── CAS SHIELD ─────────────────────────────────────────────────────
 async function loadCASShield() {
   try {
     showLoading('Fetching CAS Shield…');
     const data = await appsScriptGet('getCASShield');
     if (!data.success) throw new Error(data.error);
-    allCASData = data.records||[];
+    allCASData = data.records || [];
   } catch {
     allCASData = getMockCASData();
   } finally {
     renderCASTable(allCASData);
     hideLoading();
-    showToast('CAS Shield loaded ✓','success');
+    showToast('CAS Shield loaded ✓', 'success');
   }
 }
 
 function renderCASTable(records) {
   const tbody = document.getElementById('cas-table-body');
-  if (!records.length) { tbody.innerHTML='<tr><td colspan="14" class="empty-state">No records. Click Refresh.</td></tr>'; return; }
-  tbody.innerHTML = records.map(r=>{
-    const aid = r['Applicant ID']||'';
+  if (!records.length) { tbody.innerHTML = '<tr><td colspan="14" class="empty-state">No records. Click Refresh.</td></tr>'; return; }
+  tbody.innerHTML = records.map(r => {
+    const aid = r['Applicant ID'] || '';
     return `<tr>
       <td><strong>${aid}</strong></td>
-      <td>${r['Applicant Name']||''}</td>
-      <td>${r['Agent (Name)']||''}</td>
-      <td>${r['Nationality']||''}</td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${r['Course Name']||''}</td>
-      <td>${r['Team Member']||''}</td>
+      <td>${r['Applicant Name'] || ''}</td>
+      <td>${r['Agent (Name)'] || ''}</td>
+      <td>${r['Nationality'] || ''}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${r['Course Name'] || ''}</td>
+      <td>${r['Team Member'] || ''}</td>
       <td>${ynBadge(r['Study Gap Y/N'])}</td>
       <td>${ynBadge(r['Same Level Studies Y/N'])}</td>
-      <td>${ynBadge(r['Visa Refusal Y/N'],'warn')}</td>
+      <td>${ynBadge(r['Visa Refusal Y/N'], 'warn')}</td>
       <td>${ynBadge(r['Ready for PCI'])}</td>
       <td>${ynBadge(r['Information check on CAS Shield completed? Y/N'])}</td>
       <td>${ynBadge(r['Pre-CAS questionnaire on CAS shield Completed? Y/N'])}</td>
-      <td style="font-size:11px">${r['PCI Invite']||'—'}</td>
+      <td style="font-size:11px">${r['PCI Invite'] || '—'}</td>
       <td><button class="btn btn-sm btn-blue" onclick="openCASModal('${aid}')">Update</button></td>
     </tr>`;
   }).join('');
 }
 
-function ynBadge(val, mode='') {
+function ynBadge(val, mode = '') {
   if (!val) return '<span class="badge badge-gray">—</span>';
   const v = val.toLowerCase().trim();
-  if (v==='yes'||v==='y') return mode==='warn'?'<span class="badge badge-red">Yes</span>':'<span class="badge badge-green">Yes</span>';
-  if (v==='no'||v==='n') return '<span class="badge badge-gray">No</span>';
+  if (v === 'yes' || v === 'y') return mode === 'warn' ? '<span class="badge badge-red">Yes</span>' : '<span class="badge badge-green">Yes</span>';
+  if (v === 'no' || v === 'n') return '<span class="badge badge-gray">No</span>';
   return `<span class="badge badge-gray">${val}</span>`;
 }
 
 function filterCASTable() {
-  const q=document.getElementById('cas-search').value.toLowerCase();
-  const pci=document.getElementById('cas-filter-pci').value;
-  const visa=document.getElementById('cas-filter-visa').value;
-  renderCASTable(allCASData.filter(r=>
-    (!q||[r['Applicant Name'],r['Applicant ID'],r['Agent (Name)']].some(f=>(f||'').toLowerCase().includes(q)))&&
-    (!pci||(r['Ready for PCI']||'')===pci)&&
-    (!visa||(r['Visa Refusal Y/N']||'')===visa)
+  const q = document.getElementById('cas-search').value.toLowerCase();
+  const pci = document.getElementById('cas-filter-pci').value;
+  const visa = document.getElementById('cas-filter-visa').value;
+  renderCASTable(allCASData.filter(r =>
+    (!q || [r['Applicant Name'], r['Applicant ID'], r['Agent (Name)']].some(f => (f || '').toLowerCase().includes(q))) &&
+    (!pci || (r['Ready for PCI'] || '') === pci) &&
+    (!visa || (r['Visa Refusal Y/N'] || '') === visa)
   ));
 }
 
 function openCASModal(aid) {
-  const r = allCASData.find(r=>r['Applicant ID']===aid);
+  const r = allCASData.find(r => r['Applicant ID'] === aid);
   if (!r) return;
   activeCASId = aid;
-  document.getElementById('cas-ms-sub').textContent = (r['Applicant Name']||'')+' · '+aid;
-  document.getElementById('cas-pci').value = r['Ready for PCI']||'No';
-  document.getElementById('cas-visa-r').value = r['Visa Refusal Y/N']||'No';
-  document.getElementById('cas-info').value = r['Information check on CAS Shield completed? Y/N']||'No';
-  document.getElementById('cas-precas').value = r['Pre-CAS questionnaire on CAS shield Completed? Y/N']||'No';
-  document.getElementById('cas-gap').value = r['Study Gap Y/N']||'No';
-  document.getElementById('cas-same').value = r['Same Level Studies Y/N']||'No';
-  document.getElementById('cas-invite').value = r['PCI Invite']||'';
-  document.getElementById('cas-comment').value = r['Team Comment']||'';
+  document.getElementById('cas-ms-sub').textContent = (r['Applicant Name'] || '') + ' · ' + aid;
+  document.getElementById('cas-pci').value = r['Ready for PCI'] || 'No';
+  document.getElementById('cas-visa-r').value = r['Visa Refusal Y/N'] || 'No';
+  document.getElementById('cas-info').value = r['Information check on CAS Shield completed? Y/N'] || 'No';
+  document.getElementById('cas-precas').value = r['Pre-CAS questionnaire on CAS shield Completed? Y/N'] || 'No';
+  document.getElementById('cas-gap').value = r['Study Gap Y/N'] || 'No';
+  document.getElementById('cas-same').value = r['Same Level Studies Y/N'] || 'No';
+  document.getElementById('cas-invite').value = r['PCI Invite'] || '';
+  document.getElementById('cas-comment').value = r['Team Comment'] || '';
   openModal('modal-cas');
 }
 
@@ -680,33 +701,34 @@ async function submitCASUpdate() {
     showLoading('Saving CAS Shield update…');
     const result = await appsScriptPost('updateCASShield', updates);
     if (!result.success) throw new Error(result.error);
-    const r = allCASData.find(r=>r['Applicant ID']===activeCASId);
+    const r = allCASData.find(r => r['Applicant ID'] === activeCASId);
     if (r) Object.assign(r, updates);
     filterCASTable();
     closeModal('modal-cas');
-    showToast('CAS Shield updated ✓','success');
-  } catch(e) { showToast('Update failed: '+e.message,'error'); }
+    showToast('CAS Shield updated ✓', 'success');
+  } catch (e) { showToast('Update failed: ' + e.message, 'error'); }
   finally { hideLoading(); }
 }
 
+// ── STATUS MODAL ───────────────────────────────────────────────────
 const STATUS_OPTIONS = {
-  'OFFER STATUS':['Pending','Conditional','Unconditional','Received','Rejected'],
-  'CAS STATUS':['Not Applied','Pending','Issued','Rejected'],
-  'VISA STATUS':['Not Applied','Pending','Approved','Refused'],
-  'PAYMENT':['Unpaid','Partially Paid','Paid','Refunded'],
+  'OFFER STATUS': ['Pending', 'Conditional', 'Unconditional', 'Received', 'Rejected'],
+  'CAS STATUS': ['Not Applied', 'Pending', 'Issued', 'Rejected'],
+  'VISA STATUS': ['Not Applied', 'Pending', 'Approved', 'Refused'],
+  'PAYMENT': ['Unpaid', 'Partially Paid', 'Paid', 'Refunded'],
 };
 
 function openStatusModal(studentId, field) {
-  const s = allStudents.find(s=>s['STUDENT ID']===studentId);
+  const s = allStudents.find(s => s['STUDENT ID'] === studentId);
   if (!s) return;
   activeStudentId = studentId;
-  document.getElementById('ms-title').textContent = 'Update '+field;
-  document.getElementById('ms-sub').textContent = (s['STUDENT NAME']||'')+' · '+studentId;
-  const opts = STATUS_OPTIONS[field]||[];
-  const cur = s[field]||'';
+  document.getElementById('ms-title').textContent = 'Update ' + field;
+  document.getElementById('ms-sub').textContent = (s['STUDENT NAME'] || '') + ' · ' + studentId;
+  const opts = STATUS_OPTIONS[field] || [];
+  const cur = s[field] || '';
   let html = `<input type="hidden" id="update-field" value="${field}">`;
   if (opts.length) {
-    html += `<div class="form-group"><label class="form-label">${field}</label><select class="form-control" id="update-value">${opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    html += `<div class="form-group"><label class="form-label">${field}</label><select class="form-control" id="update-value">${opts.map(o => `<option ${o === cur ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`;
   } else {
     html += `<div class="form-group"><label class="form-label">${field}</label><input class="form-control" id="update-value" type="text" value="${cur}"></div>`;
   }
@@ -720,33 +742,36 @@ async function submitStatusUpdate() {
   const value = document.getElementById('update-value').value;
   const notes = document.getElementById('update-notes').value;
   try {
-    const result = await appsScriptPost('updateStatus',{studentId:activeStudentId,field,value,notes,updatedBy:currentStaff.name});
+    showLoading('Saving…');
+    const result = await appsScriptPost('updateStatus', { studentId: activeStudentId, field, value, notes, updatedBy: currentStaff.name });
     if (!result.success) throw new Error(result.error);
-    const s = allStudents.find(s=>s['STUDENT ID']===activeStudentId);
+    const s = allStudents.find(s => s['STUDENT ID'] === activeStudentId);
     if (s) s[field] = value;
     filterTable();
     closeModal('modal-status');
-    showToast('Updated ✓','success');
-  } catch(e) { showToast('Update failed: '+e.message,'error'); }
+    showToast('Updated ✓', 'success');
+  } catch (e) { showToast('Update failed: ' + e.message, 'error'); }
+  finally { hideLoading(); }
 }
 
+// ── FEEDBACK MODAL (from dashboard) ───────────────────────────────
 function openFeedbackModal(studentId) {
-  const s = allStudents.find(s=>s['STUDENT ID']===studentId);
+  const s = allStudents.find(s => s['STUDENT ID'] === studentId);
   activeStudentId = studentId;
-  document.getElementById('mfb-sub').textContent = (s?.['STUDENT NAME']||'')+' · '+studentId;
+  document.getElementById('mfb-sub').textContent = (s?.['STUDENT NAME'] || '') + ' · ' + studentId;
   document.getElementById('mfb-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('mfb-text').value='';
-  document.getElementById('mfb-recs').value='';
+  document.getElementById('mfb-text').value = '';
+  document.getElementById('mfb-recs').value = '';
   openModal('modal-feedback');
 }
 
 async function submitFeedback() {
   const text = document.getElementById('mfb-text').value.trim();
-  if (!text) { showToast('Please write some feedback first.','error'); return; }
+  if (!text) { showToast('Please write some feedback first.', 'error'); return; }
   showLoading('Generating feedback doc…');
   closeModal('modal-feedback');
   try {
-    const result = await appsScriptPost('generateFeedbackDoc',{
+    const result = await appsScriptPost('generateFeedbackDoc', {
       studentId: activeStudentId,
       date: document.getElementById('mfb-date').value,
       performance: document.getElementById('mfb-perf').value,
@@ -756,248 +781,266 @@ async function submitFeedback() {
     });
     if (!result.success) throw new Error(result.error);
     if (result.docUrl) {
-      const s = allStudents.find(s=>s['STUDENT ID']===activeStudentId);
+      const s = allStudents.find(s => s['STUDENT ID'] === activeStudentId);
       if (s) s['MOCK PRE-CAS'] = result.docUrl;
       filterTable();
     }
-    showToast('Feedback doc created ✓','success');
-  } catch(e) { showToast('Failed: '+e.message,'error'); }
+    showToast('Feedback doc created ✓', 'success');
+  } catch (e) { showToast('Failed: ' + e.message, 'error'); }
   finally { hideLoading(); }
 }
 
-// STANDALONE FEEDBACK TOOL
+// ── STANDALONE FEEDBACK TOOL ───────────────────────────────────────
 function fbSearchStudents(q) {
   const results = document.getElementById('fb-lookup');
-  if (!q.trim()||q.length<2){results.classList.remove('open');return;}
-  const matches = allStudents.filter(s=>
-    (s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())
-  ).slice(0,8);
-  if (!matches.length){results.innerHTML='<div style="padding:12px;color:var(--muted);font-size:12px;text-align:center">No students found</div>';results.classList.add('open');return;}
-  results.innerHTML = matches.map(s=>`<div class="lookup-item" onclick="fbSelectStudent('${s['STUDENT ID']}')">
-    <div class="lookup-item-name">${s['STUDENT NAME']||'—'}</div>
-    <div class="lookup-item-id">${s['STUDENT ID']||''} · ${s['COURSE']||''}</div>
+  if (!q.trim() || q.length < 2) { results.classList.remove('open'); return; }
+  const matches = allStudents.filter(s =>
+    (s['STUDENT NAME'] || '').toLowerCase().includes(q.toLowerCase()) ||
+    (s['STUDENT ID'] || '').toLowerCase().includes(q.toLowerCase())
+  ).slice(0, 8);
+  if (!matches.length) { results.innerHTML = '<div style="padding:12px;color:var(--muted);font-size:12px;text-align:center">No students found</div>'; results.classList.add('open'); return; }
+  results.innerHTML = matches.map(s => `<div class="lookup-item" onclick="fbSelectStudent('${s['STUDENT ID']}')">
+    <div class="lookup-item-name">${s['STUDENT NAME'] || '—'}</div>
+    <div class="lookup-item-id">${s['STUDENT ID'] || ''} · ${s['COURSE'] || ''}</div>
   </div>`).join('');
   results.classList.add('open');
 }
 
 function fbSelectStudent(id) {
-  const s = allStudents.find(s=>s['STUDENT ID']===id);
+  const s = allStudents.find(s => s['STUDENT ID'] === id);
   if (!s) return;
   fbSelectedStudent = s;
-  document.getElementById('fb-ss-name').textContent = s['STUDENT NAME']||id;
-  document.getElementById('fb-ss-meta').textContent = `${s['STUDENT ID']} · ${s['LEVEL']||''} · ${s['COURSE']||''} · Agent: ${s['AGENT']||'—'}`;
+  document.getElementById('fb-ss-name').textContent = s['STUDENT NAME'] || id;
+  document.getElementById('fb-ss-meta').textContent = `${s['STUDENT ID']} · ${s['LEVEL'] || ''} · ${s['COURSE'] || ''} · Agent: ${s['AGENT'] || '—'}`;
   document.getElementById('fb-sel-card').classList.add('show');
-  document.getElementById('fb-search').value='';
+  document.getElementById('fb-search').value = '';
   document.getElementById('fb-lookup').classList.remove('open');
 }
 
-function fbClearStudent(){fbSelectedStudent=null;document.getElementById('fb-sel-card').classList.remove('show');document.getElementById('fb-search').value='';}
-function toggleFbManual(){fbManualMode=!fbManualMode;document.getElementById('fb-manual').style.display=fbManualMode?'block':'none';document.getElementById('fb-manual-toggle').textContent=fbManualMode?'✕ Hide manual entry':'+ Enter manually';if(fbManualMode)fbClearStudent();}
-function selectPerf(el){document.querySelectorAll('.perf-opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');selectedPerf=el.dataset.value;}
+function fbClearStudent() { fbSelectedStudent = null; document.getElementById('fb-sel-card').classList.remove('show'); document.getElementById('fb-search').value = ''; }
+function toggleFbManual() { fbManualMode = !fbManualMode; document.getElementById('fb-manual').style.display = fbManualMode ? 'block' : 'none'; document.getElementById('fb-manual-toggle').textContent = fbManualMode ? '✕ Hide manual entry' : '+ Enter manually'; if (fbManualMode) fbClearStudent(); }
+function selectPerf(el) { document.querySelectorAll('.perf-opt').forEach(o => o.classList.remove('sel')); el.classList.add('sel'); selectedPerf = el.dataset.value; }
 
 function getFbData() {
-  let sName,sId,sCourse,sAgent;
-  if (fbManualMode){sName=document.getElementById('fb-mname').value.trim();sId=document.getElementById('fb-mid').value.trim();sCourse='';sAgent='';}
-  else if (fbSelectedStudent){sName=fbSelectedStudent['STUDENT NAME']||'';sId=fbSelectedStudent['STUDENT ID']||'';sCourse=fbSelectedStudent['COURSE']||'';sAgent=fbSelectedStudent['AGENT']||'';}
+  let sName, sId, sCourse, sAgent;
+  if (fbManualMode) { sName = document.getElementById('fb-mname').value.trim(); sId = document.getElementById('fb-mid').value.trim(); sCourse = ''; sAgent = ''; }
+  else if (fbSelectedStudent) { sName = fbSelectedStudent['STUDENT NAME'] || ''; sId = fbSelectedStudent['STUDENT ID'] || ''; sCourse = fbSelectedStudent['COURSE'] || ''; sAgent = fbSelectedStudent['AGENT'] || ''; }
   else return null;
-  return {studentName:sName,studentId:sId,studentCourse:sCourse,studentAgent:sAgent,
-    sessionDate:document.getElementById('fb-date').value,
-    sessionType:document.getElementById('fb-stype').value,
-    performance:selectedPerf,
-    feedback:document.getElementById('fb-text').value.trim(),
-    recommendations:document.getElementById('fb-recs').value.trim(),
-    staffName:currentStaff.name};
+  return {
+    studentName: sName, studentId: sId, studentCourse: sCourse, studentAgent: sAgent,
+    sessionDate: document.getElementById('fb-date').value,
+    sessionType: document.getElementById('fb-stype').value,
+    performance: selectedPerf,
+    feedback: document.getElementById('fb-text').value.trim(),
+    recommendations: document.getElementById('fb-recs').value.trim(),
+    staffName: currentStaff.name
+  };
 }
 
 function buildDocHTML(data) {
-  const perfClass = {'Excellent':'perf-excellent','Good':'perf-good','Satisfactory':'perf-satisfactory','Needs Improvement':'perf-needs'}[data.performance]||'perf-good';
-  const dateFormatted = data.sessionDate?new Date(data.sessionDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
+  const perfClass = { 'Excellent': 'perf-excellent', 'Good': 'perf-good', 'Satisfactory': 'perf-satisfactory', 'Needs Improvement': 'perf-needs' }[data.performance] || 'perf-good';
+  const dateFormatted = data.sessionDate ? new Date(data.sessionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
   return `<div class="doc-header">
     <div class="doc-org">Route 2 University (R2U) — Internal Document</div>
     <div class="doc-title">${data.sessionType} Feedback Report</div>
     <div class="doc-meta">
       <div class="doc-meta-item"><div class="doc-meta-label">Student</div><div class="doc-meta-value">${data.studentName}</div></div>
-      <div class="doc-meta-item"><div class="doc-meta-label">Student ID</div><div class="doc-meta-value">${data.studentId||'—'}</div></div>
+      <div class="doc-meta-item"><div class="doc-meta-label">Student ID</div><div class="doc-meta-value">${data.studentId || '—'}</div></div>
       <div class="doc-meta-item"><div class="doc-meta-label">Date</div><div class="doc-meta-value">${dateFormatted}</div></div>
-      ${data.studentCourse?`<div class="doc-meta-item"><div class="doc-meta-label">Course</div><div class="doc-meta-value">${data.studentCourse}</div></div>`:''}
+      ${data.studentCourse ? `<div class="doc-meta-item"><div class="doc-meta-label">Course</div><div class="doc-meta-value">${data.studentCourse}</div></div>` : ''}
       <div class="doc-meta-item"><div class="doc-meta-label">Performance</div><div class="doc-meta-value"><span class="perf-badge ${perfClass}">${data.performance}</span></div></div>
     </div></div>
-    <div class="doc-section"><div class="doc-section-title">Detailed Feedback</div><div class="doc-text">${(data.feedback||'—').replace(/\n/g,'<br>')}</div></div>
-    ${data.recommendations?`<div class="doc-section"><div class="doc-section-title">Recommendations</div><div class="doc-text">${data.recommendations.replace(/\n/g,'<br>')}</div></div>`:''}
+    <div class="doc-section"><div class="doc-section-title">Detailed Feedback</div><div class="doc-text">${(data.feedback || '—').replace(/\n/g, '<br>')}</div></div>
+    ${data.recommendations ? `<div class="doc-section"><div class="doc-section-title">Recommendations</div><div class="doc-text">${data.recommendations.replace(/\n/g, '<br>')}</div></div>` : ''}
     <div class="doc-footer"><span>Generated by R2U Student Portal</span><span>Conducted by: ${data.staffName}</span></div>`;
 }
 
-function fbPreview(){
-  const data=getFbData();
-  if(!data){showToast('Please select a student first.','error');return;}
-  document.getElementById('fb-preview-body').innerHTML=buildDocHTML(data);
+function fbPreview() {
+  const data = getFbData();
+  if (!data) { showToast('Please select a student first.', 'error'); return; }
+  document.getElementById('fb-preview-body').innerHTML = buildDocHTML(data);
   document.getElementById('fb-preview').classList.add('show');
-  document.getElementById('fb-preview').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('fb-preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-async function fbDownloadPDF(){
-  const data=getFbData();
-  if(!data||!data.studentName){showToast('Please select a student first.','error');return;}
-  if(!data.feedback){showToast('Please write feedback first.','error');return;}
+async function fbDownloadPDF() {
+  const data = getFbData();
+  if (!data || !data.studentName) { showToast('Please select a student first.', 'error'); return; }
+  if (!data.feedback) { showToast('Please write feedback first.', 'error'); return; }
   showLoading('Generating PDF…');
-  try{
-    const {jsPDF}=window.jspdf;
-    const doc=new jsPDF({unit:'mm',format:'a4'});
-    const gold=[212,168,51],dark=[15,31,45],muted=[90,107,122],cream=[242,246,250];
-    const dateFormatted=data.sessionDate?new Date(data.sessionDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'—';
-    let y=0;
-    doc.setFillColor(...dark);doc.rect(0,0,210,20,'F');
-    doc.setFontSize(12);doc.setTextColor(...gold);doc.setFont('helvetica','bold');doc.text('R2U Portal',14,13);
-    doc.setTextColor(180,180,180);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Route 2 University — Internal Document',50,13);
-    y=30;
-    doc.setFontSize(16);doc.setTextColor(...dark);doc.setFont('helvetica','bold');doc.text(data.sessionType+' Feedback Report',14,y);y+=3;
-    doc.setDrawColor(...gold);doc.setLineWidth(0.8);doc.line(14,y,196,y);y+=10;
-    const metaItems=[['Student',data.studentName],['Student ID',data.studentId||'—'],['Date',dateFormatted],['Course',data.studentCourse||'—'],['Agent',data.studentAgent||'—'],['Performance',data.performance]];
-    const colW=91;
-    metaItems.forEach((item,i)=>{
-      const col=i%2;const x=14+col*colW;
-      if(col===0&&i>0)y+=15;
-      doc.setFillColor(...cream);doc.roundedRect(x,y,colW-4,12,2,2,'F');
-      doc.setFontSize(7);doc.setTextColor(...muted);doc.setFont('helvetica','bold');doc.text(item[0].toUpperCase(),x+4,y+4.5);
-      doc.setFontSize(9);doc.setTextColor(...dark);doc.text(String(item[1]).substring(0,38),x+4,y+10);
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const gold = [212, 168, 51], dark = [15, 31, 45], muted = [90, 107, 122], cream = [242, 246, 250];
+    const dateFormatted = data.sessionDate ? new Date(data.sessionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+    let y = 0;
+    doc.setFillColor(...dark); doc.rect(0, 0, 210, 20, 'F');
+    doc.setFontSize(12); doc.setTextColor(...gold); doc.setFont('helvetica', 'bold'); doc.text('R2U Portal', 14, 13);
+    doc.setTextColor(180, 180, 180); doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.text('Route 2 University — Internal Document', 50, 13);
+    y = 30;
+    doc.setFontSize(16); doc.setTextColor(...dark); doc.setFont('helvetica', 'bold'); doc.text(data.sessionType + ' Feedback Report', 14, y); y += 3;
+    doc.setDrawColor(...gold); doc.setLineWidth(0.8); doc.line(14, y, 196, y); y += 10;
+    const metaItems = [['Student', data.studentName], ['Student ID', data.studentId || '—'], ['Date', dateFormatted], ['Course', data.studentCourse || '—'], ['Agent', data.studentAgent || '—'], ['Performance', data.performance]];
+    const colW = 91;
+    metaItems.forEach((item, i) => {
+      const col = i % 2; const x = 14 + col * colW;
+      if (col === 0 && i > 0) y += 15;
+      doc.setFillColor(...cream); doc.roundedRect(x, y, colW - 4, 12, 2, 2, 'F');
+      doc.setFontSize(7); doc.setTextColor(...muted); doc.setFont('helvetica', 'bold'); doc.text(item[0].toUpperCase(), x + 4, y + 4.5);
+      doc.setFontSize(9); doc.setTextColor(...dark); doc.text(String(item[1]).substring(0, 38), x + 4, y + 10);
     });
-    y+=20;
-    doc.setFillColor(...gold);doc.rect(14,y,3,7,'F');
-    doc.setFontSize(9);doc.setTextColor(...dark);doc.setFont('helvetica','bold');doc.text('DETAILED FEEDBACK',20,y+5.5);y+=11;
-    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(42,58,72);
-    const fl=doc.splitTextToSize(data.feedback,178);doc.text(fl,14,y);y+=fl.length*5+8;
-    if(data.recommendations){
-      if(y>240){doc.addPage();y=20;}
-      doc.setFillColor(...gold);doc.rect(14,y,3,7,'F');
-      doc.setFontSize(9);doc.setTextColor(...dark);doc.setFont('helvetica','bold');doc.text('RECOMMENDATIONS',20,y+5.5);y+=11;
-      doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(42,58,72);
-      const rl=doc.splitTextToSize(data.recommendations,178);doc.text(rl,14,y);
+    y += 20;
+    doc.setFillColor(...gold); doc.rect(14, y, 3, 7, 'F');
+    doc.setFontSize(9); doc.setTextColor(...dark); doc.setFont('helvetica', 'bold'); doc.text('DETAILED FEEDBACK', 20, y + 5.5); y += 11;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(42, 58, 72);
+    const fl = doc.splitTextToSize(data.feedback, 178); doc.text(fl, 14, y); y += fl.length * 5 + 8;
+    if (data.recommendations) {
+      if (y > 240) { doc.addPage(); y = 20; }
+      doc.setFillColor(...gold); doc.rect(14, y, 3, 7, 'F');
+      doc.setFontSize(9); doc.setTextColor(...dark); doc.setFont('helvetica', 'bold'); doc.text('RECOMMENDATIONS', 20, y + 5.5); y += 11;
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(42, 58, 72);
+      const rl = doc.splitTextToSize(data.recommendations, 178); doc.text(rl, 14, y);
     }
-    const footY=285;
-    doc.setDrawColor(...muted);doc.setLineWidth(0.3);doc.line(14,footY-4,196,footY-4);
-    doc.setFontSize(7);doc.setTextColor(...muted);doc.setFont('helvetica','normal');
-    doc.text('Generated by R2U Student Portal',14,footY);
-    doc.text('Conducted by: '+data.staffName,196,footY,{align:'right'});
-    const fname=`MockPreCAS_${(data.studentName||'Student').replace(/\s+/g,'_')}_${data.sessionDate||'nodate'}.pdf`;
+    const footY = 285;
+    doc.setDrawColor(...muted); doc.setLineWidth(0.3); doc.line(14, footY - 4, 196, footY - 4);
+    doc.setFontSize(7); doc.setTextColor(...muted); doc.setFont('helvetica', 'normal');
+    doc.text('Generated by R2U Student Portal', 14, footY);
+    doc.text('Conducted by: ' + data.staffName, 196, footY, { align: 'right' });
+    const fname = `MockPreCAS_${(data.studentName || 'Student').replace(/\s+/g, '_')}_${data.sessionDate || 'nodate'}.pdf`;
     doc.save(fname);
-    showToast('PDF downloaded ✓','success');
-  }catch(e){showToast('PDF failed: '+e.message,'error');}
-  finally{hideLoading();}
+    showToast('PDF downloaded ✓', 'success');
+  } catch (e) { showToast('PDF failed: ' + e.message, 'error'); }
+  finally { hideLoading(); }
 }
 
-async function fbSaveToDrive(){
-  const data=getFbData();
-  if(!data||!data.studentName){showToast('Please select a student first.','error');return;}
-  if(!data.feedback){showToast('Please write feedback first.','error');return;}
-  if(!data.studentId){showToast('Student ID required to save to Sheet.','error');return;}
+async function fbSaveToDrive() {
+  const data = getFbData();
+  if (!data || !data.studentName) { showToast('Please select a student first.', 'error'); return; }
+  if (!data.feedback) { showToast('Please write feedback first.', 'error'); return; }
+  if (!data.studentId) { showToast('Student ID required to save to Sheet.', 'error'); return; }
   showLoading('Saving to Google Drive & Sheet…');
-  try{
-    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'generateFeedbackDoc',studentId:data.studentId,date:data.sessionDate,performance:data.performance,feedback:data.feedback,recommendations:data.recommendations,staffName:data.staffName,sessionType:data.sessionType})});
-    const result=await res.json();
-    if(!result.success)throw new Error(result.error||'Unknown error');
-    document.getElementById('fb-success-title').textContent='Feedback doc created for '+data.studentName;
-    if(result.docUrl)document.getElementById('fb-doc-link').href=result.docUrl;
+  try {
+    const result = await appsScriptPost('generateFeedbackDoc', {
+      studentId: data.studentId,
+      date: data.sessionDate,
+      performance: data.performance,
+      feedback: data.feedback,
+      recommendations: data.recommendations,
+      staffName: data.staffName,
+      sessionType: data.sessionType
+    });
+    if (!result.success) throw new Error(result.error || 'Unknown error');
+    document.getElementById('fb-success-title').textContent = 'Feedback doc created for ' + data.studentName;
+    if (result.docUrl) document.getElementById('fb-doc-link').href = result.docUrl;
     document.getElementById('fb-success').classList.add('show');
-    document.getElementById('fb-success').scrollIntoView({behavior:'smooth',block:'start'});
-    showToast('Saved to Drive & Sheet ✓','success');
-  }catch(e){showToast('Save failed: '+e.message+' — Try Download PDF instead.','error');}
-  finally{hideLoading();}
+    document.getElementById('fb-success').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Saved to Drive & Sheet ✓', 'success');
+  } catch (e) { showToast('Save failed: ' + e.message + ' — Try Download PDF instead.', 'error'); }
+  finally { hideLoading(); }
 }
 
-function resetFeedback(){
+function resetFeedback() {
   fbClearStudent();
-  document.getElementById('fb-text').value='';
-  document.getElementById('fb-recs').value='';
-  document.getElementById('fb-date').value=new Date().toISOString().split('T')[0];
-  document.getElementById('fb-search').value='';
+  document.getElementById('fb-text').value = '';
+  document.getElementById('fb-recs').value = '';
+  document.getElementById('fb-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fb-search').value = '';
   selectPerf(document.querySelector('.perf-opt[data-value="Excellent"]'));
   document.getElementById('fb-success').classList.remove('show');
   document.getElementById('fb-preview').classList.remove('show');
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// UPLOAD
-function handleFileSelect(e){parseFile(e.target.files[0]);}
-function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');parseFile(e.dataTransfer.files[0]);}
-function parseFile(file){
-  if(!file)return;
-  Papa.parse(file,{header:true,skipEmptyLines:true,
-    complete:(r)=>{parsedCSVData=r.data;showPreview(file.name,r.data);},
-    error:(err)=>showToast('Parse error: '+err.message,'error')
+// ── UPLOAD ─────────────────────────────────────────────────────────
+function handleFileSelect(e) { parseFile(e.target.files[0]); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); parseFile(e.dataTransfer.files[0]); }
+function parseFile(file) {
+  if (!file) return;
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    complete: (r) => { parsedCSVData = r.data; showPreview(file.name, r.data); },
+    error: (err) => showToast('Parse error: ' + err.message, 'error')
   });
 }
-function showPreview(filename,data){
-  if(!data.length){showToast('No data rows found.','error');return;}
-  document.getElementById('preview-filename').textContent=filename;
-  document.getElementById('preview-rows').textContent=data.length;
-  const headers=Object.keys(data[0]);
-  document.getElementById('preview-thead').innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
-  document.getElementById('preview-tbody').innerHTML=data.slice(0,5).map(row=>'<tr>'+headers.map(h=>`<td>${row[h]||''}</td>`).join('')+'</tr>').join('');
+function showPreview(filename, data) {
+  if (!data.length) { showToast('No data rows found.', 'error'); return; }
+  document.getElementById('preview-filename').textContent = filename;
+  document.getElementById('preview-rows').textContent = data.length;
+  const headers = Object.keys(data[0]);
+  document.getElementById('preview-thead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+  document.getElementById('preview-tbody').innerHTML = data.slice(0, 5).map(row => '<tr>' + headers.map(h => `<td>${row[h] || ''}</td>`).join('') + '</tr>').join('');
   document.getElementById('upload-preview').classList.add('show');
 }
-function clearUpload(){parsedCSVData=[];document.getElementById('csv-file').value='';document.getElementById('upload-preview').classList.remove('show');}
-async function confirmUpload(){
-  if(!parsedCSVData.length)return;
-  try{
-    const r=await appsScriptPost('uploadCSV',{rows:parsedCSVData});
-    if(!r.success)throw new Error(r.error);
-    showToast(`Imported ${r.added||0} new, updated ${r.updated||0} records ✓`,'success');
-    clearUpload();loadStudents();
-  }catch(e){showToast('Upload failed: '+e.message,'error');}
+function clearUpload() { parsedCSVData = []; document.getElementById('csv-file').value = ''; document.getElementById('upload-preview').classList.remove('show'); }
+async function confirmUpload() {
+  if (!parsedCSVData.length) return;
+  try {
+    showLoading('Uploading…');
+    const r = await appsScriptPost('uploadCSV', { rows: parsedCSVData });
+    if (!r.success) throw new Error(r.error);
+    showToast(`Imported ${r.added || 0} new, updated ${r.updated || 0} records ✓`, 'success');
+    clearUpload(); loadStudents();
+  } catch (e) { showToast('Upload failed: ' + e.message, 'error'); }
+  finally { hideLoading(); }
 }
 
-// REPORTS
-async function loadReports(){
-  const grid=document.getElementById('report-grid');
-  grid.innerHTML='<div class="empty-state">Loading…</div>';
-  try{
-    const data=await appsScriptGet('getReport');
-    if(!data.success)throw new Error(data.error);
+// ── REPORTS ────────────────────────────────────────────────────────
+async function loadReports() {
+  const grid = document.getElementById('report-grid');
+  grid.innerHTML = '<div class="empty-state">Loading…</div>';
+  try {
+    const data = await appsScriptGet('getReport');
+    if (!data.success) throw new Error(data.error);
     renderReports(data.report);
-  }catch{renderReports(buildLocalReport(allStudents));}
+  } catch { renderReports(buildLocalReport(allStudents)); }
 }
-function buildLocalReport(students){
-  const count=(f,v)=>students.filter(s=>s[f]===v).length;
+function buildLocalReport(students) {
+  const count = (f, v) => students.filter(s => s[f] === v).length;
   return {
-    offer:{Pending:count('OFFER STATUS','Pending'),Conditional:count('OFFER STATUS','Conditional'),Unconditional:count('OFFER STATUS','Unconditional'),Received:count('OFFER STATUS','Received'),Rejected:count('OFFER STATUS','Rejected')},
-    cas:{'Not Applied':count('CAS STATUS','Not Applied'),Pending:count('CAS STATUS','Pending'),Issued:count('CAS STATUS','Issued'),Rejected:count('CAS STATUS','Rejected')},
-    visa:{'Not Applied':count('VISA STATUS','Not Applied'),Pending:count('VISA STATUS','Pending'),Approved:count('VISA STATUS','Approved'),Refused:count('VISA STATUS','Refused')},
-    payment:{Unpaid:count('PAYMENT','Unpaid'),'Partially Paid':count('PAYMENT','Partially Paid'),Paid:count('PAYMENT','Paid'),Refunded:count('PAYMENT','Refunded')},
+    offer: { Pending: count('OFFER STATUS', 'Pending'), Conditional: count('OFFER STATUS', 'Conditional'), Unconditional: count('OFFER STATUS', 'Unconditional'), Received: count('OFFER STATUS', 'Received'), Rejected: count('OFFER STATUS', 'Rejected') },
+    cas: { 'Not Applied': count('CAS STATUS', 'Not Applied'), Pending: count('CAS STATUS', 'Pending'), Issued: count('CAS STATUS', 'Issued'), Rejected: count('CAS STATUS', 'Rejected') },
+    visa: { 'Not Applied': count('VISA STATUS', 'Not Applied'), Pending: count('VISA STATUS', 'Pending'), Approved: count('VISA STATUS', 'Approved'), Refused: count('VISA STATUS', 'Refused') },
+    payment: { Unpaid: count('PAYMENT', 'Unpaid'), 'Partially Paid': count('PAYMENT', 'Partially Paid'), Paid: count('PAYMENT', 'Paid'), Refunded: count('PAYMENT', 'Refunded') },
   };
 }
-function renderReports(report){
-  const grid=document.getElementById('report-grid');
-  if(!report){grid.innerHTML='<div class="empty-state">No data.</div>';return;}
-  const sections=[{title:'Offer Status',data:report.offer},{title:'CAS Status',data:report.cas},{title:'Visa Status',data:report.visa},{title:'Payment',data:report.payment}];
-  grid.innerHTML=sections.map(sec=>{
-    const total=Object.values(sec.data||{}).reduce((a,b)=>a+b,0);
-    const bars=Object.entries(sec.data||{}).map(([label,cnt])=>{
-      const pct=total?Math.round(cnt/total*100):0;
+function renderReports(report) {
+  const grid = document.getElementById('report-grid');
+  if (!report) { grid.innerHTML = '<div class="empty-state">No data.</div>'; return; }
+  const sections = [{ title: 'Offer Status', data: report.offer }, { title: 'CAS Status', data: report.cas }, { title: 'Visa Status', data: report.visa }, { title: 'Payment', data: report.payment }];
+  grid.innerHTML = sections.map(sec => {
+    const total = Object.values(sec.data || {}).reduce((a, b) => a + b, 0);
+    const bars = Object.entries(sec.data || {}).map(([label, cnt]) => {
+      const pct = total ? Math.round(cnt / total * 100) : 0;
       return `<div class="report-bar-item"><div class="report-bar-label">${label}</div><div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div><div class="report-bar-count">${cnt}</div></div>`;
     }).join('');
-    return `<div class="report-card"><div class="report-card-title">${sec.title} <span style="font-weight:400;color:var(--muted)">(${total})</span></div>${bars||'<div class="empty-state">No data</div>'}</div>`;
+    return `<div class="report-card"><div class="report-card-title">${sec.title} <span style="font-weight:400;color:var(--muted)">(${total})</span></div>${bars || '<div class="empty-state">No data</div>'}</div>`;
   }).join('');
 }
 
-// MODALS
-function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+// ── MODALS ─────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
 
-// HELPERS
-function showLoading(msg){document.getElementById('loading-msg').textContent=msg||'Processing…';document.getElementById('loading').classList.add('show');}
-function hideLoading(){document.getElementById('loading').classList.remove('show');}
-function showToast(msg,type='success'){const wrap=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast '+type;t.innerHTML=(type==='success'?'✓  ':'✕  ')+msg;wrap.appendChild(t);setTimeout(()=>t.remove(),4000);}
+// ── HELPERS ────────────────────────────────────────────────────────
+function showLoading(msg) { document.getElementById('loading-msg').textContent = msg || 'Processing…'; document.getElementById('loading').classList.add('show'); }
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+function showToast(msg, type = 'success') { const wrap = document.getElementById('toast-wrap'); const t = document.createElement('div'); t.className = 'toast ' + type; t.innerHTML = (type === 'success' ? '✓  ' : '✕  ') + msg; wrap.appendChild(t); setTimeout(() => t.remove(), 4000); }
 
-function getMockStudents(){return[
-  {'STUDENT ID':'R2U001','STUDENT NAME':'Priya Sharma','LEVEL':'PG','COURSE':'MSc Computer Science','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Received','SCHOLARSHIP':'Partial','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Pending','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
-  {'STUDENT ID':'R2U002','STUDENT NAME':'Amit Patel','LEVEL':'UG','COURSE':'BA Business Management','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Conditional','SCHOLARSHIP':'None','PAYMENT':'Partially Paid','CAS SHIELD':'In Progress','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
-  {'STUDENT ID':'R2U003','STUDENT NAME':'Sara Khan','LEVEL':'PG','COURSE':'MBA Finance','AGENT':'Agent A','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Unconditional','SCHOLARSHIP':'Full','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Approved','SUBMITTED BY':'Sagar'},
-  {'STUDENT ID':'R2U004','STUDENT NAME':'Rahul Singh','LEVEL':'PHD','COURSE':'PhD Engineering','AGENT':'Agent C','PRE-SCREENING CALL STATUS':'Not Called','OFFER STATUS':'Received','SCHOLARSHIP':'None','PAYMENT':'Unpaid','CAS SHIELD':'Not Started','CAS STATUS':'Pending','VISA STATUS':'Pending','SUBMITTED BY':'Admin'},
-  {'STUDENT ID':'R2U005','STUDENT NAME':'Meena Joshi','LEVEL':'UG','COURSE':'BSc Nursing','AGENT':'Agent B','PRE-SCREENING CALL STATUS':'Called – Not Interested','OFFER STATUS':'Rejected','SCHOLARSHIP':'None','PAYMENT':'Refunded','CAS SHIELD':'Not Started','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','SUBMITTED BY':'Admin'},
-];}
-function getMockCASData(){return[
-  {'Applicant ID':'R2U001','Applicant Name':'Priya Sharma','Agent (Name)':'Agent A','Nationality':'Nepali','Course Name':'MSc Computer Science','Team Member':'Sagar','Study Gap Y/N':'No','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'Yes','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'Yes','PCI Invite':'2026-07-01'},
-  {'Applicant ID':'R2U002','Applicant Name':'Amit Patel','Agent (Name)':'Agent B','Nationality':'Indian','Course Name':'BA Business Management','Team Member':'Admin','Study Gap Y/N':'Yes','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'No','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'No','PCI Invite':''},
-];}
+// ── MOCK DATA (fallback when offline) ─────────────────────────────
+function getMockStudents() {
+  return [
+    { 'STUDENT ID': 'R2U001', 'STUDENT NAME': 'Priya Sharma', 'LEVEL': 'PG', 'COURSE': 'MSc Computer Science', 'AGENT': 'Agent A', 'PRE-SCREENING CALL STATUS': 'Scheduled', 'OFFER STATUS': 'Received', 'SCHOLARSHIP': 'Partial', 'PAYMENT': 'Paid', 'CAS SHIELD': 'Completed', 'CAS STATUS': 'Pending', 'VISA STATUS': 'Not Applied', 'SUBMITTED BY': 'Admin' },
+    { 'STUDENT ID': 'R2U002', 'STUDENT NAME': 'Amit Patel', 'LEVEL': 'UG', 'COURSE': 'BA Business Management', 'AGENT': 'Agent B', 'PRE-SCREENING CALL STATUS': 'Called – Interested', 'OFFER STATUS': 'Conditional', 'SCHOLARSHIP': 'None', 'PAYMENT': 'Partially Paid', 'CAS SHIELD': 'In Progress', 'CAS STATUS': 'Not Applied', 'VISA STATUS': 'Not Applied', 'SUBMITTED BY': 'Admin' },
+    { 'STUDENT ID': 'R2U003', 'STUDENT NAME': 'Sara Khan', 'LEVEL': 'PG', 'COURSE': 'MBA Finance', 'AGENT': 'Agent A', 'PRE-SCREENING CALL STATUS': 'Scheduled', 'OFFER STATUS': 'Unconditional', 'SCHOLARSHIP': 'Full', 'PAYMENT': 'Paid', 'CAS SHIELD': 'Completed', 'CAS STATUS': 'Issued', 'VISA STATUS': 'Approved', 'SUBMITTED BY': 'Sagar' },
+    { 'STUDENT ID': 'R2U004', 'STUDENT NAME': 'Rahul Singh', 'LEVEL': 'PHD', 'COURSE': 'PhD Engineering', 'AGENT': 'Agent C', 'PRE-SCREENING CALL STATUS': 'Not Called', 'OFFER STATUS': 'Received', 'SCHOLARSHIP': 'None', 'PAYMENT': 'Unpaid', 'CAS SHIELD': 'Not Started', 'CAS STATUS': 'Pending', 'VISA STATUS': 'Pending', 'SUBMITTED BY': 'Admin' },
+    { 'STUDENT ID': 'R2U005', 'STUDENT NAME': 'Meena Joshi', 'LEVEL': 'UG', 'COURSE': 'BSc Nursing', 'AGENT': 'Agent B', 'PRE-SCREENING CALL STATUS': 'Called – Not Interested', 'OFFER STATUS': 'Rejected', 'SCHOLARSHIP': 'None', 'PAYMENT': 'Refunded', 'CAS SHIELD': 'Not Started', 'CAS STATUS': 'Not Applied', 'VISA STATUS': 'Not Applied', 'SUBMITTED BY': 'Admin' },
+  ];
+}
+function getMockCASData() {
+  return [
+    { 'Applicant ID': 'R2U001', 'Applicant Name': 'Priya Sharma', 'Agent (Name)': 'Agent A', 'Nationality': 'Nepali', 'Course Name': 'MSc Computer Science', 'Team Member': 'Sagar', 'Study Gap Y/N': 'No', 'Same Level Studies Y/N': 'No', 'Visa Refusal Y/N': 'No', 'Ready for PCI': 'Yes', 'Information check on CAS Shield completed? Y/N': 'Yes', 'Pre-CAS questionnaire on CAS shield Completed? Y/N': 'Yes', 'PCI Invite': '2026-07-01' },
+    { 'Applicant ID': 'R2U002', 'Applicant Name': 'Amit Patel', 'Agent (Name)': 'Agent B', 'Nationality': 'Indian', 'Course Name': 'BA Business Management', 'Team Member': 'Admin', 'Study Gap Y/N': 'Yes', 'Same Level Studies Y/N': 'No', 'Visa Refusal Y/N': 'No', 'Ready for PCI': 'No', 'Information check on CAS Shield completed? Y/N': 'Yes', 'Pre-CAS questionnaire on CAS shield Completed? Y/N': 'No', 'PCI Invite': '' },
+  ];
+}
 </script>
