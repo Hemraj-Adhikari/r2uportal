@@ -1142,7 +1142,7 @@ async function doLogin(){
     const res=await fetch(url.toString());const data=await res.json();
     if(data.success){localStorage.setItem(SK_ROLE,data.role);localStorage.setItem(SK_USER,data.name);localStorage.setItem(SK_TIME,String(Date.now()));bootSession(data.name,data.role)}
     else{errEl.textContent=data.error||'Invalid credentials';errEl.style.display='block';document.getElementById('login-password').value=''}
-  }catch{errEl.textContent='Cannot reach server. Check your connection.';errEl.style.display='block'}
+  }catch(e){errEl.textContent='Cannot reach server: '+e.message;errEl.style.display='block';console.error(e)}
   finally{btn.disabled=false;document.getElementById('login-btn-text').textContent='Sign in';document.getElementById('login-spinner').style.display='none'}
 }
 function togglePwd(){const i=document.getElementById('login-password'),ic=document.getElementById('eye-icon');const s=i.type==='password';i.type=s?'text':'password';ic.innerHTML=s?'<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.44 18.44 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>':'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
@@ -1245,7 +1245,6 @@ function buildRow(s){
 }
 function renderTable(arr){const tb=document.getElementById('table-body');if(!arr.length){tb.innerHTML='<tr><td colspan="7" class="empty-state">No students match current filters</td></tr>';return}tb.innerHTML=arr.map(buildRow).join('')}
 
-let pillFilter={type:'',value:''};
 function setPillFilter(type,value,btn){pillFilter={type,value};document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');filterTable()}
 function filterTable(){
   const q=(document.getElementById('search-input').value||'').toLowerCase();
