@@ -35,86 +35,119 @@ button{cursor:pointer}
   --shadow-md:0 4px 12px rgba(15,28,46,.08),0 2px 4px rgba(15,28,46,.04);--shadow-lg:0 12px 32px rgba(15,28,46,.12),0 4px 8px rgba(15,28,46,.06);
   --shadow-xl:0 24px 64px rgba(15,28,46,.18),0 8px 16px rgba(15,28,46,.08);
   --r-xs:3px;--r-sm:5px;--r-md:8px;--r-lg:12px;--r-xl:16px;
-  --sidebar-w:230px;--header-h:56px;
+  --sidebar-w:248px;--header-h:56px;
 }
 
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulseGold{0%,100%{opacity:1}50%{opacity:.5}}
 
 .view{display:none!important}
 .view.active{display:block!important}
 
-/* ── SIDEBAR ── */
-/* FIX 3: Added height:100% and min-height:100vh so sidebar always reaches the footer */
+/* ══════════════════════════════════════════
+   SIDEBAR — redesigned with section groups
+══════════════════════════════════════════ */
 #sidebar{
   position:fixed;inset-y:0;left:0;width:var(--sidebar-w);z-index:50;
-  background:#0A1628;
+  background:linear-gradient(180deg,#08121F 0%,#0A1628 100%);
   display:flex;flex-direction:column;
-  border-right:1px solid rgba(255,255,255,.06);
+  border-right:1px solid rgba(255,255,255,.05);
   height:100%;min-height:100vh;
 }
+
+/* Logo row */
 .sb-logo-row{
   height:var(--header-h);display:flex;align-items:center;gap:10px;
   padding:0 16px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
-  cursor:pointer;text-decoration:none;
+  cursor:pointer;text-decoration:none;transition:background .15s;
 }
 .sb-logo-row:hover{background:rgba(255,255,255,.04)}
 .sb-logo-mark{
   width:32px;height:32px;border-radius:8px;
-  background:linear-gradient(140deg,var(--gold-400),var(--gold-600));
+  background:linear-gradient(140deg,var(--gold-300),var(--gold-600));
   display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:11px;color:var(--navy-900);letter-spacing:.02em;flex-shrink:0;
+  font-weight:800;font-size:11px;color:var(--navy-900);letter-spacing:.02em;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(200,135,26,.35);
 }
-.sb-brand-name{font-weight:700;font-size:12px;color:#FFFFFF;line-height:1.25;letter-spacing:.01em}
-.sb-brand-sub{font-size:9px;font-weight:400;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;margin-top:1px}
+.sb-brand-name{font-weight:700;font-size:12.5px;color:#FFFFFF;line-height:1.25;letter-spacing:.01em}
+.sb-brand-sub{font-size:9px;font-weight:500;color:rgba(255,255,255,.28);letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
 
-.sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
-.sb-section-label{
-  font-size:9px;font-weight:600;color:rgba(255,255,255,.22);
-  text-transform:uppercase;letter-spacing:.14em;
-  padding:14px 10px 5px;
+/* Nav scroll area */
+.sb-nav{flex:1;padding:8px 0;overflow-y:auto;overflow-x:hidden}
+.sb-nav::-webkit-scrollbar{width:2px}
+
+/* Section group */
+.sb-group{margin-bottom:2px}
+.sb-group-header{
+  display:flex;align-items:center;gap:6px;
+  padding:12px 14px 4px;cursor:pointer;user-select:none;
+  transition:all .15s;
 }
+.sb-group-header:hover .sb-group-label{color:rgba(255,255,255,.5)}
+.sb-group-icon{
+  width:15px;height:15px;flex-shrink:0;
+  color:rgba(255,255,255,.22);transition:color .15s;
+}
+.sb-group-label{
+  font-size:9px;font-weight:700;color:rgba(255,255,255,.22);
+  text-transform:uppercase;letter-spacing:.14em;flex:1;
+  transition:color .15s;
+}
+.sb-group-chevron{
+  width:10px;height:10px;color:rgba(255,255,255,.18);
+  transition:transform .2s ease,color .15s;flex-shrink:0;
+}
+.sb-group.collapsed .sb-group-chevron{transform:rotate(-90deg)}
+.sb-group-body{overflow:hidden;transition:max-height .22s ease;padding:0 6px 4px}
+.sb-group.collapsed .sb-group-body{max-height:0!important;padding-bottom:0}
+
+/* Nav link */
 .sb-link{
-  display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--r-md);
-  font-size:12px;font-weight:500;color:rgba(255,255,255,.45);
-  cursor:pointer;transition:all .15s ease;user-select:none;margin-bottom:1px;text-decoration:none;
+  display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--r-md);
+  font-size:12px;font-weight:500;color:rgba(255,255,255,.42);
+  cursor:pointer;transition:all .13s ease;user-select:none;margin-bottom:1px;text-decoration:none;
+  position:relative;
 }
-.sb-link:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.75)}
-.sb-link.active{background:rgba(200,135,26,.18);color:var(--gold-300);font-weight:600}
+.sb-link:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.78)}
+.sb-link.active{
+  background:rgba(200,135,26,.15);color:var(--gold-300);font-weight:600;
+  box-shadow:inset 2px 0 0 var(--gold-500);
+}
 .sb-link.active .sb-link-icon{opacity:1;color:var(--gold-400)}
-.sb-link-icon{flex-shrink:0;opacity:.35;width:15px;height:15px;transition:opacity .15s}
-.sb-link:hover .sb-link-icon{opacity:.7}
-.sb-divider{height:1px;background:rgba(255,255,255,.07);margin:8px 8px}
+.sb-link-icon{flex-shrink:0;opacity:.32;width:14px;height:14px;transition:opacity .13s;color:rgba(255,255,255,.8)}
+.sb-link:hover .sb-link-icon{opacity:.65}
 
-/* ── COMMUNICATION SECTION (new) ── */
-.sb-section-label-comm{
-  font-size:11px;font-weight:700;color:#94A3B8;
-  text-transform:uppercase;letter-spacing:.14em;
-  padding:14px 10px 5px;
+/* Badge */
+.sb-badge{
+  margin-left:auto;font-size:8px;font-weight:700;letter-spacing:.04em;
+  border-radius:4px;padding:1.5px 5px;flex-shrink:0;text-transform:uppercase;
 }
-.sb-link-comm{font-size:14px;font-weight:500}
-.sb-badge-soon{
-  margin-left:auto;font-size:8.5px;font-weight:700;letter-spacing:.04em;
-  color:rgba(255,255,255,.3);background:rgba(255,255,255,.06);
-  border-radius:4px;padding:1px 5px;flex-shrink:0;text-transform:uppercase;
-}
+.sb-badge-soon{color:rgba(255,255,255,.28);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.sb-badge-new{color:var(--gold-400);background:rgba(200,135,26,.12);border:1px solid rgba(200,135,26,.2)}
+.sb-badge-count{color:#fff;background:var(--crimson-500);border-radius:8px;padding:1px 6px}
 
+/* Divider */
+.sb-divider{height:1px;background:rgba(255,255,255,.06);margin:6px 14px}
+
+/* User area */
 .sb-user{
-  margin-top:auto;border-radius:0;
-  background:rgba(255,255,255,.05);border:none;border-top:1px solid rgba(255,255,255,.08);
-  padding:14px 18px;display:flex;align-items:center;gap:9px;flex-shrink:0;
+  flex-shrink:0;border-top:1px solid rgba(255,255,255,.07);
+  padding:12px 14px;display:flex;align-items:center;gap:9px;
+  background:rgba(0,0,0,.15);
 }
 .sb-avatar{
   width:28px;height:28px;border-radius:50%;
   background:linear-gradient(135deg,var(--gold-400),var(--gold-600));
   color:var(--navy-900);font-weight:700;font-size:10px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
 }
-.sb-user-name{font-size:12px;font-weight:600;color:#FFFFFF;line-height:1.2}
-.sb-user-role{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.sb-user-name{font-size:11.5px;font-weight:600;color:#FFFFFF;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{font-size:9.5px;color:rgba(255,255,255,.3);margin-top:1px}
 .sb-signout{
-  width:22px;height:22px;border-radius:5px;background:transparent;border:none;
+  width:24px;height:24px;border-radius:5px;background:transparent;border:none;
   display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.22);
   cursor:pointer;transition:all .13s;flex-shrink:0;margin-left:auto;
 }
@@ -123,19 +156,19 @@ button{cursor:pointer}
 /* ── HEADER ── */
 #app-header{
   position:sticky;top:0;z-index:30;height:var(--header-h);
-  background:rgba(240,242,245,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:rgba(240,242,245,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border-subtle);
-  display:flex;align-items:center;padding:0 22px;gap:16px;
+  display:flex;align-items:center;padding:0 22px;gap:14px;
 }
-.hdr-title{font-weight:600;font-size:14px;color:var(--text-primary);line-height:1}
+.hdr-title{font-weight:700;font-size:14.5px;color:var(--text-primary);line-height:1}
 .hdr-sub{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:400}
 .hdr-search{
   display:flex;align-items:center;gap:8px;margin-left:auto;
   background:var(--surface-card);border:1px solid var(--border-default);border-radius:var(--r-md);
-  padding:6px 12px;cursor:pointer;transition:border-color .13s;min-width:240px;
+  padding:6px 12px;cursor:pointer;transition:border-color .13s,box-shadow .13s;min-width:240px;
   box-shadow:var(--shadow-xs);color:var(--text-muted);font-size:12px;
 }
-.hdr-search:hover{border-color:var(--navy-300)}
+.hdr-search:hover{border-color:var(--navy-300);box-shadow:var(--shadow-sm)}
 .hdr-search-hint{margin-left:auto;display:flex;gap:3px}
 .kbd{font-size:9.5px;background:var(--surface-inset);border:1px solid var(--border-default);border-radius:3px;padding:1px 5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;line-height:1.5}
 .hdr-icon-btn{
@@ -143,28 +176,29 @@ button{cursor:pointer}
   background:var(--surface-card);display:flex;align-items:center;justify-content:center;
   cursor:pointer;color:var(--text-tertiary);transition:all .13s;box-shadow:var(--shadow-xs);flex-shrink:0;position:relative;
 }
-.hdr-icon-btn:hover{border-color:var(--navy-300);color:var(--navy-700)}
+.hdr-icon-btn:hover{border-color:var(--navy-300);color:var(--navy-700);box-shadow:var(--shadow-sm)}
 .hdr-avatar{
-  width:30px;height:30px;border-radius:50%;
+  width:32px;height:32px;border-radius:50%;
   background:linear-gradient(135deg,var(--gold-400),var(--gold-600));
   color:var(--navy-900);font-size:11px;font-weight:700;
   display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.12);
 }
 .notif-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:#EF4444;border:1.5px solid var(--surface-card)}
 
 /* ── MAIN ── */
 #app-main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
-#app-content{flex:1;padding:18px 22px}
+#app-content{flex:1;padding:20px 24px}
 
 /* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--r-md);font-size:12px;font-weight:500;border:1px solid transparent;transition:all .13s;white-space:nowrap}
-.btn-sm{padding:4px 10px;font-size:11.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r-md);font-size:12px;font-weight:500;border:1px solid transparent;transition:all .13s;white-space:nowrap}
+.btn-sm{padding:5px 11px;font-size:11.5px}
 .btn-primary{background:var(--navy-800);color:#FFF;border-color:var(--navy-800);box-shadow:var(--shadow-xs)}
-.btn-primary:hover{background:var(--navy-700)}
+.btn-primary:hover{background:var(--navy-700);box-shadow:var(--shadow-sm)}
 .btn-gold{background:var(--gold-500);color:var(--navy-900);border-color:var(--gold-500);font-weight:600;box-shadow:var(--shadow-xs)}
-.btn-gold:hover{background:var(--gold-400)}
+.btn-gold:hover{background:var(--gold-400);box-shadow:var(--shadow-sm)}
 .btn-secondary{background:var(--surface-card);color:var(--text-secondary);border-color:var(--border-default);box-shadow:var(--shadow-xs)}
-.btn-secondary:hover{border-color:var(--navy-300);color:var(--navy-700);background:var(--slate-50)}
+.btn-secondary:hover{border-color:var(--navy-300);color:var(--navy-700);background:var(--slate-50);box-shadow:var(--shadow-sm)}
 .btn-ghost{background:transparent;color:var(--text-tertiary);border-color:transparent}
 .btn-ghost:hover{background:var(--surface-inset);color:var(--text-secondary)}
 .btn-danger{background:var(--crimson-50);color:var(--crimson-700);border-color:var(--crimson-100)}
@@ -190,22 +224,25 @@ button{cursor:pointer}
 
 /* ── KPI ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px}
-.kpi-card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:16px 16px 14px;box-shadow:var(--shadow-xs);transition:box-shadow .15s,transform .15s;position:relative;overflow:hidden}
+.kpi-card{
+  background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);
+  padding:16px 16px 14px;box-shadow:var(--shadow-xs);transition:box-shadow .15s,transform .15s;
+  position:relative;overflow:hidden;
+}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-accent,transparent);border-radius:var(--r-lg) var(--r-lg) 0 0}
 .kpi-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
-.kpi-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-.kpi-val{font-size:26px;font-weight:700;line-height:1;letter-spacing:-.03em;color:var(--text-primary)}
-.kpi-sub{font-size:10.5px;font-weight:500;margin-top:4px}
+.kpi-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.kpi-val{font-size:28px;font-weight:700;line-height:1;letter-spacing:-.04em;color:var(--text-primary)}
+.kpi-sub{font-size:10.5px;font-weight:500;margin-top:5px}
 
-/* ── PIPELINE OVERVIEW ── */
-.pipeline-row{display:grid;grid-template-columns:1fr 280px;gap:12px;margin-bottom:18px}
-.funnel-stages{display:flex;flex-direction:column;gap:4px;padding:16px 18px}
+/* ── PIPELINE ── */
+.pipeline-row{display:grid;grid-template-columns:1fr 280px;gap:12px;margin-bottom:20px}
+.funnel-stages{display:flex;flex-direction:column;gap:5px;padding:16px 18px}
 .funnel-item{display:grid;grid-template-columns:140px 1fr 42px;align-items:center;gap:10px}
 .funnel-label{font-size:11px;color:var(--text-secondary);font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .funnel-bar-track{background:var(--surface-inset);border-radius:2px;height:5px;overflow:hidden}
-.funnel-bar-fill{height:100%;border-radius:2px;background:var(--navy-600);transition:width .6s ease}
+.funnel-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--navy-600),var(--navy-400));transition:width .7s cubic-bezier(.4,0,.2,1)}
 .funnel-count{font-size:11px;font-weight:600;color:var(--text-secondary);text-align:right}
-
-/* donut legend */
 .legend-row{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border-subtle)}
 .legend-row:last-child{border-bottom:none}
 .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -229,12 +266,16 @@ button{cursor:pointer}
 
 /* ── TABLE ── */
 .tbl-card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-xs)}
-.tbl-header{padding:11px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between}
+.tbl-header{padding:12px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between}
 .tbl-title{font-weight:600;font-size:13px;color:var(--text-primary)}
 .tbl-count{font-size:11.5px;color:var(--text-muted);margin-left:6px;font-weight:400}
 .tbl-scroll{overflow:auto;max-height:52vh}
 table.dt{width:100%;border-collapse:collapse;font-size:12px}
-table.dt thead th{background:var(--slate-50);color:var(--text-muted);padding:8px 16px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border-subtle);white-space:nowrap;position:sticky;top:0;z-index:1}
+table.dt thead th{
+  background:var(--slate-50);color:var(--text-muted);padding:9px 16px;text-align:left;
+  font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  border-bottom:1px solid var(--border-subtle);white-space:nowrap;position:sticky;top:0;z-index:1;
+}
 table.dt tbody tr{border-bottom:1px solid var(--border-subtle);transition:background .1s}
 table.dt tbody tr:last-child{border-bottom:none}
 table.dt tbody tr:hover{background:var(--slate-50)}
@@ -262,7 +303,7 @@ tr:hover .row-actions{opacity:1}
 .row-btn{width:26px;height:26px;border-radius:var(--r-sm);border:1px solid var(--border-default);background:var(--surface-card);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);transition:all .13s;box-shadow:var(--shadow-xs)}
 .row-btn:hover{border-color:var(--navy-300);color:var(--navy-700);background:var(--slate-50)}
 
-/* ── CHANNEL PARTNERS SECTION ── */
+/* ── CHANNEL PARTNERS ── */
 .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:16px}
 .cp-card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-xs);transition:box-shadow .15s,transform .15s}
 .cp-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
@@ -280,14 +321,14 @@ tr:hover .row-actions{opacity:1}
 #load-more-btn:disabled{opacity:.5;cursor:not-allowed}
 
 /* ── CMD PALETTE ── */
-#cmd-overlay{position:fixed;inset:0;z-index:9000;background:rgba(10,22,40,.55);backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;padding-top:11vh;opacity:0;pointer-events:none;transition:opacity .16s}
+#cmd-overlay{position:fixed;inset:0;z-index:9000;background:rgba(10,22,40,.6);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding-top:11vh;opacity:0;pointer-events:none;transition:opacity .16s}
 #cmd-overlay.open{opacity:1;pointer-events:all}
-#cmd-box{width:100%;max-width:540px;background:var(--surface-card);border-radius:var(--r-xl);box-shadow:var(--shadow-xl),0 0 0 1px rgba(0,0,0,.08);overflow:hidden;transform:translateY(-8px) scale(.98);transition:transform .2s cubic-bezier(.22,1,.36,1)}
+#cmd-box{width:100%;max-width:560px;background:var(--surface-card);border-radius:var(--r-xl);box-shadow:var(--shadow-xl),0 0 0 1px rgba(0,0,0,.08);overflow:hidden;transform:translateY(-8px) scale(.98);transition:transform .2s cubic-bezier(.22,1,.36,1)}
 #cmd-overlay.open #cmd-box{transform:none}
-.cmd-input-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border-subtle)}
+.cmd-input-row{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-subtle)}
 #cmd-input{flex:1;font-size:14px;border:none;outline:none;color:var(--text-primary);background:transparent;font-family:inherit;font-weight:500}
 #cmd-input::placeholder{color:var(--text-muted);font-weight:400}
-#cmd-results{max-height:340px;overflow-y:auto}
+#cmd-results{max-height:360px;overflow-y:auto}
 .cmd-section{font-size:9.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;padding:10px 16px 4px}
 .cmd-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;transition:background .1s}
 .cmd-item:hover,.cmd-item.cmd-sel{background:var(--slate-50)}
@@ -354,7 +395,6 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 .lookup-item:hover{background:var(--slate-50)}
 .lookup-item-name{font-weight:600;font-size:12px;color:var(--text-primary)}
 .lookup-item-sub{font-size:10.5px;color:var(--text-muted);margin-top:1px}
-
 .sel-pill{background:var(--navy-50);border:1px solid var(--navy-100);border-radius:var(--r-md);padding:9px 12px;display:none;align-items:center;justify-content:space-between;margin-top:6px}
 .sel-pill.show{display:flex}
 .sel-pill-name{font-weight:600;font-size:12.5px;color:var(--navy-800)}
@@ -368,20 +408,20 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 .alert-success.show{display:flex}
 
 /* ── TOAST ── */
-#toast-wrap{position:fixed;bottom:18px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:6px}
-.toast{background:var(--navy-800);color:#FFF;padding:9px 14px;border-radius:var(--r-md);font-size:12px;font-weight:500;box-shadow:var(--shadow-lg);animation:slideUp .18s ease;display:flex;align-items:center;gap:8px;max-width:300px}
+#toast-wrap{position:fixed;bottom:18px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--navy-800);color:#FFF;padding:9px 14px;border-radius:var(--r-md);font-size:12px;font-weight:500;box-shadow:var(--shadow-lg);animation:slideUp .18s ease;display:flex;align-items:center;gap:8px;max-width:300px;pointer-events:all}
 .toast.success{border-left:3px solid var(--emerald-500)}
 .toast.error{border-left:3px solid var(--crimson-500)}
 .toast.info{border-left:3px solid var(--gold-400)}
 
 /* ── LOADING ── */
-#global-loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:9000;display:none;align-items:center;justify-content:center;gap:12px;flex-direction:column;backdrop-filter:blur(4px)}
+#global-loading{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:9000;display:none;align-items:center;justify-content:center;gap:12px;flex-direction:column;backdrop-filter:blur(4px)}
 #global-loading.show{display:flex}
 .spinner{width:24px;height:24px;border:2.5px solid var(--slate-200);border-top-color:var(--navy-700);border-radius:50%;animation:spin .75s linear infinite}
 .spinner-sm{width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#FFF;border-radius:50%;animation:spin .75s linear infinite}
 
 /* ── LOGIN ── */
-#login-screen{position:fixed;inset:0;z-index:9999;background:var(--navy-950);display:flex;align-items:center;justify-content:center;transition:opacity .22s ease}
+#login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#030D1A 0%,#0A1628 50%,#162338 100%);display:flex;align-items:center;justify-content:center;transition:opacity .22s ease}
 #login-screen.hidden{opacity:0;pointer-events:none}
 .login-card{background:var(--surface-card);border-radius:var(--r-xl);padding:32px 28px 26px;width:100%;max-width:360px;box-shadow:var(--shadow-xl);animation:slideUp .3s cubic-bezier(.22,1,.36,1);border:1px solid var(--border-subtle)}
 .login-logo-mark{width:36px;height:36px;border-radius:8px;background:linear-gradient(140deg,var(--gold-400),var(--gold-600));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--navy-900)}
@@ -401,14 +441,12 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 .pop-divider{height:1px;background:var(--border-subtle);margin:3px 0}
 
 /* ── DETAIL PAGE ── */
-#student-detail-page{display:none;animation:fadeIn .18s ease}
-#student-detail-page.active{display:block}
 .detail-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);margin-bottom:16px}
 .detail-breadcrumb a{color:var(--text-muted);text-decoration:none;cursor:pointer;transition:color .13s}
 .detail-breadcrumb a:hover{color:var(--navy-700)}
 .detail-breadcrumb-sep{color:var(--border-strong);font-size:10px}
 .detail-breadcrumb-cur{color:var(--text-primary);font-weight:600}
-.detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}
 .detail-hero{display:flex;align-items:center;gap:14px}
 .detail-avatar{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#FFF;flex-shrink:0}
 .detail-name{font-size:20px;font-weight:700;color:var(--text-primary);line-height:1.2;letter-spacing:-.02em}
@@ -486,7 +524,7 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 .email-history-item:last-child{border-bottom:none}
 .email-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFF;flex-shrink:0}
 
-/* fu */
+/* follow-up groups */
 .fu-group{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-xs);margin-bottom:12px}
 .fu-group-header{padding:10px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:8px}
 .fu-group-title{font-size:12.5px;font-weight:600;color:var(--text-primary)}
@@ -499,6 +537,11 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 /* misc */
 .empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:12.5px;font-weight:500}
 .access-denied{display:flex;flex-direction:column;align-items:center;justify-content:center;height:50vh;text-align:center;color:var(--text-muted)}
+
+/* ── PAGE HEADER CHIP ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-header-left h2{font-size:16px;font-weight:700;color:var(--text-primary);letter-spacing:-.02em;line-height:1.3}
+.page-header-left p{font-size:11.5px;color:var(--text-muted);margin-top:3px}
 </style>
 </head>
 <body>
@@ -513,10 +556,11 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
     </div>
     <div id="cmd-results">
       <div class="cmd-section">Quick actions</div>
-      <div class="cmd-item" onclick="cmdNav('dashboard')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></div><div><div class="cmd-item-name">Dashboard</div><div class="cmd-item-meta">Pipeline overview</div></div></div>
+      <div class="cmd-item" onclick="cmdNav('students')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><div class="cmd-item-name">Students</div><div class="cmd-item-meta">View all enrolled students</div></div></div>
       <div class="cmd-item" onclick="cmdNav('partners')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div><div class="cmd-item-name">Channel Partners</div><div class="cmd-item-meta">Agents and referral network</div></div></div>
       <div class="cmd-item" onclick="cmdNav('followup')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.3 1.5a11.5 11.5 0 005.3 5.3L15.5 13l5 2v4a2 2 0 01-2.2 2A16.5 16.5 0 013 6.2 2 2 0 015 4z"/></svg></div><div><div class="cmd-item-name">Daily follow-up</div><div class="cmd-item-meta">Pending calls and tasks</div></div></div>
       <div class="cmd-item" onclick="cmdNav('casshield')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg></div><div><div class="cmd-item-name">CAS Shield</div><div class="cmd-item-meta">Pre-CAS readiness checks</div></div></div>
+      <div class="cmd-item" onclick="cmdNav('reports')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg></div><div><div class="cmd-item-name">Reports</div><div class="cmd-item-meta">Pipeline analytics</div></div></div>
     </div>
     <div class="cmd-footer"><span><span class="kbd">↑↓</span> navigate</span><span><span class="kbd">↵</span> select</span><span><span class="kbd">Esc</span> close</span></div>
   </div>
@@ -563,82 +607,145 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
       <div class="sb-brand-sub">CRM Portal</div>
     </div>
   </a>
+
   <nav class="sb-nav">
-    <div class="sb-section-label">Main</div>
-    <div class="sb-link active" data-view="dashboard" onclick="switchView('dashboard',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.2"/><rect x="14" y="3" width="7" height="5" rx="1.2"/><rect x="14" y="12" width="7" height="9" rx="1.2"/><rect x="3" y="16" width="7" height="5" rx="1.2"/></svg>
-      <span>Dashboard</span>
+
+    <!-- ── CRM ── -->
+    <div class="sb-group" id="grp-crm">
+      <div class="sb-group-header" onclick="toggleGroup('grp-crm')">
+        <svg class="sb-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.2"/><rect x="14" y="3" width="7" height="5" rx="1.2"/><rect x="14" y="12" width="7" height="9" rx="1.2"/><rect x="3" y="16" width="7" height="5" rx="1.2"/></svg>
+        <span class="sb-group-label">CRM</span>
+        <svg class="sb-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="sb-group-body" style="max-height:300px">
+        <div class="sb-link active" data-view="students" onclick="switchView('students',this)">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><circle cx="17" cy="7" r="3"/></svg>
+          <span>Students</span>
+        </div>
+        <div class="sb-link" data-view="partners" onclick="switchView('partners',this)">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          <span>Channel Partners</span>
+        </div>
+        <div class="sb-link" data-view="followup" onclick="switchView('followup',this)">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.3 1.5a11.5 11.5 0 005.3 5.3L15.5 13l5 2v4a2 2 0 01-2.2 2A16.5 16.5 0 013 6.2 2 2 0 015 4z"/></svg>
+          <span>Daily Follow-Up</span>
+        </div>
+      </div>
     </div>
-    <div class="sb-link" data-view="partners" onclick="switchView('partners',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      <span>Channel Partners</span>
-    </div>
-    <div class="sb-link" data-view="students" onclick="switchView('students',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><circle cx="17" cy="7" r="3"/></svg>
-      <span>Students</span>
-    </div>
-    <div class="sb-link" data-view="followup" onclick="switchView('followup',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.3 1.5a11.5 11.5 0 005.3 5.3L15.5 13l5 2v4a2 2 0 01-2.2 2A16.5 16.5 0 013 6.2 2 2 0 015 4z"/></svg>
-      <span>Daily Follow-Up</span>
-    </div>
-    <div class="sb-link" data-view="casshield" onclick="switchView('casshield',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg>
-      <span>CAS Shield</span>
-    </div>
-    <div class="sb-link" data-view="feedback" onclick="switchView('feedback',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-      <span>Mock Pre-CAS</span>
-    </div>
-    <div class="sb-link" data-view="email" onclick="switchView('email',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      <span>Direct Email</span>
-    </div>
-    <div class="sb-link" data-view="reports" onclick="switchView('reports',this)">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg>
-      <span>Reports</span>
-    </div>
+
     <div class="sb-divider"></div>
-    <div class="sb-section-label-comm">Communication</div>
-    <div class="sb-link sb-link-comm" onclick="switchView('email',document.querySelector('.sb-link[data-view=email]'))">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      <span>Email</span>
+
+    <!-- ── DOCUMENTATION ── -->
+    <div class="sb-group" id="grp-docs">
+      <div class="sb-group-header" onclick="toggleGroup('grp-docs')">
+        <svg class="sb-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="sb-group-label">Documentation</span>
+        <svg class="sb-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="sb-group-body" style="max-height:300px">
+        <div class="sb-link" data-view="casshield" onclick="switchView('casshield',this)">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg>
+          <span>CAS Shield</span>
+        </div>
+        <div class="sb-link" data-view="feedback" onclick="switchView('feedback',this)">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <span>Mock Pre-CAS</span>
+        </div>
+      </div>
     </div>
-    <div class="sb-link sb-link-comm" onclick="toast('WhatsApp integration coming soon','info')">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-      <span>WhatsApp</span>
-      <span class="sb-badge-soon">Soon</span>
-    </div>
-    <div class="sb-link sb-link-comm" onclick="toast('Internal team chat coming soon','info')">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 01-2 2H6l-4 4V4a2 2 0 012-2h8a2 2 0 012 2z"/><path d="M18 9h2a2 2 0 012 2v11l-4-4h-6a2 2 0 01-2-2v-1"/></svg>
-      <span>Internal Chat</span>
-      <span class="sb-badge-soon">Soon</span>
-    </div>
-    <div class="sb-link sb-link-comm" onclick="toast('No new notifications','info')">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-      <span>Notifications</span>
-    </div>
-    <div class="sb-link sb-link-comm" onclick="toast('AI Assistant coming soon','info')">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="10" rx="2"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/><path d="M12 9V5"/><circle cx="12" cy="3" r="1"/><path d="M5 13H3"/><path d="M21 13h-2"/></svg>
-      <span>AI Assistant</span>
-      <span class="sb-badge-soon">Soon</span>
-    </div>
-    <div class="sb-link sb-link-comm" onclick="toast('Message templates coming soon','info')">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-      <span>Templates</span>
-      <span class="sb-badge-soon">Soon</span>
-    </div>
-    <div class="sb-link sb-link-comm" onclick="toast('Activity history coming soon','info')">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-      <span>Activity History</span>
-      <span class="sb-badge-soon">Soon</span>
-    </div>
+
     <div class="sb-divider"></div>
-    <div class="sb-section-label admin-only" style="display:none">Admin</div>
-    <div class="sb-link admin-only" data-view="upload" onclick="switchView('upload',this)" style="display:none">
-      <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
-      <span>Import CSV</span>
+
+    <!-- ── COMMUNICATION ── -->
+    <div class="sb-group" id="grp-comm">
+      <div class="sb-group-header" onclick="toggleGroup('grp-comm')">
+        <svg class="sb-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span class="sb-group-label">Communication</span>
+        <svg class="sb-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="sb-group-body" style="max-height:400px">
+        <div class="sb-link" data-view="email" onclick="switchView('email',this)">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span>Email</span>
+        </div>
+        <div class="sb-link" onclick="toast('WhatsApp integration coming soon','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+          <span>WhatsApp</span>
+          <span class="sb-badge sb-badge-soon">Soon</span>
+        </div>
+        <div class="sb-link" onclick="toast('Internal team chat coming soon','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 01-2 2H6l-4 4V4a2 2 0 012-2h8a2 2 0 012 2z"/><path d="M18 9h2a2 2 0 012 2v11l-4-4h-6a2 2 0 01-2-2v-1"/></svg>
+          <span>Internal Chat</span>
+          <span class="sb-badge sb-badge-soon">Soon</span>
+        </div>
+        <div class="sb-link" onclick="toast('No new notifications','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span>Notifications</span>
+        </div>
+        <div class="sb-link" onclick="toast('AI Assistant coming soon','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="10" rx="2"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/><path d="M12 9V5"/><circle cx="12" cy="3" r="1"/><path d="M5 13H3"/><path d="M21 13h-2"/></svg>
+          <span>AI Assistant</span>
+          <span class="sb-badge sb-badge-soon">Soon</span>
+        </div>
+        <div class="sb-link" onclick="toast('Message templates coming soon','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+          <span>Templates</span>
+          <span class="sb-badge sb-badge-soon">Soon</span>
+        </div>
+        <div class="sb-link" onclick="toast('Activity history coming soon','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+          <span>Activity History</span>
+          <span class="sb-badge sb-badge-soon">Soon</span>
+        </div>
+      </div>
     </div>
+
+    <div class="sb-divider"></div>
+
+    <!-- ── ANALYTICS ── -->
+    <div class="sb-group" id="grp-analytics">
+      <div class="sb-group-header" onclick="toggleGroup('grp-analytics')">
+        <svg class="sb-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg>
+        <span class="sb-group-label">Analytics</span>
+        <svg class="sb-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="sb-group-body" style="max-height:200px">
+        <div class="sb-link" data-view="reports" onclick="switchView('reports',this)">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg>
+          <span>Reports</span>
+        </div>
+        <div class="sb-link" onclick="toast('Performance dashboards coming soon','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Performance</span>
+          <span class="sb-badge sb-badge-soon">Soon</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <!-- ── SYSTEM ── -->
+    <div class="sb-group" id="grp-system">
+      <div class="sb-group-header" onclick="toggleGroup('grp-system')">
+        <svg class="sb-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        <span class="sb-group-label">System</span>
+        <svg class="sb-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="sb-group-body" style="max-height:200px">
+        <div class="sb-link admin-only" data-view="upload" onclick="switchView('upload',this)" style="display:none">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
+          <span>Import CSV</span>
+        </div>
+        <div class="sb-link" onclick="toast('Settings coming soon','info')">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+          <span>Settings</span>
+          <span class="sb-badge sb-badge-soon">Soon</span>
+        </div>
+      </div>
+    </div>
+
   </nav>
+
   <div class="sb-user">
     <div class="sb-avatar" id="sb-avatar">SA</div>
     <div style="flex:1;min-width:0">
@@ -655,7 +762,7 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 <div id="app-main">
   <header id="app-header">
     <div>
-      <div class="hdr-title" id="page-title">Dashboard</div>
+      <div class="hdr-title" id="page-title">Students</div>
       <div class="hdr-sub" id="page-subtitle">Loading…</div>
     </div>
     <button class="hdr-search" onclick="openCmd()">
@@ -675,27 +782,46 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 
   <div id="app-content">
 
-    <!-- DASHBOARD -->
-    <div class="view active" id="view-dashboard">
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:16px">
-        <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export CSV
-        </button>
-        <button class="btn btn-primary btn-sm" onclick="openAddStudent()">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add student
-        </button>
+    <!-- STUDENTS (main / formerly dashboard) -->
+    <div class="view active" id="view-students">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Students</h2>
+          <p>All enrolled students across the pipeline</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <!-- KPI chips inline -->
+          <div style="display:flex;gap:6px;margin-right:8px">
+            <div style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:5px 10px;box-shadow:var(--shadow-xs);display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Total</span>
+              <span style="font-size:14px;font-weight:700;color:var(--text-primary)" id="stat-total">—</span>
+            </div>
+            <div style="background:var(--emerald-50);border:1px solid var(--emerald-100);border-radius:var(--r-md);padding:5px 10px;display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;font-weight:600;color:var(--emerald-700);text-transform:uppercase;letter-spacing:.06em">Visa ✓</span>
+              <span style="font-size:14px;font-weight:700;color:var(--emerald-700)" id="stat-visa">—</span>
+            </div>
+            <div style="background:var(--amber-50);border:1px solid var(--amber-100);border-radius:var(--r-md);padding:5px 10px;display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;font-weight:600;color:var(--amber-700);text-transform:uppercase;letter-spacing:.06em">CAS</span>
+              <span style="font-size:14px;font-weight:700;color:var(--amber-700)" id="stat-cas">—</span>
+            </div>
+            <div style="background:var(--crimson-50);border:1px solid var(--crimson-100);border-radius:var(--r-md);padding:5px 10px;display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;font-weight:600;color:var(--crimson-700);text-transform:uppercase;letter-spacing:.06em">Refused</span>
+              <span style="font-size:14px;font-weight:700;color:var(--crimson-700)" id="stat-refused">—</span>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openAddStudent()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add student
+          </button>
+        </div>
       </div>
-      <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-label">Total Students</div><div class="kpi-val" id="stat-total">—</div><div class="kpi-sub" style="color:var(--text-muted)">All active</div></div>
-        <div class="kpi-card"><div class="kpi-label">Offers</div><div class="kpi-val" style="color:var(--emerald-700)" id="stat-offers">—</div><div class="kpi-sub" style="color:var(--emerald-600)" id="stat-offers-sub">&nbsp;</div></div>
-        <div class="kpi-card"><div class="kpi-label">CAS Pending</div><div class="kpi-val" style="color:var(--amber-700)" id="stat-cas">—</div><div class="kpi-sub" style="color:var(--amber-600)" id="stat-cas-sub">&nbsp;</div></div>
-        <div class="kpi-card"><div class="kpi-label">Visa Approved</div><div class="kpi-val" style="color:var(--emerald-700)" id="stat-visa">—</div><div class="kpi-sub" style="color:var(--emerald-600)" id="stat-visa-sub">&nbsp;</div></div>
-        <div class="kpi-card"><div class="kpi-label">Visa Refused</div><div class="kpi-val" style="color:var(--crimson-700)" id="stat-refused">—</div><div class="kpi-sub" style="color:var(--text-muted)" id="stat-refused-sub">&nbsp;</div></div>
-        <div class="kpi-card"><div class="kpi-label">Payment Pending</div><div class="kpi-val" style="color:var(--amber-700)" id="stat-payment">—</div><div class="kpi-sub" style="color:var(--amber-600)" id="stat-payment-sub">&nbsp;</div></div>
-      </div>
-      <div class="pipeline-row">
+
+      <!-- Pipeline summary row -->
+      <div class="pipeline-row" style="margin-bottom:20px">
         <div class="card">
           <div class="card-header"><div><div class="card-title">Pipeline Funnel</div><div class="card-subtitle" id="pipeline-total-label">— students</div></div></div>
           <div class="funnel-stages" id="pipeline-funnel"></div>
@@ -703,7 +829,7 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
         <div class="card">
           <div class="card-header"><div class="card-title">Distribution</div></div>
           <div style="padding:16px">
-            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:16px">
               <div style="position:relative;width:88px;height:88px;flex-shrink:0">
                 <svg width="88" height="88" viewBox="0 0 88 88">
                   <circle cx="44" cy="44" r="34" fill="none" stroke="var(--surface-inset)" stroke-width="9"/>
@@ -716,69 +842,62 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
                   <text x="44" y="52" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" fill="var(--text-muted)">students</text>
                 </svg>
               </div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-                <div class="legend-row" style="padding:0;border:none"><span class="legend-dot" style="background:var(--navy-600)"></span><span class="legend-name">Applied & called</span><span class="legend-num" id="l-applied">0</span></div>
-                <div class="legend-row" style="padding:0;border:none"><span class="legend-dot" style="background:var(--gold-500)"></span><span class="legend-name">Conditional offer</span><span class="legend-num" id="l-cond">0</span></div>
-                <div class="legend-row" style="padding:0;border:none"><span class="legend-dot" style="background:var(--violet-500)"></span><span class="legend-name">Mock / Pre-CAS</span><span class="legend-num" id="l-mock">0</span></div>
-                <div class="legend-row" style="padding:0;border:none"><span class="legend-dot" style="background:#0EA5E9"></span><span class="legend-name">CAS in progress</span><span class="legend-num" id="l-cas">0</span></div>
-                <div class="legend-row" style="padding:0;border:none"><span class="legend-dot" style="background:var(--emerald-500)"></span><span class="legend-name">Visa received</span><span class="legend-num" id="l-visa">0</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;align-items:center;gap:7px"><span class="legend-dot" style="background:var(--navy-600)"></span><span style="flex:1;font-size:11px;color:var(--text-secondary);font-weight:500">Applied &amp; called</span><span style="font-size:11.5px;font-weight:700;color:var(--text-primary)" id="l-applied">0</span></div>
+                <div style="display:flex;align-items:center;gap:7px"><span class="legend-dot" style="background:var(--gold-500)"></span><span style="flex:1;font-size:11px;color:var(--text-secondary);font-weight:500">Conditional offer</span><span style="font-size:11.5px;font-weight:700;color:var(--text-primary)" id="l-cond">0</span></div>
+                <div style="display:flex;align-items:center;gap:7px"><span class="legend-dot" style="background:var(--violet-500)"></span><span style="flex:1;font-size:11px;color:var(--text-secondary);font-weight:500">Mock / Pre-CAS</span><span style="font-size:11.5px;font-weight:700;color:var(--text-primary)" id="l-mock">0</span></div>
+                <div style="display:flex;align-items:center;gap:7px"><span class="legend-dot" style="background:#0EA5E9"></span><span style="flex:1;font-size:11px;color:var(--text-secondary);font-weight:500">CAS in progress</span><span style="font-size:11.5px;font-weight:700;color:var(--text-primary)" id="l-cas">0</span></div>
+                <div style="display:flex;align-items:center;gap:7px"><span class="legend-dot" style="background:var(--emerald-500)"></span><span style="flex:1;font-size:11px;color:var(--text-secondary);font-weight:500">Visa received</span><span style="font-size:11.5px;font-weight:700;color:var(--text-primary)" id="l-visa">0</span></div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- STUDENTS SECTION -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div>
-          <h2 style="font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em">Students</h2>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">All enrolled students in the pipeline</div>
-        </div>
-      </div>
       <div class="filter-bar">
         <div class="seg-tabs">
-          <button class="seg-btn active" onclick="setPillFilter('','',this)">All</button>
-          <button class="seg-btn seg-green" onclick="setPillFilter('visa','Approved',this)">Visa approved</button>
-          <button class="seg-btn seg-amber" onclick="setPillFilter('visa','Pending',this)">Visa pending</button>
-          <button class="seg-btn seg-red" onclick="setPillFilter('visa','Refused',this)">Visa refused</button>
-          <button class="seg-btn seg-blue" onclick="setPillFilter('offer','Received',this)">Offer received</button>
-          <button class="seg-btn seg-violet" onclick="setPillFilter('cas','Pending',this)">CAS pending</button>
+          <button class="seg-btn active" onclick="setPillFilterStudents('','',this)">All</button>
+          <button class="seg-btn seg-green" onclick="setPillFilterStudents('visa','Approved',this)">Visa approved</button>
+          <button class="seg-btn seg-amber" onclick="setPillFilterStudents('visa','Pending',this)">Visa pending</button>
+          <button class="seg-btn seg-red" onclick="setPillFilterStudents('visa','Refused',this)">Visa refused</button>
+          <button class="seg-btn seg-blue" onclick="setPillFilterStudents('offer','Received',this)">Offer received</button>
+          <button class="seg-btn seg-violet" onclick="setPillFilterStudents('cas','Pending',this)">CAS pending</button>
         </div>
         <div class="tbl-search-wrap">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="search-input" type="text" oninput="filterTable()" placeholder="Filter students…">
+          <input id="students-search-input" type="text" oninput="filterTableStudents()" placeholder="Filter students…">
         </div>
       </div>
       <div class="tbl-card">
         <div class="tbl-header">
-          <div><span class="tbl-title">Student Records</span><span class="tbl-count" id="tbl-count"></span></div>
-          <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">Export</button>
+          <div><span class="tbl-title">Student Records</span><span class="tbl-count" id="students-tbl-count"></span></div>
+          <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">Export CSV</button>
         </div>
-        <div class="tbl-scroll">
-          <table class="dt" id="student-table">
+        <div class="tbl-scroll" style="max-height:55vh">
+          <table class="dt" id="students-page-table">
             <thead><tr><th style="width:100px">Student ID</th><th style="min-width:180px">Name</th><th style="min-width:160px">Course</th><th style="min-width:130px">Channel Partner</th><th style="min-width:180px">Pipeline</th><th style="min-width:110px">Visa Status</th><th style="min-width:80px;text-align:right">Actions</th></tr></thead>
-            <tbody id="table-body"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+            <tbody id="students-page-table-body"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
 
-      <!-- CHANNEL PARTNERS SECTION -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:28px;margin-bottom:4px">
-        <div>
-          <h2 style="font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em">Channel Partners</h2>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Referral agents and partner agencies</div>
+      <!-- Channel Partners preview at bottom of students page -->
+      <div class="page-header" style="margin-top:32px;margin-bottom:4px">
+        <div class="page-header-left">
+          <h2>Channel Partners</h2>
+          <p>Referral agents and partner agencies</p>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="switchView('partners',document.querySelector('.sb-link[data-view=partners]'))">View all</button>
       </div>
       <div class="cp-grid" id="dashboard-cp-grid">
         <div class="empty-state" style="grid-column:1/-1;padding:20px">Loading partners…</div>
       </div>
-    </div><!-- /dashboard -->
+    </div>
 
     <!-- STUDENT DETAIL -->
     <div class="view" id="view-student-detail">
       <div class="detail-breadcrumb">
-        <a onclick="backToDashboard()">Dashboard</a>
+        <a onclick="backToDashboard()">Students</a>
         <span class="detail-breadcrumb-sep">›</span>
         <span class="detail-breadcrumb-cur" id="detail-breadcrumb-name">Student</span>
       </div>
@@ -818,7 +937,7 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
             </div>
           </div>
           <div class="detail-section">
-            <div class="detail-section-head"><div class="detail-section-title">Pipeline progress</div><span id="dp-pipeline-score" style="font-size:11px;font-weight:600;color:var(--text-muted)">0/10</span></div>
+            <div class="detail-section-head"><div class="detail-section-title">Pipeline progress</div><span id="dp-pipeline-score" style="font-size:11px;font-weight:600;color:var(--text-muted)">0/9</span></div>
             <div class="detail-section-body" style="padding:8px 16px" id="dp-pipeline-list"></div>
           </div>
         </div>
@@ -835,10 +954,10 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 
     <!-- CHANNEL PARTNERS PAGE -->
     <div class="view" id="view-partners">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div>
-          <h2 style="font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em">Channel Partners</h2>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Referral agents and partner agencies managing student enrollments</div>
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Channel Partners</h2>
+          <p>Referral agents and partner agencies managing student enrollments</p>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openAddPartner()">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -850,60 +969,23 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
       </div>
     </div>
 
-    <!-- STUDENTS PAGE -->
-    <div class="view" id="view-students">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div>
-          <h2 style="font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em">Students</h2>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">All enrolled students in the pipeline</div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">Export CSV</button>
-          <button class="btn btn-primary btn-sm" onclick="openAddStudent()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add student
-          </button>
-        </div>
-      </div>
-      <div class="filter-bar">
-        <div class="seg-tabs">
-          <button class="seg-btn active" onclick="setPillFilterStudents('','',this)">All</button>
-          <button class="seg-btn seg-green" onclick="setPillFilterStudents('visa','Approved',this)">Visa approved</button>
-          <button class="seg-btn seg-amber" onclick="setPillFilterStudents('visa','Pending',this)">Visa pending</button>
-          <button class="seg-btn seg-red" onclick="setPillFilterStudents('visa','Refused',this)">Visa refused</button>
-          <button class="seg-btn seg-blue" onclick="setPillFilterStudents('offer','Received',this)">Offer received</button>
-          <button class="seg-btn seg-violet" onclick="setPillFilterStudents('cas','Pending',this)">CAS pending</button>
-        </div>
-        <div class="tbl-search-wrap">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="students-search-input" type="text" oninput="filterTableStudents()" placeholder="Filter students…">
-        </div>
-      </div>
-      <div class="tbl-card">
-        <div class="tbl-header">
-          <div><span class="tbl-title">Student Records</span><span class="tbl-count" id="students-tbl-count"></span></div>
-          <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">Export</button>
-        </div>
-        <div class="tbl-scroll" style="max-height:70vh">
-          <table class="dt" id="students-page-table">
-            <thead><tr><th style="width:100px">Student ID</th><th style="min-width:180px">Name</th><th style="min-width:160px">Course</th><th style="min-width:130px">Channel Partner</th><th style="min-width:180px">Pipeline</th><th style="min-width:110px">Visa Status</th><th style="min-width:80px;text-align:right">Actions</th></tr></thead>
-            <tbody id="students-page-table-body"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <!-- FOLLOW-UP -->
     <div class="view" id="view-followup">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Daily Follow-Up</h2><p>Students requiring calls and actions today</p></div>
+      </div>
       <div id="followup-content"><div class="empty-state">Loading…</div></div>
     </div>
 
     <!-- CAS SHIELD -->
     <div class="view" id="view-casshield">
+      <div class="page-header">
+        <div class="page-header-left"><h2>CAS Shield</h2><p>Pre-CAS readiness checks for all applicants</p></div>
+      </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
         <div style="position:relative">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:9px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="form-control" id="cas-search" type="text" placeholder="Search name, ID, partner…" oninput="filterCAS()" style="padding-left:32px;width:210px">
+          <input class="form-control" id="cas-search" type="text" placeholder="Search name, ID, partner…" oninput="filterCAS()" style="padding-left:32px;width:220px">
         </div>
         <select class="form-control" id="cas-filter-pci" onchange="filterCAS()" style="width:auto;padding:7px 10px"><option value="">Ready for PCI</option><option>Yes</option><option>No</option></select>
         <select class="form-control" id="cas-filter-visa" onchange="filterCAS()" style="width:auto;padding:7px 10px"><option value="">Visa refusal</option><option>Yes</option><option>No</option></select>
@@ -920,6 +1002,9 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 
     <!-- MOCK PRE-CAS -->
     <div class="view" id="view-feedback">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Mock Pre-CAS</h2><p>Interview feedback builder — generate and save to Drive</p></div>
+      </div>
       <div class="alert-success" id="fb-success">
         <div style="width:36px;height:36px;border-radius:50%;background:var(--emerald-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--emerald-700)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div style="flex:1"><div style="font-weight:600;font-size:13px;color:var(--emerald-700)" id="fb-success-title">Feedback saved</div><div style="font-size:11px;color:var(--emerald-600);margin-top:2px">Document created and linked to student record</div></div>
@@ -947,6 +1032,9 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 
     <!-- EMAIL -->
     <div class="view" id="view-email">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Direct Email</h2><p>Send messages to students, agents, or staff</p></div>
+      </div>
       <div style="display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:18px;align-items:start">
         <div class="card"><div class="card-header"><div class="card-title">Compose</div></div><div class="card-body">
           <div class="form-group"><label class="form-label">To — search student</label><div class="lookup-wrap"><input class="form-control" id="email-search" type="text" placeholder="Name or ID…" oninput="emailSearch(this.value)" autocomplete="off"><div class="lookup-results" id="email-lookup"></div></div><div class="sel-pill" id="email-sel" style="margin-top:6px"><div><div class="sel-pill-name" id="email-sel-name">—</div><div class="sel-pill-sub" id="email-sel-sub">—</div></div><button class="sel-pill-clear" onclick="emailClear()">✕</button></div></div>
@@ -961,18 +1049,24 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 
     <!-- REPORTS -->
     <div class="view" id="view-reports">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Reports</h2><p>Pipeline breakdowns and conversion insights</p></div>
+        <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">Export CSV</button>
+      </div>
       <div class="report-stat-grid">
         <div class="rpt-stat"><div class="rpt-stat-val" id="rpt-total">—</div><div class="rpt-stat-label">Total students</div></div>
         <div class="rpt-stat"><div class="rpt-stat-val" style="color:var(--emerald-700)" id="rpt-visa-rate">—</div><div class="rpt-stat-label">Visa success rate</div></div>
         <div class="rpt-stat"><div class="rpt-stat-val" style="color:var(--gold-700)" id="rpt-avg-stage">—</div><div class="rpt-stat-label">Avg pipeline stage</div></div>
         <div class="rpt-stat"><div class="rpt-stat-val" style="color:var(--violet-700)" id="rpt-partners">—</div><div class="rpt-stat-label">Channel partners</div></div>
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">Export CSV</button></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="report-grid"><div class="empty-state">Loading…</div></div>
     </div>
 
-    <!-- UPLOAD -->
+    <!-- UPLOAD (Admin only) -->
     <div class="view" id="view-upload">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Import CSV</h2><p>Upload and sync student records from spreadsheet</p></div>
+      </div>
       <div id="upload-zone-wrap">
         <div class="drop-zone" id="drop-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
           <div style="width:44px;height:44px;border-radius:10px;background:var(--slate-100);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--navy-600)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg></div>
@@ -988,8 +1082,9 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
         </div>
       </div>
     </div>
-  </div>
-</div>
+
+  </div><!-- /app-content -->
+</div><!-- /app-main -->
 
 <!-- DRAWER OVERLAY -->
 <div id="drawer-overlay" onclick="closeAllDrawers()"></div>
@@ -1032,7 +1127,7 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
     <div class="form-group"><label class="form-label">Feedback</label><textarea class="form-control" id="drw-fb-text" style="min-height:90px" placeholder="Interview feedback…"></textarea></div>
     <div class="form-group" style="margin-bottom:0"><label class="form-label">Recommendations</label><textarea class="form-control" id="drw-fb-recs" style="min-height:60px"></textarea></div>
   </div>
-  <div class="drw-foot"><button class="btn btn-ghost btn-sm" onclick="closeDrawer('drw-feedback')">Cancel</button><button class="btn btn-primary btn-sm" onclick="submitFeedbackDrawer()">Generate & save</button></div>
+  <div class="drw-foot"><button class="btn btn-ghost btn-sm" onclick="closeDrawer('drw-feedback')">Cancel</button><button class="btn btn-primary btn-sm" onclick="submitFeedbackDrawer()">Generate &amp; save</button></div>
 </aside>
 
 <!-- CAS UPDATE DRAWER -->
@@ -1046,11 +1141,9 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
   <div class="drw-foot"><button class="btn btn-ghost btn-sm" onclick="closeDrawer('drw-cas-update')">Cancel</button><button class="btn btn-primary btn-sm" onclick="submitCASUpdate()">Save</button></div>
 </aside>
 
-<!-- POPOVER -->
+<!-- POPOVER + TOAST + LOADING -->
 <div class="pop-card" id="row-menu"></div>
-<!-- TOAST -->
 <div id="toast-wrap"></div>
-<!-- LOADING -->
 <div id="global-loading">
   <div class="spinner"></div>
   <span style="font-size:12px;font-weight:500;color:var(--text-tertiary)" id="loading-msg">Processing…</span>
@@ -1068,9 +1161,9 @@ let activeStudentId=null,activeCASId=null;
 let fbStudent=null,fbManual=false,fbPerf='Excellent';
 let emailStudent=null,emailHistory=[];
 let notifyStudentId=null;
-let currentView='dashboard';
-let pillFilter={type:'',value:''};
-let totalRecords=0,currentPage=1,loadingMore=false;
+let currentView='students';
+let pillFilterStudents={type:'',value:''};
+let totalRecords=0,currentPage=1;
 let detailStudentId=null;
 let stageEdits={};
 
@@ -1086,15 +1179,19 @@ const STAGE_DEFS=[
   {id:'cas_received',label:'CAS received',key:'CAS STATUS',done:s=>/issued/i.test(s['CAS STATUS']||''),prevDone:s=>s['CAS REQUESTED STATUS']==='Requested',type:'select',options:[{val:'Issued',icon:'✅'},{val:'Pending',icon:'⏳'},{val:'Rejected',icon:'❌'}],desc:'Update when the CAS document has been issued by the university.'},
   {id:'visa',label:'Visa status',key:'VISA STATUS',done:s=>/approved/i.test(s['VISA STATUS']||''),prevDone:s=>/issued/i.test(s['CAS STATUS']||''),type:'select',options:[{val:'Approved',icon:'🎉'},{val:'Submitted',icon:'📤'},{val:'Biometrics Booked',icon:'🖐️'},{val:'Pending',icon:'⏳'},{val:'Refused',icon:'❌'},{val:'Withdrawn',icon:'🚫'}],desc:'Track the student\'s visa application status.'},
 ];
-
-const stageDoneCount=s=>STAGE_DEFS.filter(sd=>sd.done(s)).length;
-const STAGES=STAGE_DEFS.map(sd=>({label:sd.label,ok:sd.done}));
+const MOCK_STAGES=['Stage 1 Done','Stage 2 Done','Stage 3 Done','Stage 4 Done'];
 const stageList=s=>STAGE_DEFS.map(sd=>({label:sd.label,done:!!sd.done(s)}));
 const stageCurrent=s=>{const l=stageList(s);const i=l.findIndex(x=>!x.done);return i===-1?l.length:i};
+const stageDoneCount=s=>STAGE_DEFS.filter(sd=>sd.done(s)).length;
 
-/* ═══════════ MOCK STAGES ═══════════ */
-const MOCK_STAGES=['Stage 1 Done','Stage 2 Done','Stage 3 Done','Stage 4 Done'];
-function mockStageLevel(s){const v=s['MOCK INTERVIEW STATUS']||'';const idx=MOCK_STAGES.indexOf(v);return idx;}
+/* ═══════════ SIDEBAR GROUP TOGGLE ═══════════ */
+function toggleGroup(id){
+  const g=document.getElementById(id);
+  const body=g.querySelector('.sb-group-body');
+  const collapsed=g.classList.toggle('collapsed');
+  if(collapsed)body.style.maxHeight='0';
+  else body.style.maxHeight=body.scrollHeight+'px';
+}
 
 /* ═══════════ BOOT ═══════════ */
 document.addEventListener('DOMContentLoaded',()=>{
@@ -1115,6 +1212,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   document.getElementById('cmd-input').addEventListener('keydown',e=>{if(e.key==='Enter'){const a=document.querySelector('.cmd-item.cmd-sel');if(a)a.click()}});
   document.getElementById('cmd-overlay').addEventListener('click',e=>{if(e.target.id==='cmd-overlay')closeCmd()});
+  // Init group body heights for animation
+  document.querySelectorAll('.sb-group-body').forEach(b=>{b.style.maxHeight=b.scrollHeight+'px'});
 });
 const today=()=>new Date().toISOString().split('T')[0];
 
@@ -1142,7 +1241,7 @@ async function doLogin(){
     const res=await fetch(url.toString());const data=await res.json();
     if(data.success){localStorage.setItem(SK_ROLE,data.role);localStorage.setItem(SK_USER,data.name);localStorage.setItem(SK_TIME,String(Date.now()));bootSession(data.name,data.role)}
     else{errEl.textContent=data.error||'Invalid credentials';errEl.style.display='block';document.getElementById('login-password').value=''}
-  }catch(e){errEl.textContent='Cannot reach server: '+e.message;errEl.style.display='block';console.error(e)}
+  }catch(e){errEl.textContent='Cannot reach server: '+e.message;errEl.style.display='block'}
   finally{btn.disabled=false;document.getElementById('login-btn-text').textContent='Sign in';document.getElementById('login-spinner').style.display='none'}
 }
 function togglePwd(){const i=document.getElementById('login-password'),ic=document.getElementById('eye-icon');const s=i.type==='password';i.type=s?'text':'password';ic.innerHTML=s?'<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.44 18.44 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>':'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
@@ -1153,62 +1252,71 @@ function applyRole(role){const isAdmin=role==='Admin';document.querySelectorAll(
 /* ═══════════ CMD PALETTE ═══════════ */
 function openCmd(){document.getElementById('cmd-overlay').classList.add('open');setTimeout(()=>document.getElementById('cmd-input').focus(),80)}
 function closeCmd(){document.getElementById('cmd-overlay').classList.remove('open');document.getElementById('cmd-input').value='';resetCmd()}
-function cmdNav(view){closeCmd();const tab=document.querySelector(`.sb-link[data-view="${view}"]`);if(tab)switchView(view,tab)}
-function resetCmd(){document.getElementById('cmd-results').innerHTML=`<div class="cmd-section">Quick actions</div><div class="cmd-item" onclick="cmdNav('dashboard')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></div><div><div class="cmd-item-name">Dashboard</div><div class="cmd-item-meta">Pipeline overview</div></div></div><div class="cmd-item" onclick="cmdNav('partners')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div><div class="cmd-item-name">Channel Partners</div><div class="cmd-item-meta">Agents and referral network</div></div></div>`}
+function cmdNav(view){closeCmd();const tab=document.querySelector(`.sb-link[data-view="${view}"]`);if(tab)switchView(view,tab);else switchView(view,null)}
+function resetCmd(){document.getElementById('cmd-results').innerHTML=`<div class="cmd-section">Quick actions</div><div class="cmd-item" onclick="cmdNav('students')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><div class="cmd-item-name">Students</div><div class="cmd-item-meta">All enrolled students</div></div></div><div class="cmd-item" onclick="cmdNav('partners')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div><div class="cmd-item-name">Channel Partners</div><div class="cmd-item-meta">Agents and referral network</div></div></div><div class="cmd-item" onclick="cmdNav('reports')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg></div><div><div class="cmd-item-name">Reports</div><div class="cmd-item-meta">Pipeline analytics</div></div></div>`}
 function cmdSearch(q){if(!q.trim()||q.length<2){resetCmd();return}const m=students.filter(s=>(s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);if(!m.length){document.getElementById('cmd-results').innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px">No students found</div>';return}document.getElementById('cmd-results').innerHTML='<div class="cmd-section">Students</div>'+m.map(s=>`<div class="cmd-item" onclick="closeCmd();openDetail('${esc(s['STUDENT ID']||'')}')"><div class="cmd-item-icon" style="background:${avatarBg(s['STUDENT NAME'])};color:#FFF;font-size:10px;font-weight:700">${initials(s['STUDENT NAME'])}</div><div><div class="cmd-item-name">${s['STUDENT NAME']||'—'}</div><div class="cmd-item-meta">${s['STUDENT ID']||''} · ${s['COURSE']||''}</div></div></div>`).join('')}
 
 /* ═══════════ VIEW SWITCHING ═══════════ */
-const PAGE_META={dashboard:['Dashboard','Pipeline and student overview'],partners:['Channel Partners','Referral agents and partner agencies'],students:['Students','All enrolled students in the pipeline'],followup:['Daily Follow-Up',"Today's pending calls"],casshield:['CAS Shield','Pre-CAS readiness checks'],feedback:['Mock Pre-CAS','Interview feedback builder'],email:['Direct Email','Send messages to students and agents'],reports:['Reports','Pipeline breakdowns and insights'],upload:['Import CSV','Upload new student records'],'student-detail':['Student Detail','Manage profile and pipeline']};
+const PAGE_META={
+  students:['Students','All enrolled students in the pipeline'],
+  partners:['Channel Partners','Referral agents and partner agencies'],
+  followup:['Daily Follow-Up',"Today's pending calls and tasks"],
+  casshield:['CAS Shield','Pre-CAS readiness checks'],
+  feedback:['Mock Pre-CAS','Interview feedback builder'],
+  email:['Direct Email','Send messages to students and agents'],
+  reports:['Reports','Pipeline breakdowns and insights'],
+  upload:['Import CSV','Upload new student records'],
+  'student-detail':['Student','Manage profile and pipeline']
+};
 function switchView(id,tab){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.sb-link').forEach(t=>t.classList.remove('active'));
-  document.getElementById('view-'+id).classList.add('active');
+  const el=document.getElementById('view-'+id);
+  if(el)el.classList.add('active');
   if(tab)tab.classList.add('active');
   currentView=id;
   const meta=PAGE_META[id]||[id,''];
   document.getElementById('page-title').textContent=meta[0];
-  document.getElementById('page-subtitle').textContent=id==='dashboard'?'Welcome back, '+staff.name.split(' ')[0]+'!':meta[1];
+  document.getElementById('page-subtitle').textContent=
+    (id==='students'||id==='student-detail')&&staff.name?'Welcome back, '+staff.name.split(' ')[0]+'!':meta[1];
   if(id==='reports')loadReports();
   if(id==='casshield')loadCAS();
   if(id==='followup')renderFollowup();
   if(id==='partners')renderPartners();
-  if(id==='students')filterTableStudents();
+  if(id==='students'){filterTableStudents();updateStats();updateFunnel();renderDashboardPartners();}
 }
-function goHome(){switchView('dashboard',document.querySelector('.sb-link[data-view="dashboard"]'))}
-function refreshView(){if(currentView==='dashboard')loadStudents();else if(currentView==='casshield')loadCAS();else if(currentView==='reports')loadReports();else if(currentView==='followup')renderFollowup();else if(currentView==='partners')renderPartners();else toast('Nothing to refresh here','info')}
+function goHome(){switchView('students',document.querySelector('.sb-link[data-view="students"]'))}
+function refreshView(){
+  if(currentView==='students')loadStudents();
+  else if(currentView==='casshield')loadCAS();
+  else if(currentView==='reports')loadReports();
+  else if(currentView==='followup')renderFollowup();
+  else if(currentView==='partners')renderPartners();
+  else toast('Nothing to refresh here','info');
+}
 
 /* ═══════════ API ═══════════ */
 async function apiGet(action,params={}){const url=new URL(SCRIPT_URL);url.searchParams.set('action',action);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));return(await fetch(url.toString())).json()}
-
-/* FIX 1: apiPost now sends a real POST with text/plain body to avoid CORS preflight */
-async function apiPost(action,body={}){
-  return(await fetch(SCRIPT_URL,{
-    method:'POST',
-    headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({action,...body})
-  })).json();
-}
+async function apiPost(action,body={}){return(await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,...body})})).json()}
 
 /* ═══════════ STUDENTS LOAD ═══════════ */
 async function loadStudents(){
-  currentPage=1;totalRecords=0;students=[];loadingMore=false;
+  currentPage=1;totalRecords=0;students=[];
   const btn=document.getElementById('load-more-btn');if(btn)btn.remove();
   loading('Fetching students…');
   try{const data=await apiGet('getStudents',{page:currentPage,limit:100});if(!data.success)throw new Error(data.error);students=data.students||[];totalRecords=data.totalRecords??students.length;currentPage=data.page??1}
   catch(e){console.warn('Using mock data:',e.message);students=getMock();totalRecords=students.length}
-  finally{filterTable();updateStats();updateFunnel();renderDashboardPartners();hideLoading();toast('Loaded '+students.length+' students','success');if(typeof initLoadMore==='function')initLoadMore(100)}
+  finally{filterTableStudents();updateStats();updateFunnel();renderDashboardPartners();hideLoading();toast('Loaded '+students.length+' students','success')}
 }
 
 /* ═══════════ STATS & FUNNEL ═══════════ */
 function updateStats(){
   const total=Math.max(totalRecords,students.length);
-  const offers=students.filter(s=>/received|unconditional/i.test(s['OFFER STATUS']||'')).length;
   const cas=students.filter(s=>/pending/i.test(s['CAS STATUS']||'')).length;
   const visa=students.filter(s=>/approved/i.test(s['VISA STATUS']||'')).length;
   const refused=students.filter(s=>/refused/i.test(s['VISA STATUS']||'')).length;
-  const payment=students.filter(s=>/unpaid|deposit|partial/i.test(s['PAYMENT']||'')).length;
-  const set=(id,val,sub='')=>{const e=document.getElementById(id);if(e)e.textContent=val;const es=document.getElementById(id+'-sub');if(es&&sub)es.textContent=sub};
-  set('stat-total',total);set('stat-offers',offers,total?Math.round(offers/total*100)+'%':'');set('stat-cas',cas,total?Math.round(cas/total*100)+'%':'');set('stat-visa',visa,total?Math.round(visa/total*100)+'%':'');set('stat-refused',refused,refused?'of '+total+' total':'');set('stat-payment',payment,total?Math.round(payment/total*100)+'%':'');
+  const set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val};
+  set('stat-total',total);set('stat-cas',cas);set('stat-visa',visa);set('stat-refused',refused);
   document.getElementById('pipeline-total-label').textContent=total+' students total';
 }
 function updateFunnel(){
@@ -1217,7 +1325,8 @@ function updateFunnel(){
   const max=groups.reduce((a,g)=>{const c=students.filter(s=>STAGE_DEFS[g.si]?.done(s)).length;return Math.max(a,c)},1);
   const grid=document.getElementById('pipeline-funnel');if(!grid)return;
   grid.innerHTML=groups.map(g=>{const c=students.filter(s=>STAGE_DEFS[g.si]?.done(s)).length;const w=Math.round(c/max*100);return`<div class="funnel-item"><div class="funnel-label">${g.label}</div><div class="funnel-bar-track"><div class="funnel-bar-fill" style="width:${w}%"></div></div><div class="funnel-count">${c}</div></div>`}).join('');
-  const C=2*Math.PI*34;const cnts=[students.filter(s=>STAGE_DEFS[1].done(s)).length,students.filter(s=>STAGE_DEFS[2].done(s)).length,students.filter(s=>STAGE_DEFS[4].done(s)).length,students.filter(s=>STAGE_DEFS[7].done(s)).length,students.filter(s=>STAGE_DEFS[8].done(s)).length];
+  const C=2*Math.PI*34;
+  const cnts=[students.filter(s=>STAGE_DEFS[1].done(s)).length,students.filter(s=>STAGE_DEFS[2].done(s)).length,students.filter(s=>STAGE_DEFS[4].done(s)).length,students.filter(s=>STAGE_DEFS[7].done(s)).length,students.filter(s=>STAGE_DEFS[8].done(s)).length];
   const ids=['d-applied','d-cond','d-mock','d-cas','d-visa'],lids=['l-applied','l-cond','l-mock','l-cas','l-visa'];
   let offset=0;
   cnts.forEach((c,i)=>{const el=document.getElementById(ids[i]);if(!el)return;const seg=Math.round(c/total*C);el.setAttribute('stroke-dasharray',`${seg} ${C-seg}`);el.setAttribute('stroke-dashoffset',String(C-offset));offset+=seg;const le=document.getElementById(lids[i]);if(le)le.textContent=c});
@@ -1252,25 +1361,7 @@ function buildRow(s){
     </div></td>
   </tr>`;
 }
-function renderTable(arr){const tb=document.getElementById('table-body');if(!arr.length){tb.innerHTML='<tr><td colspan="7" class="empty-state">No students match current filters</td></tr>';return}tb.innerHTML=arr.map(buildRow).join('')}
 
-function setPillFilter(type,value,btn){pillFilter={type,value};document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');filterTable()}
-function filterTable(){
-  const q=(document.getElementById('search-input').value||'').toLowerCase();
-  const filtered=students.filter(s=>{
-    if(q&&!['STUDENT NAME','STUDENT ID','COURSE','AGENT'].some(f=>(s[f]||'').toLowerCase().includes(q)))return false;
-    const pf=pillFilter;
-    if(pf.type==='visa'&&s['VISA STATUS']!==pf.value)return false;
-    if(pf.type==='offer'&&s['OFFER STATUS']!==pf.value)return false;
-    if(pf.type==='cas'&&s['CAS STATUS']!==pf.value)return false;
-    return true;
-  });
-  renderTable(filtered);
-  const c=document.getElementById('tbl-count');if(c)c.textContent=`${filtered.length} of ${students.length}`;
-}
-
-/* ═══════════ STUDENTS PAGE ═══════════ */
-let pillFilterStudents={type:'',value:''};
 function setPillFilterStudents(type,value,btn){pillFilterStudents={type,value};btn.closest('.seg-tabs').querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');filterTableStudents()}
 function filterTableStudents(){
   const qEl=document.getElementById('students-search-input');
@@ -1284,10 +1375,7 @@ function filterTableStudents(){
     return true;
   });
   const tb=document.getElementById('students-page-table-body');
-  if(tb){
-    if(!filtered.length){tb.innerHTML='<tr><td colspan="7" class="empty-state">No students match current filters</td></tr>'}
-    else{tb.innerHTML=filtered.map(buildRow).join('')}
-  }
+  if(tb){tb.innerHTML=filtered.length?filtered.map(buildRow).join(''):'<tr><td colspan="7" class="empty-state">No students match current filters</td></tr>'}
   const c=document.getElementById('students-tbl-count');if(c)c.textContent=`${filtered.length} of ${students.length}`;
 }
 
@@ -1301,8 +1389,7 @@ function openRowMenu(e,sid){
     <div class="pop-item" onclick="hideMenu();openStageDrawer('${sid}')">Update pipeline</div>
     <div class="pop-divider"></div>
     <div class="pop-item" onclick="hideMenu();openNotify('${sid}')">Send notification</div>
-    <div class="pop-item" onclick="hideMenu();openFeedbackDrawer('${sid}')">Mock feedback</div>
-  `;
+    <div class="pop-item" onclick="hideMenu();openFeedbackDrawer('${sid}')">Mock feedback</div>`;
   const r=e.currentTarget.getBoundingClientRect();let left=r.left,top=r.bottom+4;
   if(left+200>window.innerWidth)left=window.innerWidth-206;
   menu.style.top=top+'px';menu.style.left=Math.max(8,left)+'px';menu.classList.add('show');
@@ -1311,96 +1398,57 @@ function hideMenu(){document.getElementById('row-menu').classList.remove('show')
 
 /* ═══════════ STAGE PIPELINE DRAWER ═══════════ */
 function openStageDrawer(sid){
-  const s=students.find(s=>s['STUDENT ID']===sid);
-  if(!s){toast('Student not found','error');return}
+  const s=students.find(s=>s['STUDENT ID']===sid);if(!s){toast('Student not found','error');return}
   activeStudentId=sid;stageEdits={};
   document.getElementById('drw-stage-sub').textContent=(s['STUDENT NAME']||sid)+' · '+sid;
-  renderStagePipeline(s);
-  openDrawer('drw-stage');
+  renderStagePipeline(s);openDrawer('drw-stage');
 }
-
 function renderStagePipeline(s){
-  const wrap=document.getElementById('stage-pipeline-content');
-  wrap.innerHTML='';
+  const wrap=document.getElementById('stage-pipeline-content');wrap.innerHTML='';
   STAGE_DEFS.forEach((sd,i)=>{
-    const isDone=!!sd.done(s);
-    const isPrevDone=!!sd.prevDone(s);
-    const isCurrent=!isDone&&isPrevDone;
-    const isLocked=!isDone&&!isPrevDone;
-    const curVal=s[sd.key]||'';
-
+    const isDone=!!sd.done(s);const isPrevDone=!!sd.prevDone(s);
+    const isCurrent=!isDone&&isPrevDone;const isLocked=!isDone&&!isPrevDone;const curVal=s[sd.key]||'';
     const step=document.createElement('div');
     step.className='stage-step'+(isDone?' completed':isCurrent?' current':isLocked?' locked':'');
-    step.dataset.stageIdx=i;
-
     let nodeInner='';
     if(isDone)nodeInner='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     else if(isCurrent)nodeInner=`<span style="font-size:9px;font-weight:700;color:#FFF">${i+1}</span>`;
     else nodeInner=`<span style="font-size:9px;color:var(--text-disabled)">${i+1}</span>`;
-
     let contentHTML=`<div class="stage-title">${sd.label}</div>`;
     if(isDone&&curVal)contentHTML+=`<div class="stage-current-val">✓ ${curVal}</div>`;
     if(!isDone&&!isLocked&&curVal)contentHTML+=`<div class="stage-current-val">${curVal}</div>`;
-
-    if(isLocked){
-      contentHTML+=`<div class="stage-locked-msg">Complete "${STAGE_DEFS[i-1]?.label||'previous stage'}" first to unlock this stage.</div>`;
-    } else {
-      if(sd.type==='date'){
-        contentHTML+=`<div style="margin-top:6px"><input type="date" class="form-control" style="max-width:180px" value="${curVal}" onchange="stageEdits[${i}]={key:'${sd.key}',val:this.value}"></div>`;
-      } else if(sd.type==='select'){
+    if(isLocked){contentHTML+=`<div class="stage-locked-msg">Complete "${STAGE_DEFS[i-1]?.label||'previous stage'}" first to unlock this stage.</div>`}
+    else{
+      if(sd.type==='date'){contentHTML+=`<div style="margin-top:6px"><input type="date" class="form-control" style="max-width:180px" value="${curVal}" onchange="stageEdits[${i}]={key:'${sd.key}',val:this.value}"></div>`}
+      else if(sd.type==='select'){
         contentHTML+=`<div class="stage-options">`;
-        sd.options.forEach(opt=>{
-          const isSel=curVal===opt.val;
-          contentHTML+=`<div class="stage-opt${isSel?' selected':''}" onclick="pickStageOpt(this,${i},'${esc(sd.key)}','${esc(opt.val)}')"><span class="stage-opt-icon">${opt.icon}</span>${opt.val}</div>`;
-        });
+        sd.options.forEach(opt=>{const isSel=curVal===opt.val;contentHTML+=`<div class="stage-opt${isSel?' selected':''}" onclick="pickStageOpt(this,${i},'${esc(sd.key)}','${esc(opt.val)}')"><span class="stage-opt-icon">${opt.icon}</span>${opt.val}</div>`});
         contentHTML+=`</div>`;
-      } else if(sd.type==='mock_stages'){
+      }else if(sd.type==='mock_stages'){
         const curLevel=MOCK_STAGES.indexOf(curVal);
         contentHTML+=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${sd.desc}</div><div class="stage-options">`;
-        MOCK_STAGES.forEach((ms,mi)=>{
-          const isSel=curVal===ms;
-          const mockUnlocked=mi===0||curLevel>=mi-1||(stageEdits[i]&&MOCK_STAGES.indexOf(stageEdits[i].val)>=mi-1);
-          contentHTML+=`<div class="stage-opt${isSel?' selected':''}${!mockUnlocked?' locked-row':''}" onclick="pickMockStage(this,${i},'${esc(ms)}',${mi},${curLevel})" style="${!mockUnlocked?'opacity:.4;pointer-events:none':''}"><span class="stage-opt-icon">${isSel||curLevel>=mi?'✅':'⭕'}</span>Mock ${ms}</div>`;
-        });
+        MOCK_STAGES.forEach((ms,mi)=>{const isSel=curVal===ms;const mockUnlocked=mi===0||curLevel>=mi-1;contentHTML+=`<div class="stage-opt${isSel?' selected':''}${!mockUnlocked?' locked-row':''}" onclick="pickMockStage(this,${i},'${esc(ms)}',${mi},${curLevel})" style="${!mockUnlocked?'opacity:.4;pointer-events:none':''}"><span class="stage-opt-icon">${isSel||curLevel>=mi?'✅':'⭕'}</span>Mock ${ms}</div>`});
         contentHTML+=`</div>`;
       }
-      if(sd.type!=='date'){
-        contentHTML+=`<div class="stage-notes" style="margin-top:8px"><label>Notes (optional)</label><textarea placeholder="Add notes…" id="stage-note-${i}" style="min-height:40px"></textarea></div>`;
-      }
+      if(sd.type!=='date')contentHTML+=`<div class="stage-notes" style="margin-top:8px"><label>Notes (optional)</label><textarea placeholder="Add notes…" id="stage-note-${i}" style="min-height:40px"></textarea></div>`;
     }
-
     step.innerHTML=`<div class="stage-node">${nodeInner}</div><div class="stage-content">${contentHTML}</div>`;
     wrap.appendChild(step);
   });
 }
-
-function pickStageOpt(el,idx,key,val){
-  el.closest('.stage-options').querySelectorAll('.stage-opt').forEach(o=>o.classList.remove('selected'));
-  el.classList.add('selected');
-  stageEdits[idx]={key,val};
-}
-
-function pickMockStage(el,idx,val,mi,curLevel){
-  stageEdits[idx]={key:'MOCK INTERVIEW STATUS',val};
-  const s=students.find(s=>s['STUDENT ID']===activeStudentId);
-  if(s)renderStagePipeline({...s,'MOCK INTERVIEW STATUS':val});
-}
-
+function pickStageOpt(el,idx,key,val){el.closest('.stage-options').querySelectorAll('.stage-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');stageEdits[idx]={key,val}}
+function pickMockStage(el,idx,val){stageEdits[idx]={key:'MOCK INTERVIEW STATUS',val};const s=students.find(s=>s['STUDENT ID']===activeStudentId);if(s)renderStagePipeline({...s,'MOCK INTERVIEW STATUS':val})}
 async function saveStages(){
   if(typeof saveStagesOptimized==='function'){saveStagesOptimized();return}
   if(!Object.keys(stageEdits).length){closeDrawer('drw-stage');return}
   const s=students.find(s=>s['STUDENT ID']===activeStudentId);if(!s)return;
   const txt=document.getElementById('stage-save-txt'),spin=document.getElementById('stage-save-spin');
   txt.textContent='Saving…';spin.style.display='';
-  const patch={};
-  Object.values(stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});
-  Object.assign(s,patch);filterTable();updateStats();updateFunnel();renderDashboardPartners();
+  const patch={};Object.values(stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});
+  Object.assign(s,patch);filterTableStudents();updateStats();updateFunnel();renderDashboardPartners();
   if(currentView==='student-detail'&&detailStudentId===activeStudentId)openDetail(activeStudentId);
-  try{
-    const res=await apiPost('updateStudentProfile',{studentId:activeStudentId,updatedBy:staff.name,...patch});
-    if(!res.success)throw new Error(res.error||'Save error');
-    toast('Pipeline updated','success');
-  }catch(e){toast('Saved locally, sync may have failed: '+e.message,'info')}
+  try{const res=await apiPost('updateStudentProfile',{studentId:activeStudentId,updatedBy:staff.name,...patch});if(!res.success)throw new Error(res.error||'Save error');toast('Pipeline updated','success')}
+  catch(e){toast('Saved locally, sync may have failed: '+e.message,'info')}
   finally{txt.textContent='Save changes';spin.style.display='none';closeDrawer('drw-stage');stageEdits={}}
 }
 
@@ -1432,31 +1480,21 @@ function openDetail(sid){
   }).join('');
   switchView('student-detail',null);
 }
-function backToDashboard(){switchView('dashboard',document.querySelector('.sb-link[data-view="dashboard"]'))}
+function backToDashboard(){switchView('students',document.querySelector('.sb-link[data-view="students"]'))}
 function openNotifyFromDetail(){openNotify(detailStudentId)}
 function openFeedbackFromDetail(){openFeedbackDrawer(detailStudentId)}
 
 /* ═══════════ CHANNEL PARTNERS ═══════════ */
 function buildPartnerData(){
-  const partnerMap={};
-  students.forEach(s=>{
-    const pName=s['AGENT']||s['CHANNEL PARTNER']||'Unknown';
-    if(!partnerMap[pName])partnerMap[pName]={name:pName,students:[],offers:0,visaApproved:0};
-    partnerMap[pName].students.push(s);
-    if(/conditional|unconditional|received/i.test(s['OFFER STATUS']||''))partnerMap[pName].offers++;
-    if(/approved/i.test(s['VISA STATUS']||''))partnerMap[pName].visaApproved++;
-  });
-  return Object.values(partnerMap).sort((a,b)=>b.students.length-a.students.length);
+  const m={};
+  students.forEach(s=>{const n=s['AGENT']||s['CHANNEL PARTNER']||'Unknown';if(!m[n])m[n]={name:n,students:[],offers:0,visaApproved:0};m[n].students.push(s);if(/conditional|unconditional|received/i.test(s['OFFER STATUS']||''))m[n].offers++;if(/approved/i.test(s['VISA STATUS']||''))m[n].visaApproved++});
+  return Object.values(m).sort((a,b)=>b.students.length-a.students.length);
 }
-
 function renderPartnerCard(p){
   const bg=avatarBg(p.name);const ini=initials(p.name);
   const convRate=p.students.length?Math.round(p.visaApproved/p.students.length*100):0;
   return`<div class="cp-card">
-    <div class="cp-card-head">
-      <div class="cp-avatar" style="background:${bg}">${ini}</div>
-      <div><div class="cp-name">${p.name}</div><div class="cp-type">Channel Partner</div></div>
-    </div>
+    <div class="cp-card-head"><div class="cp-avatar" style="background:${bg}">${ini}</div><div><div class="cp-name">${p.name}</div><div class="cp-type">Channel Partner</div></div></div>
     <div class="cp-stats">
       <div><div class="cp-stat-val">${p.students.length}</div><div class="cp-stat-label">Students</div></div>
       <div><div class="cp-stat-val">${p.offers}</div><div class="cp-stat-label">Offers</div></div>
@@ -1464,18 +1502,8 @@ function renderPartnerCard(p){
     </div>
   </div>`;
 }
-
-function renderDashboardPartners(){
-  const partners=buildPartnerData().slice(0,6);
-  const grid=document.getElementById('dashboard-cp-grid');if(!grid)return;
-  grid.innerHTML=partners.length?partners.map(renderPartnerCard).join(''):'<div class="empty-state" style="grid-column:1/-1">No partner data yet</div>';
-}
-
-function renderPartners(){
-  const partners=buildPartnerData();
-  const grid=document.getElementById('full-cp-grid');if(!grid)return;
-  grid.innerHTML=partners.length?partners.map(renderPartnerCard).join(''):'<div class="empty-state" style="grid-column:1/-1">No partners found. Add students with agent/partner data first.</div>';
-}
+function renderDashboardPartners(){const partners=buildPartnerData().slice(0,6);const grid=document.getElementById('dashboard-cp-grid');if(!grid)return;grid.innerHTML=partners.length?partners.map(renderPartnerCard).join(''):'<div class="empty-state" style="grid-column:1/-1">No partner data yet</div>'}
+function renderPartners(){const partners=buildPartnerData();const grid=document.getElementById('full-cp-grid');if(!grid)return;grid.innerHTML=partners.length?partners.map(renderPartnerCard).join(''):'<div class="empty-state" style="grid-column:1/-1">No partners found</div>'}
 function openAddPartner(){toast('Add partner form coming soon','info')}
 function openAddStudent(){toast('Add student form coming soon','info')}
 
@@ -1497,7 +1525,7 @@ async function submitFeedbackDrawer(){const text=document.getElementById('drw-fb
 /* ═══════════ FOLLOW-UP ═══════════ */
 function renderFollowup(){
   const c=document.getElementById('followup-content');
-  if(!students.length){c.innerHTML='<div class="empty-state">Load students from the Dashboard first</div>';return}
+  if(!students.length){c.innerHTML='<div class="empty-state">Load students from the Students tab first</div>';return}
   const urgent=students.filter(s=>!/(called|scheduled|received|connectivity|hold)/i.test(s['PRE-SCREENING CALL STATUS']||'')&&stageDoneCount(s)<STAGE_DEFS.length);
   const sched=students.filter(s=>/scheduled/i.test(s['PRE-SCREENING CALL STATUS']||''));
   const mkTable=list=>{if(!list.length)return'<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Nothing here — great work!</div>';
@@ -1541,7 +1569,7 @@ async function loadReports(){
   const grid=document.getElementById('report-grid');if(!grid)return;grid.innerHTML='';
   const report=buildLocalReport();
   const funnel=STAGE_DEFS.map(sd=>({label:sd.label,cnt:students.filter(s=>sd.done(s)).length}));const fmax=Math.max(...funnel.map(f=>f.cnt),1);
-  const mkCard=(title,data,sub='')=>{const tot=Object.values(data||{}).reduce((a,b)=>a+b,0)||1;const bars=Object.entries(data||{}).map(([l,c])=>{const p=Math.round(c/tot*100);return`<div class="rpt-bar-row"><div class="rpt-bar-label">${l}</div><div class="rpt-bar-track"><div class="rpt-bar-fill" style="width:${p}%"></div></div><div class="rpt-bar-num">${c}</div></div>`}).join('');return`<div class="card" style="padding:16px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div class="card-title">${title}</div><span style="font-size:10.5px;color:var(--text-muted)">${sub||tot+' total'}</span></div>${bars||'<div class="empty-state" style="padding:20px">No data</div>'}</div>`};
+  const mkCard=(title,data)=>{const tot=Object.values(data||{}).reduce((a,b)=>a+b,0)||1;const bars=Object.entries(data||{}).map(([l,c])=>{const p=Math.round(c/tot*100);return`<div class="rpt-bar-row"><div class="rpt-bar-label">${l}</div><div class="rpt-bar-track"><div class="rpt-bar-fill" style="width:${p}%"></div></div><div class="rpt-bar-num">${c}</div></div>`}).join('');return`<div class="card" style="padding:16px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div class="card-title">${title}</div><span style="font-size:10.5px;color:var(--text-muted)">${tot} total</span></div>${bars||'<div class="empty-state" style="padding:20px">No data</div>'}</div>`};
   const funnelCard=`<div class="card" style="padding:16px;grid-column:span 2"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div class="card-title">Pipeline funnel</div><span style="font-size:10.5px;color:var(--text-muted)">${students.length} students</span></div>${funnel.map(f=>{const p=Math.round(f.cnt/fmax*100);return`<div class="rpt-bar-row"><div class="rpt-bar-label">${f.label}</div><div class="rpt-bar-track"><div class="rpt-bar-fill" style="width:${p}%"></div></div><div class="rpt-bar-num">${f.cnt}</div></div>`}).join('')}</div>`;
   grid.innerHTML=funnelCard+mkCard('Offer status',report.offer)+mkCard('Visa status',report.visa)+mkCard('CAS status',report.cas)+mkCard('Payment',report.payment);
 }
@@ -1568,221 +1596,33 @@ function hideLoading(){document.getElementById('global-loading').classList.remov
 function getMock(){return[{'STUDENT ID':'STU-2026-001','STUDENT NAME':'Aarav Sharma','LEVEL':'UG','COURSE':'BSc (Hons) Computer Science','AGENT':'RD Pokhara','DOB':'2002-03-15','SUBMITTED BY':'Sagar','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Conditional','SCHOLARSHIP':'None','PAYMENT':'Deposit Paid','CAS SHIELD':'In Progress','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','APPLICATION SUBMITTED DATE':'2026-04-10','MOBILE':'986552121','EMAIL':'hemrajhadhikari@gmail.com','MOCK INTERVIEW STATUS':'Stage 2 Done','PRE-CAS INTERVIEW':'','CAS PAYMENT STATUS':'Unpaid','CAS REQUESTED STATUS':'Not Requested'},{'STUDENT ID':'STU-2026-002','STUDENT NAME':'Priya Karki','LEVEL':'PG','COURSE':'MSc Data Science','AGENT':'Bright Future Consultancy','DOB':'1999-07-22','SUBMITTED BY':'Admin','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Unconditional','SCHOLARSHIP':'Partial','PAYMENT':'Paid','CAS PAYMENT STATUS':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Pending','VISA STATUS':'Pending','APPLICATION SUBMITTED DATE':'2026-03-01','MOCK INTERVIEW STATUS':'Stage 4 Done','PRE-CAS INTERVIEW':'Pass','CAS REQUESTED STATUS':'Requested'},{'STUDENT ID':'STU-2026-003','STUDENT NAME':'Rohan Thapa','LEVEL':'UG','COURSE':'BBA Business Management','AGENT':'ABC Education','DOB':'2003-01-08','SUBMITTED BY':'Sagar','PRE-SCREENING CALL STATUS':'Not Called','OFFER STATUS':'Pending','SCHOLARSHIP':'None','PAYMENT':'Unpaid','CAS SHIELD':'Not Started','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','APPLICATION SUBMITTED DATE':'2026-05-12'},{'STUDENT ID':'STU-2026-004','STUDENT NAME':'Anisha Rai','LEVEL':'UG','COURSE':'Engineering Foundation','AGENT':'RD Pokhara','DOB':'2002-09-30','SUBMITTED BY':'Admin','PRE-SCREENING CALL STATUS':'Received','OFFER STATUS':'Conditional','CAS PAYMENT STATUS':'Paid','PAYMENT':'Deposit Paid','CAS SHIELD':'In Progress','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','APPLICATION SUBMITTED DATE':'2026-04-20','MOCK INTERVIEW STATUS':'Stage 3 Done','PRE-CAS INTERVIEW':''},{'STUDENT ID':'STU-2026-005','STUDENT NAME':'Kiran Gurung','LEVEL':'PG','COURSE':'MBA','AGENT':'NextStep Consultancy','DOB':'1998-11-14','SUBMITTED BY':'Sagar','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Received','SCHOLARSHIP':'Full','PAYMENT':'Paid','CAS PAYMENT STATUS':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Approved','APPLICATION SUBMITTED DATE':'2026-02-15','MOCK INTERVIEW STATUS':'Stage 4 Done','PRE-CAS INTERVIEW':'Pass','CAS REQUESTED STATUS':'Requested'},{'STUDENT ID':'STU-2026-006','STUDENT NAME':'Bishwas Shrestha','LEVEL':'PG','COURSE':'MBA Finance','AGENT':'Bright Future Consultancy','DOB':'2000-06-05','SUBMITTED BY':'Admin','PRE-SCREENING CALL STATUS':'On Hold','OFFER STATUS':'Unconditional','CAS PAYMENT STATUS':'Paid','PAYMENT':'Partially Paid','CAS SHIELD':'In Progress','CAS STATUS':'Applied','VISA STATUS':'Submitted','APPLICATION SUBMITTED DATE':'2026-03-18','MOCK INTERVIEW STATUS':'Stage 4 Done','PRE-CAS INTERVIEW':'Pass','CAS REQUESTED STATUS':'Requested'},{'STUDENT ID':'STU-2026-007','STUDENT NAME':'Puja Sharma','LEVEL':'PG','COURSE':'MA International Relations','AGENT':'ABC Education','DOB':'2001-02-19','SUBMITTED BY':'Sagar','PRE-SCREENING CALL STATUS':'Scheduled','OFFER STATUS':'Conditional','SCHOLARSHIP':'Bursary','PAYMENT':'Deposit Paid','CAS SHIELD':'Not Started','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied','APPLICATION SUBMITTED DATE':'2026-05-02'},{'STUDENT ID':'STU-2026-008','STUDENT NAME':'Nikhil Raimajhi','LEVEL':'PG','COURSE':'MCS Software Engineering','AGENT':'NextStep Consultancy','DOB':'1997-12-11','SUBMITTED BY':'Admin','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Received','SCHOLARSHIP':'None','PAYMENT':'Paid','CAS PAYMENT STATUS':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Approved','APPLICATION SUBMITTED DATE':'2026-01-25','MOCK INTERVIEW STATUS':'Stage 4 Done','PRE-CAS INTERVIEW':'Pass','CAS REQUESTED STATUS':'Requested'},{'STUDENT ID':'STU-2026-009','STUDENT NAME':'Sita Magar','LEVEL':'UG','COURSE':'BSc Nursing','AGENT':'RD Pokhara','DOB':'2003-08-28','SUBMITTED BY':'Sagar','PRE-SCREENING CALL STATUS':'Withdrew','OFFER STATUS':'Pending','SCHOLARSHIP':'None','PAYMENT':'Unpaid','CAS SHIELD':'Not Started','CAS STATUS':'Not Applied','VISA STATUS':'Not Applied'},{'STUDENT ID':'STU-2026-010','STUDENT NAME':'Dipesh Tamang','LEVEL':'PHD','COURSE':'PhD Biomedical Engineering','AGENT':'Bright Future Consultancy','DOB':'1995-04-03','SUBMITTED BY':'Admin','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Unconditional','CAS PAYMENT STATUS':'Paid','SCHOLARSHIP':'Sponsorship','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Refused','APPLICATION SUBMITTED DATE':'2026-02-28','MOCK INTERVIEW STATUS':'Stage 4 Done','PRE-CAS INTERVIEW':'Pass','CAS REQUESTED STATUS':'Requested'}]}
 function getMockCAS(){return[{'Applicant ID':'STU-2026-001','Applicant Name':'Aarav Sharma','Agent (Name)':'RD Pokhara','Nationality':'Nepali','Course Name':'BSc Computer Science','Study Gap Y/N':'No','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'No','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'No','PCI Invite':''},{'Applicant ID':'STU-2026-002','Applicant Name':'Priya Karki','Agent (Name)':'Bright Future Consultancy','Nationality':'Nepali','Course Name':'MSc Data Science','Study Gap Y/N':'Yes','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'Yes','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'Yes','PCI Invite':'2026-07-10'},{'Applicant ID':'STU-2026-005','Applicant Name':'Kiran Gurung','Agent (Name)':'NextStep Consultancy','Nationality':'Nepali','Course Name':'MBA','Study Gap Y/N':'No','Same Level Studies Y/N':'No','Visa Refusal Y/N':'No','Ready for PCI':'Yes','Information check on CAS Shield completed? Y/N':'Yes','Pre-CAS questionnaire on CAS shield Completed? Y/N':'Yes','PCI Invite':'2026-06-15'}]}
 
-/* ════════════════════════════════════════════════════════════════════
-   PERFORMANCE PATCH — client cache, save queue, lazy loading,
-   pagination, parallel fetch.
-   ════════════════════════════════════════════════════════════════════ */
-(function () {
-  'use strict';
-
-  const CLIENT_CACHE_TTL_MS = 10 * 60 * 1000;
-  const QUEUE_FLUSH_MIN_MS  = 2000;
-  const QUEUE_FLUSH_MAX_MS  = 5000;
-  const QUEUE_RETRY_BASE_MS = 1500;
-
-  /* ── Client memory cache ── */
-  const clientCache = new Map();
-  function cacheKey(action, params) { return action + ':' + JSON.stringify(params || {}); }
-  function getCached(action, params) {
-    const entry = clientCache.get(cacheKey(action, params));
-    if (!entry) return null;
-    if (Date.now() - entry.ts > CLIENT_CACHE_TTL_MS) { clientCache.delete(cacheKey(action, params)); return null; }
-    return entry.data;
-  }
-  function setCached(action, params, data) { clientCache.set(cacheKey(action, params), { data, ts: Date.now() }); }
-  function invalidateClientCache(actionPrefix) {
-    for (const key of clientCache.keys()) { if (key.indexOf(actionPrefix + ':') === 0) clientCache.delete(key); }
-  }
-  window.apiGetCached = async function (action, params = {}) {
-    const cached = getCached(action, params);
-    if (cached) return cached;
-    const data = await apiGet(action, params);
-    if (data && data.success) setCached(action, params, data);
-    return data;
-  };
-  window.invalidateClientCache = invalidateClientCache;
-
-  /* ── Background save queue ── */
-  const saveQueue = new Map();
-  let flushTimer = null, inFlight = false, retryDelay = QUEUE_RETRY_BASE_MS;
-
-  function scheduleFlush() {
-    if (flushTimer) return;
-    const delay = QUEUE_FLUSH_MIN_MS + Math.random() * (QUEUE_FLUSH_MAX_MS - QUEUE_FLUSH_MIN_MS);
-    flushTimer = setTimeout(flushQueue, delay);
-  }
-
-  /* FIX 2: flushQueue now uses POST with text/plain to avoid CORS preflight */
-  async function flushQueue() {
-    flushTimer = null;
-    if (inFlight || saveQueue.size === 0) return;
-    const updates = Array.from(saveQueue.values());
-    inFlight = true;
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'batchUpdate', updates, updatedBy: staff.name || 'Staff' })
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Batch save failed');
-      updates.forEach(u => saveQueue.delete(u.studentId + '|' + u.field));
-      invalidateClientCache('getStudents');
-      retryDelay = QUEUE_RETRY_BASE_MS;
-    } catch (e) {
-      toast('Sync delayed, retrying… (' + (e.message || 'network issue') + ')', 'info');
-      retryDelay = Math.min(retryDelay * 1.7, 30000);
-      flushTimer = setTimeout(flushQueue, retryDelay);
-    } finally {
-      inFlight = false;
-      if (saveQueue.size > 0 && !flushTimer) scheduleFlush();
-    }
-  }
-
-  window.queueFieldEdit = function (studentId, field, value) {
-    saveQueue.set(studentId + '|' + field, { studentId, field, value });
-    const s = (window.students || []).find(s => s['STUDENT ID'] === studentId);
-    if (s) s[field] = value;
-    toast('✓ Saved', 'success');
-    scheduleFlush();
-  };
-  window.queueBatchEdit = function (studentId, fieldValueMap) {
-    Object.entries(fieldValueMap).forEach(([field, value]) => window.queueFieldEdit(studentId, field, value));
-  };
-  window.flushSaveQueueNow = function () {
-    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-    return flushQueue();
-  };
-  window.addEventListener('beforeunload', () => { if (saveQueue.size > 0) flushQueue(); });
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && saveQueue.size > 0) flushQueue();
-  });
-
-  /* ── Optimized stage save ── */
-  window.saveStagesOptimized = function () {
-    if (!Object.keys(window.stageEdits || {}).length) { closeDrawer('drw-stage'); return; }
-    const sid = window.activeStudentId;
-    const s = (window.students || []).find(s => s['STUDENT ID'] === sid);
-    if (!s) return;
-    const patch = {};
-    Object.values(window.stageEdits).forEach(e => { if (e.val) patch[e.key] = e.val; });
-    Object.assign(s, patch);
-    if (typeof filterTable === 'function') filterTable();
-    if (typeof updateStats === 'function') updateStats();
-    if (typeof updateFunnel === 'function') updateFunnel();
-    if (typeof renderDashboardPartners === 'function') renderDashboardPartners();
-    if (currentView === 'student-detail' && detailStudentId === sid && typeof openDetail === 'function') openDetail(sid);
-    toast('✓ Saved', 'success');
-    closeDrawer('drw-stage');
-    window.queueBatchEdit(sid, patch);
-    window.stageEdits = {};
-  };
-
-  /* ── Lazy dashboard loading ── */
-  function nextFrame() { return new Promise(resolve => requestAnimationFrame(() => resolve())); }
-
-  window.loadDashboardLazy = async function () {
-    const cached = getCached('getStudents', { page: 1, limit: 100 });
-    if (cached) {
-      window.students = cached.students || [];
-      window.totalRecords = cached.totalRecords ?? window.students.length;
-      if (typeof updateStats === 'function') updateStats();
-      if (typeof updateFunnel === 'function') updateFunnel();
-    } else {
-      loading('Fetching students…');
-    }
-
-    await nextFrame();
-    if (typeof filterTable === 'function') filterTable();
-
-    await nextFrame();
-    if (typeof renderDashboardPartners === 'function') renderDashboardPartners();
-
-    try {
-      const data = await window.apiGetCached('getStudents', { page: 1, limit: 100 });
-      if (data && data.success) {
-        window.students = data.students || [];
-        window.totalRecords = data.totalRecords ?? window.students.length;
-        window.currentPage = data.page ?? 1;
-      } else if (!cached) {
-        console.warn('Using mock data:', data && data.error);
-        window.students = getMock();
-        window.totalRecords = window.students.length;
-      }
-    } catch (e) {
-      if (!cached) { console.warn('Using mock data:', e.message); window.students = getMock(); window.totalRecords = window.students.length; }
-    } finally {
-      if (typeof filterTable === 'function') filterTable();
-      if (typeof updateStats === 'function') updateStats();
-      if (typeof updateFunnel === 'function') updateFunnel();
-      if (typeof renderDashboardPartners === 'function') renderDashboardPartners();
-      hideLoading();
-      if (typeof initLoadMore === 'function') initLoadMore(100);
-    }
-  };
-
-  /* ── Parallel fetch helper ── */
-  window.fetchAllParallel = function (calls) {
-    return Promise.all(calls.map(([action, params]) => window.apiGetCached(action, params)));
-  };
-
-  /* ── Incremental row patch ── */
-  window.patchStudentRow = function (studentId) {
-    const s = (window.students || []).find(s => s['STUDENT ID'] === studentId);
-    if (!s) return;
-    const table = document.getElementById('student-table');
-    if (!table) return;
-    const rows = table.querySelectorAll('tbody tr');
-    for (const tr of rows) {
-      const firstCellText = tr.children[0] && tr.children[0].textContent.trim();
-      if (firstCellText === studentId && typeof buildRow === 'function') {
-        const tmp = document.createElement('table');
-        tmp.innerHTML = buildRow(s);
-        tr.replaceWith(tmp.querySelector('tr'));
-        return;
-      }
-    }
-  };
-
-  /* ── Pagination ("load more") ── */
-  window.initLoadMore = function (pageSize = 50) {
-    const tblCard = document.querySelector('.tbl-card');
-    if (!tblCard || document.getElementById('load-more-btn')) return;
-    if ((window.students || []).length >= (window.totalRecords || 0)) return;
-    const btn = document.createElement('button');
-    btn.id = 'load-more-btn';
-    btn.textContent = 'Load more students';
-    btn.onclick = async () => {
-      btn.disabled = true; btn.textContent = 'Loading…';
-      try {
-        const nextPage = (window.currentPage || 1) + 1;
-        const data = await window.apiGetCached('getStudents', { page: nextPage, limit: pageSize });
-        if (data && data.success && data.students && data.students.length) {
-          window.students = (window.students || []).concat(data.students);
-          window.currentPage = nextPage;
-          if (typeof filterTable === 'function') filterTable();
-          btn.textContent = 'Load more students';
-          if (window.students.length >= (window.totalRecords || 0)) btn.remove();
-        } else {
-          btn.textContent = 'No more records'; btn.disabled = true;
-        }
-      } catch (e) {
-        toast('Could not load more: ' + e.message, 'error');
-        btn.textContent = 'Load more students';
-      } finally { btn.disabled = false; }
-    };
-    tblCard.appendChild(btn);
-  };
-
-  window.searchStudentsLocal = function (query) {
-    const q = (query || '').toLowerCase();
-    if (!q) return window.students || [];
-    return (window.students || []).filter(s =>
-      ['STUDENT NAME', 'STUDENT ID', 'COURSE', 'AGENT'].some(f => (s[f] || '').toLowerCase().includes(q))
-    );
-  };
-
-  console.log('[R2U perf patch] loaded — client cache, save queue, lazy load, batchUpdate helpers ready.');
+/* ═══════════ PERF PATCH ═══════════ */
+(function(){
+'use strict';
+const CLIENT_CACHE_TTL_MS=10*60*1000,QUEUE_FLUSH_MIN_MS=2000,QUEUE_FLUSH_MAX_MS=5000,QUEUE_RETRY_BASE_MS=1500;
+const clientCache=new Map();
+function cacheKey(a,p){return a+':'+JSON.stringify(p||{})}
+function getCached(a,p){const e=clientCache.get(cacheKey(a,p));if(!e)return null;if(Date.now()-e.ts>CLIENT_CACHE_TTL_MS){clientCache.delete(cacheKey(a,p));return null}return e.data}
+function setCached(a,p,d){clientCache.set(cacheKey(a,p),{data:d,ts:Date.now()})}
+function invalidateClientCache(pre){for(const k of clientCache.keys())if(k.indexOf(pre+':')===0)clientCache.delete(k)}
+window.apiGetCached=async function(action,params={}){const c=getCached(action,params);if(c)return c;const d=await apiGet(action,params);if(d&&d.success)setCached(action,params,d);return d};
+window.invalidateClientCache=invalidateClientCache;
+const saveQueue=new Map();let flushTimer=null,inFlight=false,retryDelay=QUEUE_RETRY_BASE_MS;
+function scheduleFlush(){if(flushTimer)return;const d=QUEUE_FLUSH_MIN_MS+Math.random()*(QUEUE_FLUSH_MAX_MS-QUEUE_FLUSH_MIN_MS);flushTimer=setTimeout(flushQueue,d)}
+async function flushQueue(){flushTimer=null;if(inFlight||saveQueue.size===0)return;const updates=Array.from(saveQueue.values());inFlight=true;try{const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'batchUpdate',updates,updatedBy:staff.name||'Staff'})});const data=await res.json();if(!data.success)throw new Error(data.error||'Batch save failed');updates.forEach(u=>saveQueue.delete(u.studentId+'|'+u.field));invalidateClientCache('getStudents');retryDelay=QUEUE_RETRY_BASE_MS}catch(e){toast('Sync delayed, retrying…','info');retryDelay=Math.min(retryDelay*1.7,30000);flushTimer=setTimeout(flushQueue,retryDelay)}finally{inFlight=false;if(saveQueue.size>0&&!flushTimer)scheduleFlush()}}
+window.queueFieldEdit=function(studentId,field,value){saveQueue.set(studentId+'|'+field,{studentId,field,value});const s=(window.students||[]).find(s=>s['STUDENT ID']===studentId);if(s)s[field]=value;toast('✓ Saved','success');scheduleFlush()};
+window.queueBatchEdit=function(sid,map){Object.entries(map).forEach(([f,v])=>window.queueFieldEdit(sid,f,v))};
+window.flushSaveQueueNow=function(){if(flushTimer){clearTimeout(flushTimer);flushTimer=null}return flushQueue()};
+window.addEventListener('beforeunload',()=>{if(saveQueue.size>0)flushQueue()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&saveQueue.size>0)flushQueue()});
+window.saveStagesOptimized=function(){if(!Object.keys(window.stageEdits||{}).length){closeDrawer('drw-stage');return}const sid=window.activeStudentId;const s=(window.students||[]).find(s=>s['STUDENT ID']===sid);if(!s)return;const patch={};Object.values(window.stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});Object.assign(s,patch);if(typeof filterTableStudents==='function')filterTableStudents();if(typeof updateStats==='function')updateStats();if(typeof updateFunnel==='function')updateFunnel();if(typeof renderDashboardPartners==='function')renderDashboardPartners();if(currentView==='student-detail'&&detailStudentId===sid&&typeof openDetail==='function')openDetail(sid);toast('✓ Saved','success');closeDrawer('drw-stage');window.queueBatchEdit(sid,patch);window.stageEdits={}};
+function nextFrame(){return new Promise(r=>requestAnimationFrame(()=>r()))}
+window.loadDashboardLazy=async function(){const cached=getCached('getStudents',{page:1,limit:100});if(cached){window.students=cached.students||[];window.totalRecords=cached.totalRecords??window.students.length;if(typeof updateStats==='function')updateStats();if(typeof updateFunnel==='function')updateFunnel()}else{loading('Fetching students…')}
+await nextFrame();if(typeof filterTableStudents==='function')filterTableStudents();
+await nextFrame();if(typeof renderDashboardPartners==='function')renderDashboardPartners();
+try{const data=await window.apiGetCached('getStudents',{page:1,limit:100});if(data&&data.success){window.students=data.students||[];window.totalRecords=data.totalRecords??window.students.length;window.currentPage=data.page??1}else if(!cached){window.students=getMock();window.totalRecords=window.students.length}}catch(e){if(!cached){window.students=getMock();window.totalRecords=window.students.length}}finally{if(typeof filterTableStudents==='function')filterTableStudents();if(typeof updateStats==='function')updateStats();if(typeof updateFunnel==='function')updateFunnel();if(typeof renderDashboardPartners==='function')renderDashboardPartners();hideLoading()}};
+window.searchStudentsLocal=function(query){const q=(query||'').toLowerCase();if(!q)return window.students||[];return(window.students||[]).filter(s=>['STUDENT NAME','STUDENT ID','COURSE','AGENT'].some(f=>(s[f]||'').toLowerCase().includes(q)))};
+console.log('[R2U perf patch v2] loaded');
 })();
 </script>
 </body>
