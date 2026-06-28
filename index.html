@@ -381,12 +381,23 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.55}
 .report-stat-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#1a2533;line-height:1}
 .report-stat-label{font-size:10px;font-weight:700;color:#9BAAB8;text-transform:uppercase;letter-spacing:.08em;margin-top:5px}
 
+/* ═══ RESPONSIVE: Mock Pre-CAS & Direct Email split layouts ═══ */
+@media(max-width:1100px){
+  #fb-layout-grid,#email-layout-grid{grid-template-columns:1fr!important}
+  #fb-preview-col{position:static!important;top:auto!important}
+}
+
 @media(max-width:900px){
   #sidebar{transform:translateX(-100%)}
   #sidebar.mobile-open{transform:translateX(0)}
   #app-main{margin-left:0!important}
   .kpi-grid{grid-template-columns:repeat(3,1fr)}
   .pl-summary-grid{grid-template-columns:repeat(2,1fr)}
+  .form-grid-2{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .doc-meta{grid-template-columns:repeat(2,1fr)}
 }
 </style>
 </head>
@@ -455,7 +466,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.55}
       </div>
       <div class="nav-link" data-view="followup" onclick="switchView('followup',this)">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.3 1.5a11.5 11.5 0 005.3 5.3L15.5 13l5 2v4a2 2 0 01-2.2 2A16.5 16.5 0 013 6.2 2 2 0 015 4z"/></svg>
-        <span>Follow Up</span>
+        <span>Daily Follow Up</span>
       </div>
       <div class="nav-link" data-view="casshield" onclick="switchView('casshield',this)">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg>
@@ -468,6 +479,10 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.55}
       <div class="nav-link" data-view="email" onclick="switchView('email',this)">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         <span>Direct Email</span>
+      </div>
+      <div class="nav-link" data-view="push" onclick="switchView('push',this)">
+        <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span>Push Notification</span>
       </div>
       <div class="nav-link" data-view="reports" onclick="switchView('reports',this)">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg>
@@ -645,7 +660,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.55}
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:20px;align-items:start">
+      <div id="fb-layout-grid" style="display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:20px;align-items:start">
         <!-- LEFT COLUMN -->
         <div style="display:flex;flex-direction:column;gap:14px">
           <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-xs)">
@@ -705,7 +720,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.55}
         </div>
 
         <!-- RIGHT COLUMN — always visible live preview -->
-        <div style="position:sticky;top:74px">
+        <div id="fb-preview-col" style="position:sticky;top:74px">
           <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-xs)">
             <div style="background:var(--navy);padding:11px 18px;display:flex;align-items:center;justify-content:space-between">
               <span style="color:rgba(255,255,255,.45);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Live Document Preview</span>
@@ -725,7 +740,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.55}
 
     <!-- DIRECT EMAIL -->
     <div class="view" id="view-email">
-      <div style="display:grid;grid-template-columns:minmax(320px,460px) 1fr;gap:20px;align-items:start">
+      <div id="email-layout-grid" style="display:grid;grid-template-columns:minmax(320px,460px) 1fr;gap:20px;align-items:start">
         <div>
           <div class="email-compose-card">
             <div style="font-size:9.5px;font-weight:700;color:#9BAAB8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px">Compose Message</div>
@@ -774,6 +789,11 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.55}
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- PUSH NOTIFICATION -->
+    <div class="view" id="view-push">
+      <div class="empty-state">Push Notification center — coming soon.</div>
     </div>
 
     <!-- UPLOAD -->
@@ -933,10 +953,11 @@ let emailHistory=[];
 
 const PAGE_META={
   dashboard:['Dashboard','Every applicant, one screen.'],
-  followup:['Follow Up',"Today's pending calls & actions."],
+  followup:['Daily Follow Up',"Today's pending calls & actions."],
   casshield:['CAS Shield','Pre-CAS readiness & risk checks.'],
   feedback:['Mock Pre-CAS','Build and send interview feedback.'],
   email:['Direct Email','Send messages to students & agents.'],
+  push:['Push Notification','Broadcast alerts to students, agents & staff.'],
   upload:['Import CSV','Bring new applicants into the sheet.'],
   reports:['Reports','Live pipeline breakdowns & insights.']
 };
@@ -1116,7 +1137,7 @@ function resetCmdResults(){
   document.getElementById('cmd-results').innerHTML=`
     <div class="cmd-section-label">Quick Actions</div>
     <div class="cmd-item" onclick="cmdAction('dashboard')"><div class="cmd-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A07C20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div><div><div class="cmd-item-name">Dashboard</div><div class="cmd-item-meta">All students & pipeline</div></div></div>
-    <div class="cmd-item" onclick="cmdAction('followup')"><div class="cmd-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A07C20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.3 1.5a11.5 11.5 0 005.3 5.3L15.5 13l5 2v4a2 2 0 01-2.2 2A16.5 16.5 0 013 6.2 2 2 0 015 4z"/></svg></div><div><div class="cmd-item-name">Follow Up</div><div class="cmd-item-meta">Today's pending calls & tasks</div></div></div>
+    <div class="cmd-item" onclick="cmdAction('followup')"><div class="cmd-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A07C20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.3 1.5a11.5 11.5 0 005.3 5.3L15.5 13l5 2v4a2 2 0 01-2.2 2A16.5 16.5 0 013 6.2 2 2 0 015 4z"/></svg></div><div><div class="cmd-item-name">Daily Follow Up</div><div class="cmd-item-meta">Today's pending calls & tasks</div></div></div>
     <div class="cmd-item" onclick="cmdAction('casshield')"><div class="cmd-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A07C20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg></div><div><div class="cmd-item-name">CAS Shield</div><div class="cmd-item-meta">Pre-CAS readiness checks</div></div></div>
     <div class="cmd-item" onclick="cmdAction('feedback')"><div class="cmd-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A07C20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div><div><div class="cmd-item-name">Mock Pre-CAS</div><div class="cmd-item-meta">Build interview feedback</div></div></div>
   `;
