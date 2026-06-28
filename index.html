@@ -5,244 +5,784 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>R2U Student Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 tailwind.config = {
   theme: {
     extend: {
-      colors: { navy:'#0F1F2D', gold:'#D4A833' },
-      fontFamily: { display:['Plus Jakarta Sans','sans-serif'], sans:['Inter','sans-serif'] }
+      colors: {
+        navy: '#0F1F2D',
+        'navy-2': '#16273A',
+        gold: '#D4A833',
+        'gold-dim': '#A07C20',
+        'gold-soft': '#FBF3DD'
+      },
+      fontFamily: {
+        display: ['Plus Jakarta Sans', 'sans-serif'],
+        sans: ['Inter', 'sans-serif']
+      }
     }
   }
 }
 </script>
 <style>
-:root{ --navy:#0F1F2D; --navy2:#16273A; --gold:#D4A833; --gold-soft:#FBF3DD; --gold-dim:#A07C20; }
-*{box-sizing:border-box;}
-html,body{font-family:'Inter',sans-serif;}
-::-webkit-scrollbar{width:8px;height:8px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:4px;}
+:root {
+  --navy: #0F1F2D;
+  --navy2: #16273A;
+  --gold: #D4A833;
+  --gold-soft: #FBF3DD;
+  --gold-dim: #A07C20;
+  --gold-gradient: linear-gradient(135deg, #D4A833 0%, #F0C84A 50%, #A07C20 100%);
+  --shadow-card: 0 1px 3px rgba(15,31,45,.06), 0 4px 16px rgba(15,31,45,.04);
+  --shadow-hover: 0 4px 20px rgba(15,31,45,.10), 0 1px 4px rgba(15,31,45,.06);
+  --shadow-drawer: -24px 0 64px rgba(15,31,45,.22);
+  --radius-card: 16px;
+  --radius-btn: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { font-family: 'Inter', sans-serif; }
 
-.view{display:none;}
-.view.active{display:block;}
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
 
-/* DRAWER */
-.drawer{position:fixed;top:0;right:0;height:100%;width:100%;max-width:440px;background:#fff;z-index:60;
-  transform:translateX(105%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-20px 0 60px rgba(15,31,45,.2);
-  display:flex;flex-direction:column;}
-.drawer.drawer-wide{max-width:500px;}
-.drawer.drawer-open{transform:translateX(0);}
-#drawer-overlay{position:fixed;inset:0;background:rgba(15,31,45,.45);z-index:55;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(2px);}
-#drawer-overlay.show{opacity:1;pointer-events:all;}
-.drawer-head{padding:22px 24px;border-bottom:1px solid #E2E8F0;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;}
-.drawer-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;color:#0F1F2D;}
-.drawer-sub{font-size:12px;color:#94A3B8;margin-top:3px;font-weight:500;}
-.drawer-close{width:30px;height:30px;border-radius:9px;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748B;flex-shrink:0;transition:background .15s;}
-.drawer-close:hover{background:#E2E8F0;}
-.drawer-body{flex:1;overflow-y:auto;padding:22px 24px;}
-.drawer-foot{padding:16px 24px;border-top:1px solid #E2E8F0;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:#FAFBFC;}
+/* ── VIEWS ── */
+.view { display: none; }
+.view.active { display: block; }
 
-.form-group{margin-bottom:15px;}
-.form-label{display:block;font-size:10.5px;font-weight:700;color:#64748B;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
-.form-control{width:100%;border:1px solid #E2E8F0;border-radius:9px;padding:9px 12px;font-size:13px;font-family:inherit;color:#1E293B;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;}
-.form-control:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,51,.15);}
-textarea.form-control{resize:vertical;min-height:80px;line-height:1.55;}
-.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+/* ── GLOBAL SEARCH OVERLAY ── */
+#cmd-overlay {
+  position: fixed; inset: 0; z-index: 9990;
+  background: rgba(15,31,45,.65);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 14vh;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease;
+}
+#cmd-overlay.cmd-open { opacity: 1; pointer-events: all; }
+#cmd-box {
+  width: 100%; max-width: 580px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 32px 80px rgba(15,31,45,.35);
+  overflow: hidden;
+  transform: translateY(-12px) scale(.97);
+  transition: transform .22s cubic-bezier(.22,1,.36,1);
+}
+#cmd-overlay.cmd-open #cmd-box { transform: none; }
+#cmd-input-wrap {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F1F5F9;
+}
+#cmd-input {
+  flex: 1; font-size: 15px; font-family: inherit;
+  border: none; outline: none; color: #1E293B; background: transparent;
+}
+#cmd-input::placeholder { color: #94A3B8; }
+#cmd-results { max-height: 380px; overflow-y: auto; }
+.cmd-section-label {
+  font-size: 10px; font-weight: 700; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: .1em;
+  padding: 12px 20px 6px;
+}
+.cmd-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 20px; cursor: pointer;
+  transition: background .12s;
+}
+.cmd-item:hover, .cmd-item.cmd-active { background: var(--gold-soft); }
+.cmd-item-icon {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: #F1F5F9; display: flex; align-items: center;
+  justify-content: center; font-size: 14px; flex-shrink: 0;
+}
+.cmd-item-name { font-size: 13px; font-weight: 600; color: #1E293B; }
+.cmd-item-meta { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+.cmd-footer {
+  border-top: 1px solid #F1F5F9;
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 16px;
+  font-size: 11px; color: #94A3B8;
+}
+.cmd-key {
+  background: #F1F5F9; border: 1px solid #E2E8F0;
+  border-radius: 5px; padding: 2px 7px;
+  font-family: monospace; font-size: 10px; color: #64748B;
+}
 
-.qa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
-.qa-btn{padding:11px 10px;border-radius:11px;border:1.5px solid #E5EAF0;background:#F8FAFC;cursor:pointer;text-align:center;transition:all .15s;}
-.qa-btn:hover{border-color:var(--gold);background:var(--gold-soft);}
-.qa-btn.sel{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 2px 8px rgba(212,168,51,.2);}
-.qa-btn-icon{font-size:16px;margin-bottom:3px;}
-.qa-btn-lbl{font-size:11px;font-weight:700;color:#1E293B;}
+/* ── SIDEBAR ── */
+#sidebar {
+  background: var(--navy);
+  position: fixed; inset-y: 0; left: 0; width: 230px;
+  z-index: 40; display: flex; flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,.05);
+}
+.sidebar-logo-wrap {
+  height: 64px; display: flex; align-items: center;
+  gap: 10px; padding: 0 18px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+}
+.sidebar-logo {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--gold-gradient);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800; font-size: 12px; color: var(--navy);
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(212,168,51,.35);
+}
+.sidebar-brand { line-height: 1.25; }
+.sidebar-brand-name { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 13.5px; color: #fff; }
+.sidebar-brand-tag { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: .12em; text-transform: uppercase; }
 
-.notice{background:#FEF3E2;border:1px solid #F5D9A8;border-radius:10px;padding:11px 13px;font-size:12px;color:#7A5500;margin-bottom:13px;display:flex;gap:9px;align-items:flex-start;line-height:1.5;}
+.nav-group-label {
+  font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,.25);
+  text-transform: uppercase; letter-spacing: .12em;
+  padding: 16px 18px 6px;
+}
+.nav-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-radius: 10px;
+  font-size: 12.5px; font-weight: 600;
+  color: rgba(255,255,255,.45);
+  cursor: pointer;
+  transition: all .15s ease;
+  user-select: none;
+  margin: 1px 8px;
+}
+.nav-link:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.85); }
+.nav-link.active {
+  background: linear-gradient(135deg, rgba(212,168,51,.18) 0%, rgba(212,168,51,.08) 100%);
+  color: var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(212,168,51,.2);
+}
+.nav-link .nav-icon { opacity: .7; flex-shrink: 0; }
+.nav-link.active .nav-icon { opacity: 1; }
+.nav-link .nav-badge {
+  margin-left: auto; font-size: 10px; font-weight: 700;
+  background: rgba(212,168,51,.2); color: var(--gold);
+  border-radius: 6px; padding: 2px 6px;
+}
 
-.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap;cursor:pointer;transition:all .15s;border:1px solid transparent;font-family:inherit;}
-.badge:hover{filter:brightness(0.97);transform:translateY(-1px);}
-.badge-green{background:#DCFCE7;color:#15803D;}
-.badge-amber{background:#FEF3C7;color:#B45309;}
-.badge-blue{background:#DBEAFE;color:#1D4ED8;}
-.badge-red{background:#FEE2E2;color:#B91C1C;}
-.badge-gray{background:#F1F5F9;color:#64748B;}
-.badge-teal{background:#CCFBF1;color:#0F766E;}
+.user-pill {
+  margin: 8px; border-radius: 12px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  padding: 10px 11px;
+  display: flex; align-items: center; gap: 9px;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--gold-gradient);
+  color: var(--navy); font-weight: 800; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(212,168,51,.35);
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 10px; color: rgba(255,255,255,.35); }
+.signout-btn {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: rgba(255,255,255,.06); border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.3); transition: all .15s; flex-shrink: 0;
+}
+.signout-btn:hover { background: rgba(239,68,68,.2); color: #F87171; }
 
-.pop-card{position:fixed;z-index:70;background:#fff;border:1px solid #E2E8F0;border-radius:13px;box-shadow:0 16px 40px rgba(15,31,45,.2);padding:6px;min-width:200px;display:none;}
-.pop-card.show{display:block;}
-.pop-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:600;color:#1E293B;cursor:pointer;}
-.pop-item:hover{background:#F8FAFC;}
-.pop-item svg{flex-shrink:0;color:#94A3B8;}
+/* ── HEADER ── */
+#app-header {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(15,31,45,.07);
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+}
+.header-search-trigger {
+  display: flex; align-items: center; gap: 10px;
+  background: #F8FAFC; border: 1px solid #E9EEF4;
+  border-radius: 10px; padding: 8px 14px;
+  cursor: pointer; transition: all .15s;
+  color: #94A3B8; font-size: 13px;
+  min-width: 220px;
+}
+.header-search-trigger:hover { border-color: var(--gold); background: var(--gold-soft); }
+.cmd-hint {
+  margin-left: auto; display: flex; gap: 3px; align-items: center;
+}
+.kbd {
+  font-size: 10px; background: #E9EEF4; border: 1px solid #D1D9E0;
+  border-radius: 4px; padding: 1px 5px; color: #94A3B8;
+  font-family: monospace; line-height: 1.5;
+}
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 9px;
+  border: 1px solid #E9EEF4; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #64748B;
+  transition: all .15s;
+}
+.icon-btn:hover { border-color: var(--gold); background: var(--gold-soft); color: var(--gold-dim); }
+.export-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 9px;
+  border: 1px solid #E9EEF4; background: #fff;
+  color: #334155; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.export-btn:hover { border-color: var(--gold); background: var(--gold-soft); color: var(--gold-dim); }
 
-.lookup-wrap{position:relative;}
-.lookup-results{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:1px solid #E2E8F0;border-radius:11px;box-shadow:0 16px 36px rgba(15,31,45,.16);z-index:40;max-height:230px;overflow-y:auto;display:none;}
-.lookup-results.open{display:block;}
-.lookup-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #F1F5F9;}
-.lookup-item:last-child{border-bottom:none;}
-.lookup-item:hover{background:#F8FAFC;}
-.lookup-item-name{font-weight:700;font-size:12.5px;color:#1E293B;}
-.lookup-item-id{font-size:10.5px;color:#94A3B8;margin-top:1px;}
-.sel-student{background:var(--gold-soft);border:1px solid #EBDBA7;border-radius:11px;padding:12px 14px;display:none;align-items:center;justify-content:space-between;}
-.sel-student.show{display:flex;}
-.ss-name{font-weight:700;font-size:13.5px;color:#1E293B;}
-.ss-meta{font-size:11px;color:#8A6D2A;margin-top:2px;font-weight:500;}
-.ss-clear{background:none;border:none;cursor:pointer;color:#A07C20;font-size:15px;line-height:1;padding:5px;border-radius:6px;}
+/* ── KPI CARDS ── */
+.kpi-card {
+  background: #fff;
+  border: 1px solid rgba(15,31,45,.07);
+  border-radius: 16px; padding: 18px 18px 16px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow .2s ease, transform .2s ease;
+  position: relative; overflow: hidden;
+}
+.kpi-card::after {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: var(--gold-gradient);
+  opacity: 0; transition: opacity .2s;
+}
+.kpi-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+.kpi-card:hover::after { opacity: 1; }
+.kpi-icon-wrap {
+  width: 38px; height: 38px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.kpi-val { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+.kpi-label { font-size: 10.5px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: .07em; margin-top: 5px; }
+.kpi-sub { font-size: 10.5px; font-weight: 600; margin-top: 3px; }
 
-.perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-.perf-opt{border:1.5px solid #E5EAF0;border-radius:11px;padding:13px 6px;text-align:center;cursor:pointer;transition:all .15s;background:#F8FAFC;}
-.perf-opt:hover{border-color:var(--gold);background:var(--gold-soft);}
-.perf-opt.sel{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 2px 8px rgba(212,168,51,.2);}
-.perf-emoji{font-size:19px;margin-bottom:4px;}
-.perf-lbl{font-size:10.5px;font-weight:700;color:#475569;}
+/* ── CHART CARD ── */
+.chart-card {
+  background: #fff;
+  border: 1px solid rgba(15,31,45,.07);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.chart-card-head {
+  padding: 16px 20px 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.chart-card-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #1E293B; }
+.chart-card-sub { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+.chart-canvas-wrap { padding: 12px 20px 20px; height: 120px; }
 
-.success-banner{background:#ECFDF5;border:1px solid #A7F3D0;border-radius:16px;padding:18px 22px;display:none;align-items:center;gap:14px;margin-bottom:18px;}
-.success-banner.show{display:flex;}
+/* ── STATUS PILL FILTERS ── */
+.pill-filter-bar {
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto; padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.pill-filter-bar::-webkit-scrollbar { display: none; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 13px; border-radius: 99px;
+  font-size: 12px; font-weight: 600;
+  border: 1.5px solid #E9EEF4; background: #fff;
+  color: #64748B; cursor: pointer; white-space: nowrap;
+  transition: all .15s ease;
+}
+.status-pill:hover { border-color: var(--gold); color: var(--gold-dim); background: var(--gold-soft); }
+.status-pill.active {
+  background: var(--navy); color: #fff;
+  border-color: var(--navy);
+  box-shadow: 0 2px 8px rgba(15,31,45,.25);
+}
+.status-pill .pill-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
 
-.report-bar-item{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
-.report-bar-label{width:112px;font-size:11.5px;color:#64748B;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;font-weight:500;}
-.report-bar-track{flex:1;background:#F1F5F9;border-radius:5px;height:8px;overflow:hidden;}
-.report-bar-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .6s ease;}
-.report-bar-count{font-size:11.5px;font-weight:700;color:#1E293B;min-width:22px;text-align:right;flex-shrink:0;}
+/* ── TABLE ── */
+.table-card {
+  background: #fff;
+  border: 1px solid rgba(15,31,45,.07);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+table.dtable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.dtable thead th {
+  background: #F8FAFC;
+  color: #94A3B8; padding: 11px 16px;
+  text-align: left; font-weight: 700;
+  font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #F1F5F9;
+  white-space: nowrap;
+}
+table.dtable tbody tr {
+  border-bottom: 1px solid #F8FAFC;
+  transition: background .12s;
+  position: relative;
+}
+table.dtable tbody tr:last-child { border-bottom: none; }
+table.dtable tbody tr:hover { background: #FAFBFD; }
+table.dtable tbody td { padding: 11px 16px; color: #1E293B; vertical-align: middle; }
 
-.empty-state{text-align:center;padding:56px 20px;color:#94A3B8;font-size:13px;font-weight:500;}
+/* ── ROW HOVER ACTIONS ── */
+.row-actions {
+  display: flex; align-items: center; gap: 4px;
+  opacity: 0; transform: translateX(4px);
+  transition: opacity .15s, transform .15s;
+  justify-content: flex-end;
+}
+tr:hover .row-actions { opacity: 1; transform: none; }
+.row-action-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid #E9EEF4; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #64748B;
+  transition: all .15s; font-size: 11px;
+}
+.row-action-btn:hover { border-color: var(--gold); background: var(--gold-soft); color: var(--gold-dim); }
+.kebab-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid transparent; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #CBD5E1; transition: all .15s;
+  flex-shrink: 0;
+}
+.kebab-btn:hover, tr:hover .kebab-btn { color: #64748B; border-color: #E9EEF4; background: #fff; }
 
-.toast{background:#0F1F2D;color:#fff;padding:12px 17px;border-radius:11px;font-size:12.5px;font-weight:600;box-shadow:0 14px 32px rgba(0,0,0,.28);animation:slideIn .25s ease;display:flex;align-items:center;gap:9px;max-width:320px;}
-.toast.success{border-left:3px solid var(--gold);}
-.toast.error{border-left:3px solid #EF4444;}
-@keyframes slideIn{from{transform:translateX(60px);opacity:0;}to{transform:none;opacity:1;}}
+/* ── PIPELINE ── */
+.pipeline-wrap {
+  display: flex; align-items: center; gap: 0;
+  cursor: pointer; padding: 4px 2px; border-radius: 8px;
+  transition: background .15s;
+}
+.pipeline-wrap:hover { background: #F8FAFC; }
+.pl-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #E9EEF4; flex-shrink: 0;
+  border: 1.5px solid #fff;
+  transition: background .15s, transform .15s;
+}
+.pl-dot.pl-done { background: var(--gold); }
+.pl-dot.pl-current {
+  background: #fff; border: 2px solid var(--gold);
+  box-shadow: 0 0 0 3px rgba(212,168,51,.2);
+}
+.pl-line { width: 8px; height: 2px; background: #E9EEF4; flex-shrink: 0; }
+.pl-line.pl-line-done { background: var(--gold); }
+.pl-count-chip {
+  font-size: 10px; font-weight: 700; color: var(--gold-dim);
+  background: var(--gold-soft); border-radius: 6px;
+  padding: 2px 6px; margin-left: 8px; flex-shrink: 0;
+}
+.pl-label { font-size: 10.5px; color: #64748B; font-weight: 600; margin-left: 6px; white-space: nowrap; min-width: 100px; }
 
-.spinner{width:30px;height:30px;border:3px solid #E2E8F0;border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+/* ── BADGES ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 99px;
+  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+  cursor: pointer; transition: all .15s; border: 1px solid transparent;
+  font-family: inherit;
+}
+.badge:hover { filter: brightness(.96); transform: translateY(-1px); }
+.badge-green { background: #DCFCE7; color: #15803D; }
+.badge-amber { background: #FEF3C7; color: #B45309; }
+.badge-blue { background: #DBEAFE; color: #1D4ED8; }
+.badge-red { background: #FEE2E2; color: #B91C1C; }
+.badge-gray { background: #F1F5F9; color: #64748B; }
+.badge-teal { background: #CCFBF1; color: #0F766E; }
 
-.nav-link{display:flex;align-items:center;gap:11px;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:600;color:#8B9CAC;cursor:pointer;transition:all .15s;user-select:none;}
-.nav-link:hover{background:rgba(255,255,255,.06);color:#fff;}
-.nav-link.active{background:rgba(212,168,51,.14);color:var(--gold);}
+/* ── DRAWERS ── */
+.drawer {
+  position: fixed; top: 0; right: 0; height: 100%;
+  width: 100%; max-width: 440px;
+  background: #fff; z-index: 60;
+  transform: translateX(105%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow: var(--shadow-drawer);
+  display: flex; flex-direction: column;
+}
+.drawer.drawer-wide { max-width: 500px; }
+.drawer.drawer-open { transform: translateX(0); }
+#drawer-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,31,45,.4);
+  z-index: 55; opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+  backdrop-filter: blur(4px);
+}
+#drawer-overlay.show { opacity: 1; pointer-events: all; }
+.drawer-head {
+  padding: 20px 22px;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex; align-items: flex-start;
+  justify-content: space-between; flex-shrink: 0;
+}
+.drawer-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 15px; color: #0F1F2D; }
+.drawer-sub { font-size: 11.5px; color: #94A3B8; margin-top: 2px; font-weight: 500; }
+.drawer-close {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: #F1F5F9; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #64748B; flex-shrink: 0; transition: background .15s;
+}
+.drawer-close:hover { background: #E2E8F0; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 20px 22px; }
+.drawer-foot {
+  padding: 14px 22px;
+  border-top: 1px solid #F1F5F9;
+  display: flex; justify-content: flex-end; gap: 8px;
+  flex-shrink: 0; background: #FAFBFC;
+}
 
-.kpi-card{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:18px 19px;transition:box-shadow .15s,transform .15s;}
-.kpi-card:hover{box-shadow:0 10px 28px rgba(15,31,45,.08);transform:translateY(-2px);}
+/* ── FORMS ── */
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block; font-size: 10.5px; font-weight: 700;
+  color: #64748B; margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.form-control {
+  width: 100%; border: 1.5px solid #E9EEF4;
+  border-radius: 9px; padding: 9px 12px;
+  font-size: 13px; font-family: inherit;
+  color: #1E293B; background: #fff; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.form-control:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,168,51,.12); }
+textarea.form-control { resize: vertical; min-height: 80px; line-height: 1.55; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-table.dtable{width:100%;border-collapse:collapse;font-size:12.5px;}
-table.dtable thead th{background:#F8FAFC;color:#64748B;padding:12px 16px;text-align:left;font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid #E2E8F0;white-space:nowrap;}
-table.dtable tbody tr{border-bottom:1px solid #F1F5F9;transition:background .12s;}
-table.dtable tbody tr:last-child{border-bottom:none;}
-table.dtable tbody tr:hover{background:#FAFBFD;}
-table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
+/* ── QA GRID ── */
+.qa-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 7px; }
+.qa-btn {
+  padding: 11px 10px; border-radius: 11px;
+  border: 1.5px solid #E9EEF4; background: #F8FAFC;
+  cursor: pointer; text-align: center; transition: all .15s;
+}
+.qa-btn:hover { border-color: var(--gold); background: var(--gold-soft); }
+.qa-btn.sel {
+  border-color: var(--gold); background: var(--gold-soft);
+  box-shadow: 0 2px 10px rgba(212,168,51,.2);
+}
+.qa-btn-icon { font-size: 16px; margin-bottom: 3px; }
+.qa-btn-lbl { font-size: 11px; font-weight: 700; color: #1E293B; }
 
-.filter-pill{background:#fff;border:1px solid #E2E8F0;border-radius:9px;padding:8px 12px;font-size:12px;font-family:inherit;color:#334155;outline:none;cursor:pointer;}
-.filter-pill:focus{border-color:var(--gold);}
+/* ── PERF GRID ── */
+.perf-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
+.perf-opt {
+  border: 1.5px solid #E9EEF4; border-radius: 11px;
+  padding: 12px 6px; text-align: center; cursor: pointer;
+  transition: all .15s; background: #F8FAFC;
+}
+.perf-opt:hover { border-color: var(--gold); background: var(--gold-soft); }
+.perf-opt.sel {
+  border-color: var(--gold); background: var(--gold-soft);
+  box-shadow: 0 2px 10px rgba(212,168,51,.2);
+}
+.perf-emoji { font-size: 18px; margin-bottom: 4px; }
+.perf-lbl { font-size: 10.5px; font-weight: 700; color: #475569; }
 
-/* Pipeline */
-.pipeline-wrap{display:flex;align-items:center;gap:0;cursor:pointer;padding:4px 2px;border-radius:8px;transition:background .15s;}
-.pipeline-wrap:hover{background:#F8FAFC;}
-.pl-dot{width:9px;height:9px;border-radius:50%;background:#E2E8F0;flex-shrink:0;transition:background .15s,transform .15s;border:1.5px solid #fff;}
-.pl-dot.pl-done{background:var(--gold);}
-.pl-dot.pl-current{background:#fff;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(212,168,51,.18);}
-.pl-line{width:9px;height:2px;background:#E2E8F0;flex-shrink:0;}
-.pl-line.pl-line-done{background:var(--gold);}
-.pl-label{font-size:10.5px;color:#64748B;font-weight:700;margin-left:8px;white-space:nowrap;min-width:108px;}
-.pl-count-chip{font-size:10px;font-weight:700;color:var(--gold-dim);background:var(--gold-soft);border-radius:6px;padding:2px 6px;margin-left:6px;flex-shrink:0;}
+/* ── NOTICE ── */
+.notice {
+  background: #FEF3E2; border: 1px solid #F5D9A8;
+  border-radius: 10px; padding: 10px 13px;
+  font-size: 12px; color: #7A5500;
+  margin-bottom: 12px; display: flex; gap: 8px;
+  align-items: flex-start; line-height: 1.55;
+}
 
-/* Stage list in profile */
-.stage-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #F1F5F9;}
-.stage-row:last-child{border-bottom:none;}
-.stage-row-left{display:flex;align-items:center;gap:10px;}
-.stage-dot-lg{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;background:#F1F5F9;color:#94A3B8;}
-.stage-dot-lg.stage-done{background:#DCFCE7;color:#15803D;}
-.stage-name{font-size:12.5px;font-weight:600;color:#1E293B;}
-.stage-num{font-size:9.5px;color:#CBD5E1;font-weight:700;width:14px;}
+/* ── POPOVERS ── */
+.pop-card {
+  position: fixed; z-index: 70; background: #fff;
+  border: 1px solid #E9EEF4; border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15,31,45,.18);
+  padding: 5px; min-width: 200px; display: none;
+}
+.pop-card.show { display: block; }
+.pop-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 600; color: #1E293B; cursor: pointer;
+  transition: background .12s;
+}
+.pop-item:hover { background: #F8FAFC; }
+.pop-item svg { flex-shrink: 0; color: #94A3B8; }
+.pop-item:hover svg { color: var(--gold-dim); }
 
-/* Load more */
-#load-more-btn{margin-top:14px;width:100%;padding:11px;border-radius:14px;border:1.5px dashed #E2E8F0;background:#fff;color:#64748B;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;}
-#load-more-btn:hover:not(:disabled){border-color:var(--gold);background:var(--gold-soft);color:var(--gold-dim);}
-#load-more-btn:disabled{opacity:.6;cursor:not-allowed;}
+/* ── LOOKUP ── */
+.lookup-wrap { position: relative; }
+.lookup-results {
+  position: absolute; top: calc(100% + 5px);
+  left: 0; right: 0; background: #fff;
+  border: 1px solid #E9EEF4; border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15,31,45,.14);
+  z-index: 40; max-height: 230px; overflow-y: auto; display: none;
+}
+.lookup-results.open { display: block; }
+.lookup-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #F8FAFC; }
+.lookup-item:last-child { border-bottom: none; }
+.lookup-item:hover { background: var(--gold-soft); }
+.lookup-item-name { font-weight: 700; font-size: 12.5px; color: #1E293B; }
+.lookup-item-id { font-size: 10.5px; color: #94A3B8; margin-top: 1px; }
 
-/* Login */
-.login-overlay{position:fixed;inset:0;background:#0F1F2D;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;transition:opacity .25s ease;}
-.login-overlay.login-hidden{opacity:0;pointer-events:none;}
-.login-card{background:#fff;border-radius:20px;padding:36px 34px 30px;width:100%;max-width:390px;box-shadow:0 32px 80px rgba(0,0,0,.45);animation:loginSlideUp .35s cubic-bezier(.22,1,.36,1);}
-@keyframes loginSlideUp{from{transform:translateY(24px);opacity:0;}to{transform:none;opacity:1;}}
-.login-logo{width:40px;height:40px;background:#D4A833;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#0F1F2D;flex-shrink:0;}
-.login-error{background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#B91C1C;font-weight:600;margin-bottom:14px;line-height:1.45;}
-.login-input{width:100%;border:1px solid #E2E8F0;border-radius:10px;padding:10px 13px;font-size:13.5px;font-family:inherit;color:#1E293B;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;}
-.login-input:focus{border-color:#D4A833;box-shadow:0 0 0 3px rgba(212,168,51,.18);}
-.login-input.input-error{border-color:#F87171;}
-.login-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;padding:4px;display:flex;align-items:center;border-radius:6px;}
-.login-btn{width:100%;margin-top:20px;background:#0F1F2D;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:background .15s;}
-.login-btn:hover:not(:disabled){background:#16273A;}
-.login-btn:disabled{opacity:.65;cursor:not-allowed;}
-.login-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .75s linear infinite;}
+/* ── SELECTED STUDENT CARD ── */
+.sel-student {
+  background: var(--gold-soft); border: 1px solid #EBDBA7;
+  border-radius: 11px; padding: 11px 13px;
+  display: none; align-items: center; justify-content: space-between;
+}
+.sel-student.show { display: flex; }
+.ss-name { font-weight: 700; font-size: 13px; color: #1E293B; }
+.ss-meta { font-size: 11px; color: #8A6D2A; margin-top: 1px; font-weight: 500; }
+.ss-clear { background: none; border: none; cursor: pointer; color: var(--gold-dim); font-size: 14px; padding: 4px; border-radius: 5px; }
 
-.user-pill{display:flex;align-items:center;border-radius:12px;border:1px solid rgba(255,255,255,.10);padding:10px 12px;}
-.user-pill-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);color:#0F1F2D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;}
-.user-pill-info{flex:1;min-width:0;margin-left:10px;}
-.user-pill-name{font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.user-pill-role{font-size:10px;color:rgba(255,255,255,.4);}
-.signout-btn{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);transition:all .15s;flex-shrink:0;}
-.signout-btn:hover{background:rgba(239,68,68,.2);color:#F87171;}
+/* ── SUCCESS BANNER ── */
+.success-banner {
+  background: #ECFDF5; border: 1px solid #A7F3D0;
+  border-radius: 16px; padding: 16px 20px;
+  display: none; align-items: center; gap: 14px; margin-bottom: 18px;
+}
+.success-banner.show { display: flex; }
 
-/* Profile Drawer */
-.profile-drawer{position:fixed;top:0;right:0;height:100%;width:100%;max-width:480px;background:#fff;z-index:65;display:flex;flex-direction:column;transform:translateX(105%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-24px 0 64px rgba(15,31,45,.22);}
-.profile-drawer.pd-open{transform:translateX(0);}
-.profile-drawer-overlay{position:fixed;inset:0;background:rgba(15,31,45,.45);backdrop-filter:blur(2px);z-index:64;opacity:0;pointer-events:none;transition:opacity .25s;}
-.profile-drawer-overlay.pd-overlay-show{opacity:1;pointer-events:all;}
-.pd-section{margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid #F1F5F9;}
-.pd-section:last-of-type{border-bottom:none;margin-bottom:0;}
-.pd-section-title{font-size:10px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.pd-section-title::after{content:'';flex:1;height:1px;background:#F1F5F9;}
-.pd-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.pd-field{margin-bottom:10px;}
-.pd-label{display:block;font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
-.pd-input{width:100%;border:1px solid #E2E8F0;border-radius:9px;padding:8px 11px;font-size:13px;font-family:inherit;color:#1E293B;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;}
-.pd-input:focus{border-color:#D4A833;box-shadow:0 0 0 3px rgba(212,168,51,.15);}
-.pd-input[readonly]{background:#F8FAFC;color:#64748B;cursor:default;}
-.pd-btn-save{padding:9px 22px;border-radius:9px;border:none;background:#D4A833;color:#0F1F2D;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .15s;}
-.pd-btn-save:hover:not(:disabled){opacity:.9;}
-.pd-btn-save:disabled{opacity:.6;cursor:not-allowed;}
-.pd-save-spinner{width:14px;height:14px;border:2px solid rgba(15,31,45,.3);border-top-color:#0F1F2D;border-radius:50%;animation:spin .75s linear infinite;}
+/* ── PROFILE DRAWER ── */
+.profile-drawer {
+  position: fixed; top: 0; right: 0; height: 100%;
+  width: 100%; max-width: 480px; background: #fff;
+  z-index: 65; display: flex; flex-direction: column;
+  transform: translateX(105%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow: var(--shadow-drawer);
+}
+.profile-drawer.pd-open { transform: translateX(0); }
+.profile-drawer-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,31,45,.42);
+  backdrop-filter: blur(4px);
+  z-index: 64; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.profile-drawer-overlay.pd-overlay-show { opacity: 1; pointer-events: all; }
 
-/* Readonly field badge */
-.readonly-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:#F1F5F9;border:1px solid #E2E8F0;font-size:10px;font-weight:700;color:#94A3B8;margin-left:6px;vertical-align:middle;}
+/* ── PROFILE DRAWER INTERNALS ── */
+.pd-section { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #F1F5F9; }
+.pd-section:last-of-type { border-bottom: none; margin-bottom: 0; }
+.pd-section-title {
+  font-size: 9.5px; font-weight: 800; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: .12em;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.pd-section-title::after { content: ''; flex: 1; height: 1px; background: #F1F5F9; }
+.pd-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 9px; }
+.pd-field { margin-bottom: 9px; }
+.pd-label { display: block; font-size: 10px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+.pd-input {
+  width: 100%; border: 1.5px solid #E9EEF4; border-radius: 9px;
+  padding: 8px 11px; font-size: 12.5px; font-family: inherit;
+  color: #1E293B; background: #fff; outline: none;
+  transition: border-color .15s, box-shadow .15s; box-sizing: border-box;
+}
+.pd-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,168,51,.12); }
+.pd-input[readonly] { background: #F8FAFC; color: #64748B; cursor: default; border-color: #F1F5F9; }
+.readonly-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 5px; background: #F1F5F9;
+  border: 1px solid #E9EEF4; font-size: 9.5px; font-weight: 700;
+  color: #94A3B8; margin-left: 4px;
+}
+.pd-btn-save {
+  padding: 9px 22px; border-radius: 9px; border: none;
+  background: var(--gold-gradient); color: var(--navy);
+  font-size: 12.5px; font-weight: 700; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center; gap: 7px;
+  transition: opacity .15s; box-shadow: 0 2px 10px rgba(212,168,51,.3);
+}
+.pd-btn-save:hover:not(:disabled) { opacity: .9; }
+.pd-btn-save:disabled { opacity: .6; cursor: not-allowed; }
+.pd-save-spinner { width: 13px; height: 13px; border: 2px solid rgba(15,31,45,.25); border-top-color: var(--navy); border-radius: 50%; animation: spin .75s linear infinite; }
 
-.export-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1px solid #E2E8F0;background:#fff;color:#334155;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
-.export-btn:hover{border-color:var(--gold);background:var(--gold-soft);color:var(--gold-dim);}
+/* ── STAGE LIST ── */
+.stage-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #F8FAFC; }
+.stage-row:last-child { border-bottom: none; }
+.stage-row-left { display: flex; align-items: center; gap: 9px; }
+.stage-dot-lg { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; font-weight: 800; background: #F1F5F9; color: #94A3B8; }
+.stage-dot-lg.stage-done { background: #DCFCE7; color: #15803D; }
+.stage-name { font-size: 12.5px; font-weight: 600; color: #1E293B; }
+.stage-num { font-size: 9.5px; color: #CBD5E1; font-weight: 700; width: 14px; }
 
-.access-denied{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;color:#94A3B8;}
+/* ── REPORTS ── */
+.report-bar-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.report-bar-label { width: 115px; font-size: 11.5px; color: #64748B; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; font-weight: 500; }
+.report-bar-track { flex: 1; background: #F1F5F9; border-radius: 5px; height: 7px; overflow: hidden; }
+.report-bar-fill { height: 100%; border-radius: 5px; background: var(--gold-gradient); transition: width .6s ease; }
+.report-bar-count { font-size: 11.5px; font-weight: 700; color: #1E293B; min-width: 22px; text-align: right; flex-shrink: 0; }
 
-/* Doc preview */
-.preview-card{display:none;}
-.preview-card.show{display:block;}
-.doc-header{border-bottom:3px solid var(--gold);padding-bottom:16px;margin-bottom:20px;}
-.doc-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;font-weight:800;color:#0F1F2D;margin-bottom:14px;}
-.doc-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.doc-meta-item{background:#F8FAFC;border-radius:9px;padding:10px 13px;}
-.doc-meta-label{font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
-.doc-meta-value{font-size:12.5px;font-weight:700;color:#1E293B;}
-.doc-section{margin-bottom:18px;}
-.doc-section-title{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:9px;display:flex;align-items:center;gap:6px;}
-.doc-section-title::after{content:'';flex:1;height:1px;background:#E2E8F0;}
-.doc-text{font-size:13px;line-height:1.8;color:#334155;}
-.perf-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:800;}
-.perf-excellent{background:#DCFCE7;color:#15803D;}
-.perf-good{background:#DBEAFE;color:#1D4ED8;}
-.perf-satisfactory{background:#FEF3C7;color:#B45309;}
-.perf-needs{background:#FEE2E2;color:#B91C1C;}
-.doc-footer{border-top:1px solid #E2E8F0;padding-top:13px;margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#94A3B8;}
+/* ── FEEDBACK DOC ── */
+.doc-header { border-bottom: 3px solid var(--gold); padding-bottom: 16px; margin-bottom: 18px; }
+.doc-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 800; color: #0F1F2D; margin-bottom: 12px; }
+.doc-meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; }
+.doc-meta-item { background: #F8FAFC; border-radius: 9px; padding: 9px 12px; }
+.doc-meta-label { font-size: 9px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px; }
+.doc-meta-value { font-size: 12px; font-weight: 700; color: #1E293B; }
+.doc-section { margin-bottom: 16px; }
+.doc-section-title { font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.doc-section-title::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
+.doc-text { font-size: 13px; line-height: 1.8; color: #334155; }
+.perf-badge { display: inline-block; padding: 3px 13px; border-radius: 99px; font-size: 11px; font-weight: 800; }
+.perf-excellent { background: #DCFCE7; color: #15803D; }
+.perf-good { background: #DBEAFE; color: #1D4ED8; }
+.perf-satisfactory { background: #FEF3C7; color: #B45309; }
+.perf-needs { background: #FEE2E2; color: #B91C1C; }
+.doc-footer { border-top: 1px solid #E2E8F0; padding-top: 12px; margin-top: 18px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #94A3B8; }
+.preview-card { display: none; }
+.preview-card.show { display: block; }
 
-#drop-zone.drag-over{border-color:var(--gold);background:var(--gold-soft);}
+/* ── MISC ── */
+.empty-state { text-align: center; padding: 52px 20px; color: #94A3B8; font-size: 13px; font-weight: 500; }
+.access-denied { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; text-align: center; color: #94A3B8; }
+#drop-zone.drag-over { border-color: var(--gold); background: var(--gold-soft); }
 
-@media(max-width:900px){
-  #sidebar{transform:translateX(-100%);}
-  #sidebar.mobile-open{transform:translateX(0);}
-  #app-main{margin-left:0 !important;}
+/* ── TOAST ── */
+.toast {
+  background: #0F1F2D; color: #fff;
+  padding: 11px 16px; border-radius: 11px;
+  font-size: 12.5px; font-weight: 600;
+  box-shadow: 0 14px 40px rgba(0,0,0,.3);
+  animation: slideIn .22s ease;
+  display: flex; align-items: center; gap: 9px; max-width: 320px;
+}
+.toast.success { border-left: 3px solid var(--gold); }
+.toast.error { border-left: 3px solid #EF4444; }
+@keyframes slideIn { from { transform: translateX(60px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ── SPINNER ── */
+.spinner { width: 28px; height: 28px; border: 3px solid #E2E8F0; border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── LOGIN ── */
+.login-overlay {
+  position: fixed; inset: 0; background: var(--navy);
+  z-index: 9999; display: flex; align-items: center;
+  justify-content: center; padding: 20px;
+  transition: opacity .25s ease;
+}
+.login-overlay.login-hidden { opacity: 0; pointer-events: none; }
+.login-card {
+  background: #fff; border-radius: 22px;
+  padding: 36px 34px 30px;
+  width: 100%; max-width: 390px;
+  box-shadow: 0 40px 100px rgba(0,0,0,.5);
+  animation: loginSlideUp .35s cubic-bezier(.22,1,.36,1);
+}
+@keyframes loginSlideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.login-logo {
+  width: 40px; height: 40px; border-radius: 11px;
+  background: var(--gold-gradient);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800; font-size: 13px; color: var(--navy);
+  box-shadow: 0 4px 14px rgba(212,168,51,.4);
+}
+.login-error { background: #FEE2E2; border: 1px solid #FECACA; border-radius: 10px; padding: 10px 13px; font-size: 12.5px; color: #B91C1C; font-weight: 600; margin-bottom: 14px; line-height: 1.45; }
+.login-input { width: 100%; border: 1.5px solid #E9EEF4; border-radius: 10px; padding: 10px 13px; font-size: 13.5px; font-family: inherit; color: #1E293B; background: #fff; outline: none; transition: border-color .15s, box-shadow .15s; box-sizing: border-box; }
+.login-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,168,51,.15); }
+.login-input.input-error { border-color: #F87171; }
+.login-eye { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94A3B8; padding: 4px; display: flex; align-items: center; border-radius: 6px; }
+.login-btn { width: 100%; margin-top: 20px; background: var(--navy); color: #fff; border: none; border-radius: 11px; padding: 12px; font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px; transition: background .15s; }
+.login-btn:hover:not(:disabled) { background: var(--navy2); }
+.login-btn:disabled { opacity: .65; cursor: not-allowed; }
+.login-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .75s linear infinite; }
+
+/* ── PILL FILTER SELECTS (legacy hidden) ── */
+.filter-pill-select { display: none; }
+
+/* ── LOAD MORE ── */
+#load-more-btn {
+  margin-top: 12px; width: 100%; padding: 11px;
+  border-radius: 14px; border: 1.5px dashed #E9EEF4;
+  background: #fff; color: #64748B;
+  font-size: 12.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: all .2s;
+}
+#load-more-btn:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); color: var(--gold-dim); }
+#load-more-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ── BTN PRIMARIES ── */
+.btn-primary {
+  padding: 8px 18px; border-radius: 9px; border: none;
+  background: var(--navy); color: #fff;
+  font-size: 12.5px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .88; }
+.btn-gold {
+  padding: 8px 18px; border-radius: 9px; border: none;
+  background: var(--gold-gradient); color: var(--navy);
+  font-size: 12.5px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: opacity .15s;
+  box-shadow: 0 2px 10px rgba(212,168,51,.3);
+}
+.btn-gold:hover { opacity: .92; }
+.btn-ghost {
+  padding: 8px 16px; border-radius: 9px;
+  border: 1.5px solid #E9EEF4; background: #fff;
+  color: #64748B; font-size: 12.5px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: all .15s;
+}
+.btn-ghost:hover { border-color: var(--gold); background: var(--gold-soft); color: var(--gold-dim); }
+
+/* ── NOTIFICATION MODAL ── */
+#modal-notify .notice { margin-top: 10px; }
+
+@media (max-width: 900px) {
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.mobile-open { transform: translateX(0); }
+  #app-main { margin-left: 0 !important; }
 }
 </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased">
 
-<!-- LOGIN OVERLAY -->
+<!-- ═══════════════════════════════════════════
+  CMD+K GLOBAL SEARCH OVERLAY
+═══════════════════════════════════════════ -->
+<div id="cmd-overlay" role="dialog" aria-modal="true">
+  <div id="cmd-box">
+    <div id="cmd-input-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="cmd-input" type="text" placeholder="Search students, courses, agents…" autocomplete="off" oninput="cmdSearch(this.value)">
+      <span class="kbd">Esc</span>
+    </div>
+    <div id="cmd-results">
+      <div class="cmd-section-label">Quick Actions</div>
+      <div class="cmd-item" onclick="cmdAction('dashboard')"><div class="cmd-item-icon">📊</div><div><div class="cmd-item-name">Dashboard</div><div class="cmd-item-meta">View all students & pipeline</div></div></div>
+      <div class="cmd-item" onclick="cmdAction('casshield')"><div class="cmd-item-icon">🛡️</div><div><div class="cmd-item-name">CAS Shield</div><div class="cmd-item-meta">Pre-CAS readiness checks</div></div></div>
+      <div class="cmd-item" onclick="cmdAction('feedback')"><div class="cmd-item-icon">📝</div><div><div class="cmd-item-name">Mock Pre-CAS</div><div class="cmd-item-meta">Build interview feedback</div></div></div>
+    </div>
+    <div class="cmd-footer">
+      <span><span class="cmd-key">↑↓</span> navigate</span>
+      <span><span class="cmd-key">↵</span> select</span>
+      <span><span class="cmd-key">Esc</span> close</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+  LOGIN OVERLAY
+═══════════════════════════════════════════ -->
 <div id="login-overlay" class="login-overlay" aria-modal="true" role="dialog">
   <div class="login-card">
     <div class="flex items-center gap-3 mb-7">
@@ -253,18 +793,18 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
       </div>
     </div>
     <h2 class="font-display font-extrabold text-[22px] text-slate-900 mb-1.5">Welcome back</h2>
-    <p class="text-[13px] text-slate-500 mb-6">Sign in with your staff credentials to continue.</p>
+    <p class="text-[13px] text-slate-400 mb-6">Sign in with your staff credentials to continue.</p>
     <div class="login-error" id="login-error" style="display:none"></div>
     <div class="mb-4">
-      <label class="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Username</label>
+      <label class="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Username</label>
       <input class="login-input" id="login-username" type="text" autocomplete="username" placeholder="your.username" spellcheck="false">
     </div>
     <div class="mb-2">
-      <label class="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Password</label>
+      <label class="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Password</label>
       <div style="position:relative">
         <input class="login-input" id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" style="padding-right:44px">
         <button type="button" class="login-eye" onclick="togglePasswordVisibility()" title="Show/hide password">
-          <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
     </div>
@@ -272,235 +812,374 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
       <span id="login-btn-text">Sign in</span>
       <span class="login-spinner" id="login-spinner" style="display:none"></span>
     </button>
-    <p class="text-center text-[11.5px] text-slate-400 mt-4">Forgot your password? Contact your administrator.</p>
+    <p class="text-center text-[11.5px] text-slate-400 mt-5">Forgot your password? Contact your administrator.</p>
   </div>
 </div>
 
-<!-- SIDEBAR -->
-<aside id="sidebar" class="fixed inset-y-0 left-0 w-60 bg-[#0F1F2D] flex flex-col z-40 transition-transform">
-  <div class="h-16 flex items-center gap-2.5 px-5 border-b border-white/10 flex-shrink-0">
-    <div class="w-8 h-8 rounded-lg bg-gold flex items-center justify-center font-display font-extrabold text-navy text-[13px] flex-shrink-0">R2</div>
-    <div class="leading-tight">
-      <div class="font-display font-extrabold text-white text-[14px]">Route 2 Uni</div>
-      <div class="text-[9.5px] text-white/40 font-semibold tracking-wider">STUDENT PORTAL</div>
+<!-- ═══════════════════════════════════════════
+  SIDEBAR
+═══════════════════════════════════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-logo-wrap">
+    <div class="sidebar-logo">R2</div>
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-name">Route 2 Uni</div>
+      <div class="sidebar-brand-tag">Student Portal</div>
     </div>
   </div>
-  <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+
+  <nav class="flex-1 py-4 overflow-y-auto">
+    <div class="nav-group-label">Main</div>
     <div class="nav-link active" data-view="dashboard" onclick="switchView('dashboard',this)">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       <span>Dashboard</span>
     </div>
     <div class="nav-link" data-view="casshield" onclick="switchView('casshield',this)">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg>
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg>
       <span>CAS Shield</span>
     </div>
     <div class="nav-link" data-view="feedback" onclick="switchView('feedback',this)">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
       <span>Mock Pre-CAS</span>
     </div>
+    <div class="nav-group-label admin-only" style="display:none">Admin</div>
     <div class="nav-link admin-only" data-view="upload" onclick="switchView('upload',this)" style="display:none">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
       <span>Import CSV</span>
     </div>
     <div class="nav-link admin-only" data-view="reports" onclick="switchView('reports',this)" style="display:none">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg>
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg>
       <span>Reports</span>
     </div>
   </nav>
-  <div class="px-3 pb-4 flex-shrink-0">
+
+  <div class="pb-3 flex-shrink-0">
     <div class="user-pill">
-      <div class="user-pill-avatar" id="cur-avatar">SA</div>
-      <div class="user-pill-info">
-        <div class="user-pill-name" id="cur-name">—</div>
-        <div class="user-pill-role" id="cur-role-label">Staff</div>
+      <div class="user-avatar" id="cur-avatar">SA</div>
+      <div class="user-info">
+        <div class="user-name" id="cur-name">—</div>
+        <div class="user-role" id="cur-role-label">Staff</div>
       </div>
       <button class="signout-btn" onclick="signOut()" title="Sign out">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
   </div>
 </aside>
 
-<!-- MAIN -->
-<div id="app-main" class="ml-60 min-h-screen flex flex-col">
-  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 h-16 flex items-center justify-between px-7 flex-shrink-0">
-    <div>
-      <h1 class="font-display font-bold text-[16px] text-slate-900 leading-tight" id="page-title">Dashboard</h1>
-      <p class="text-[11.5px] text-slate-400 font-medium" id="page-subtitle">Every applicant, one screen.</p>
+<!-- ═══════════════════════════════════════════
+  MAIN
+═══════════════════════════════════════════ -->
+<div id="app-main" class="ml-[230px] min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header id="app-header">
+    <div class="flex items-center gap-4">
+      <div>
+        <h1 class="font-display font-bold text-[15.5px] text-slate-900 leading-tight" id="page-title">Dashboard</h1>
+        <p class="text-[11px] text-slate-400 font-medium" id="page-subtitle">Every applicant, one screen.</p>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
-      <button class="export-btn" id="dash-export-btn" onclick="exportStudentsCSV()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export CSV
+    <div class="flex items-center gap-3">
+      <!-- Global search trigger -->
+      <button class="header-search-trigger" onclick="openCmd()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search…</span>
+        <div class="cmd-hint">
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+        </div>
       </button>
-      <button class="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition" onclick="refreshCurrentView()" title="Refresh">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 10-2.6 6.4"/><polyline points="21 4 21 12 13 12"/></svg>
-      </button>
+      <div class="header-actions">
+        <button class="export-btn" id="dash-export-btn" onclick="exportStudentsCSV()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="icon-btn" onclick="refreshCurrentView()" title="Refresh">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 10-2.6 6.4"/><polyline points="21 4 21 12 13 12"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
   <main class="flex-1 px-7 py-6">
 
-    <!-- DASHBOARD -->
+    <!-- ── DASHBOARD ── -->
     <div class="view active" id="view-dashboard">
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-6">
-        <div class="kpi-card"><div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center mb-3 text-slate-500"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.2 2.7-5.5 6-5.5s6 2.3 6 5.5"/><path d="M16.5 7.2a3 3 0 010 5.8"/><path d="M19.5 19c0-2.4-1.6-4.4-3.8-5.2"/></svg></div><div class="font-display text-[25px] font-bold text-slate-900 leading-none" id="stat-total">—</div><div class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mt-1.5">Total Students</div></div>
-        <div class="kpi-card"><div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center mb-3 text-emerald-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><polyline points="9 13 11 15 15 10.5"/></svg></div><div class="font-display text-[25px] font-bold text-emerald-600 leading-none" id="stat-offers">—</div><div class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mt-1.5">Offers Received</div><div class="text-[10.5px] text-emerald-600 font-semibold mt-1" id="stat-offers-sub">&nbsp;</div></div>
-        <div class="kpi-card"><div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center mb-3 text-amber-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></div><div class="font-display text-[25px] font-bold text-amber-600 leading-none" id="stat-cas">—</div><div class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mt-1.5">CAS Pending</div><div class="text-[10.5px] text-amber-600 font-semibold mt-1" id="stat-cas-sub">&nbsp;</div></div>
-        <div class="kpi-card"><div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center mb-3 text-emerald-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div><div class="font-display text-[25px] font-bold text-emerald-600 leading-none" id="stat-visa">—</div><div class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mt-1.5">Visa Approved</div><div class="text-[10.5px] text-emerald-600 font-semibold mt-1" id="stat-visa-sub">&nbsp;</div></div>
-        <div class="kpi-card"><div class="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center mb-3 text-red-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></div><div class="font-display text-[25px] font-bold text-red-600 leading-none" id="stat-refused">—</div><div class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mt-1.5">Visa Refused</div></div>
-        <div class="kpi-card"><div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center mb-3 text-amber-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><div class="font-display text-[25px] font-bold text-amber-600 leading-none" id="stat-payment">—</div><div class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mt-1.5">Payment Pending</div></div>
-      </div>
 
-      <!-- Filters -->
-      <div class="flex items-center gap-2 mb-4 flex-wrap">
-        <div class="relative">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="filter-pill pl-8 w-56" id="search-input" type="text" placeholder="Search name, ID, course…" oninput="filterTable()">
+      <!-- KPI CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-slate-100"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.2 2.7-5.5 6-5.5s6 2.3 6 5.5"/><path d="M16.5 7.2a3 3 0 010 5.8"/><path d="M19.5 19c0-2.4-1.6-4.4-3.8-5.2"/></svg></div>
+          <div class="kpi-val text-slate-900" id="stat-total">—</div>
+          <div class="kpi-label">Total Students</div>
         </div>
-        <select class="filter-pill" id="filter-agent" onchange="filterTable()"><option value="">All Agents</option></select>
-        <select class="filter-pill" id="filter-level" onchange="filterTable()"><option value="">All Levels</option><option>UG</option><option>PG</option><option>PHD</option></select>
-        <select class="filter-pill" id="filter-offer" onchange="filterTable()"><option value="">All Offers</option><option>Pending</option><option>Conditional</option><option>Unconditional</option><option>Received</option><option>Rejected</option></select>
-        <select class="filter-pill" id="filter-visa" onchange="filterTable()"><option value="">All Visa</option><option>Not Applied</option><option>Pending</option><option>Approved</option><option>Refused</option></select>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-emerald-50"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><polyline points="9 13 11 15 15 10.5"/></svg></div>
+          <div class="kpi-val text-emerald-600" id="stat-offers">—</div>
+          <div class="kpi-label">Offers Received</div>
+          <div class="kpi-sub text-emerald-500" id="stat-offers-sub">&nbsp;</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-amber-50"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></div>
+          <div class="kpi-val text-amber-600" id="stat-cas">—</div>
+          <div class="kpi-label">CAS Pending</div>
+          <div class="kpi-sub text-amber-500" id="stat-cas-sub">&nbsp;</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-emerald-50"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+          <div class="kpi-val text-emerald-600" id="stat-visa">—</div>
+          <div class="kpi-label">Visa Approved</div>
+          <div class="kpi-sub text-emerald-500" id="stat-visa-sub">&nbsp;</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-red-50"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></div>
+          <div class="kpi-val text-red-600" id="stat-refused">—</div>
+          <div class="kpi-label">Visa Refused</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap bg-amber-50"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+          <div class="kpi-val text-amber-600" id="stat-payment">—</div>
+          <div class="kpi-label">Payment Pending</div>
+        </div>
       </div>
 
-      <!-- Table -->
-      <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm" id="table-wrap">
-        <div class="overflow-auto" style="max-height:62vh">
+      <!-- PIPELINE FUNNEL CHART -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-card-title">Pipeline Funnel</div>
+            <div class="chart-card-sub">Students at each stage of the 10-stage journey</div>
+          </div>
+          <span class="text-[10.5px] font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg" id="chart-student-count">— students</span>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="pipeline-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- STATUS PILL FILTERS -->
+      <div class="flex items-center gap-3 mb-4 flex-wrap">
+        <div class="pill-filter-bar flex-1">
+          <button class="status-pill active" data-filter="all" onclick="setVisaFilter('',this)">
+            <span class="pill-dot bg-slate-400"></span> All Students
+          </button>
+          <button class="status-pill" data-filter="visa-approved" onclick="setVisaFilter('Approved',this)">
+            <span class="pill-dot bg-emerald-500"></span> Visa Approved
+          </button>
+          <button class="status-pill" data-filter="visa-pending" onclick="setVisaFilter('Pending',this)">
+            <span class="pill-dot bg-amber-400"></span> Visa Pending
+          </button>
+          <button class="status-pill" data-filter="visa-refused" onclick="setVisaFilter('Refused',this)">
+            <span class="pill-dot bg-red-500"></span> Visa Refused
+          </button>
+          <button class="status-pill" data-filter="offer-received" onclick="setOfferFilter('Received',this)">
+            <span class="pill-dot bg-emerald-500"></span> Offer Received
+          </button>
+          <button class="status-pill" data-filter="cas-pending" onclick="setCASFilter('Pending',this)">
+            <span class="pill-dot bg-amber-400"></span> CAS Pending
+          </button>
+        </div>
+        <!-- Hidden selects for legacy JS compatibility -->
+        <select class="filter-pill-select" id="filter-agent" onchange="filterTable()"><option value="">All Agents</option></select>
+        <select class="filter-pill-select" id="filter-level" onchange="filterTable()"><option value="">All Levels</option><option>UG</option><option>PG</option><option>PHD</option></select>
+        <select class="filter-pill-select" id="filter-offer" onchange="filterTable()"><option value="">All Offers</option><option>Pending</option><option>Conditional</option><option>Unconditional</option><option>Received</option><option>Rejected</option></select>
+        <select class="filter-pill-select" id="filter-visa" onchange="filterTable()"><option value="">All Visa</option><option>Not Applied</option><option>Pending</option><option>Approved</option><option>Refused</option></select>
+        <!-- hidden search input still used by JS logic -->
+        <input class="filter-pill-select" id="search-input" type="text" oninput="filterTable()">
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-card" id="table-wrap">
+        <div class="overflow-auto" style="max-height:60vh">
           <table class="dtable" id="student-table">
             <thead>
               <tr>
                 <th style="min-width:90px">Student ID</th>
                 <th style="min-width:150px">Student Name</th>
                 <th style="min-width:150px">Course</th>
-                <th style="min-width:110px">Agent</th>
+                <th style="min-width:100px">Agent</th>
                 <th style="min-width:260px">Pipeline (10 stages)</th>
-                <th class="text-right" style="min-width:90px"></th>
+                <th style="min-width:110px" class="text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="table-body"><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
-    </div>
+    </div><!-- /view-dashboard -->
 
-    <!-- CAS SHIELD -->
+    <!-- ── CAS SHIELD ── -->
     <div class="view" id="view-casshield">
       <div class="flex items-center gap-2 mb-4 flex-wrap">
-        <div class="relative"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="filter-pill pl-8 w-56" id="cas-search" type="text" placeholder="Search name, ID, agent…" oninput="filterCASTable()"></div>
-        <select class="filter-pill" id="cas-filter-pci" onchange="filterCASTable()"><option value="">Ready for PCI</option><option>Yes</option><option>No</option></select>
-        <select class="filter-pill" id="cas-filter-visa" onchange="filterCASTable()"><option value="">Visa Refusal</option><option>Yes</option><option>No</option></select>
+        <div class="relative">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-control pl-9 w-56" id="cas-search" type="text" placeholder="Search name, ID, agent…" oninput="filterCASTable()" style="padding-left:36px">
+        </div>
+        <select class="form-control w-auto" id="cas-filter-pci" onchange="filterCASTable()" style="width:auto;padding:8px 12px"><option value="">Ready for PCI</option><option>Yes</option><option>No</option></select>
+        <select class="form-control w-auto" id="cas-filter-visa" onchange="filterCASTable()" style="width:auto;padding:8px 12px"><option value="">Visa Refusal</option><option>Yes</option><option>No</option></select>
       </div>
-      <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div class="table-card">
         <div class="overflow-auto" style="max-height:64vh">
           <table class="dtable" id="cas-table">
-            <thead><tr><th>ID</th><th>Name</th><th>Agent</th><th>Nationality</th><th>Course</th><th>Team</th><th>Study Gap</th><th>Same Level</th><th>Visa Refusal</th><th>Ready PCI</th><th>Info Check</th><th>Pre-CAS Q</th><th>PCI Invite</th><th class="text-right"></th></tr></thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Agent</th><th>Nationality</th><th>Course</th><th>Team</th><th>Study Gap</th><th>Same Level</th><th>Visa Refusal</th><th>Ready PCI</th><th>Info Check</th><th>Pre-CAS Q</th><th>PCI Invite</th><th class="text-right">Actions</th></tr></thead>
             <tbody id="cas-table-body"><tr><td colspan="14" class="empty-state">Click Refresh to load CAS Shield data…</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- FEEDBACK -->
+    <!-- ── FEEDBACK ── -->
     <div class="view" id="view-feedback">
       <div class="success-banner" id="fb-success">
-        <div class="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-600"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="flex-1"><div class="font-bold text-[13.5px] text-emerald-900" id="fb-success-title">Feedback doc created!</div><div class="text-[11.5px] text-emerald-600 font-medium mt-0.5">Saved to Google Drive and linked in the student record.</div></div>
-        <div class="flex gap-2"><a class="px-3.5 py-2 rounded-lg border border-emerald-300 text-emerald-700 text-[12px] font-semibold hover:bg-emerald-100 transition" id="fb-doc-link" href="#" target="_blank">Open Doc ↗</a><button class="px-3.5 py-2 rounded-lg bg-navy text-white text-[12px] font-semibold hover:opacity-90 transition" onclick="resetFeedback()">New Feedback</button></div>
+        <div class="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="flex-1">
+          <div class="font-bold text-[13.5px] text-emerald-900" id="fb-success-title">Feedback doc created!</div>
+          <div class="text-[11.5px] text-emerald-600 font-medium mt-0.5">Saved to Google Drive and linked in the student record.</div>
+        </div>
+        <div class="flex gap-2">
+          <a class="px-3.5 py-2 rounded-lg border border-emerald-300 text-emerald-700 text-[12px] font-semibold hover:bg-emerald-100 transition" id="fb-doc-link" href="#" target="_blank">Open Doc ↗</a>
+          <button class="btn-primary text-[12px]" onclick="resetFeedback()">New Feedback</button>
+        </div>
       </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
         <div class="lg:col-span-2 space-y-4">
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-4">Student Details</div>
-            <div class="form-group"><label class="form-label">Search Student</label><div class="lookup-wrap"><input class="form-control" id="fb-search" type="text" placeholder="Type name or ID…" oninput="fbSearchStudents(this.value)" autocomplete="off"><div class="lookup-results" id="fb-lookup"></div></div></div>
-            <div class="sel-student mb-3" id="fb-sel-card"><div><div class="ss-name" id="fb-ss-name">—</div><div class="text-[11px] text-amber-700 font-medium mt-0.5" id="fb-ss-meta">—</div></div><button class="ss-clear" onclick="fbClearStudent()">✕</button></div>
-            <div id="fb-manual" style="display:none"><div class="form-grid-2"><div class="form-group"><label class="form-label">Student Name</label><input class="form-control" id="fb-mname" type="text"></div><div class="form-group"><label class="form-label">Student ID</label><input class="form-control" id="fb-mid" type="text"></div></div></div>
-            <button class="text-[12px] font-semibold text-slate-500 hover:text-navy" onclick="toggleFbManual()" id="fb-manual-toggle">+ Enter manually</button>
+          <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Student Details</div>
+            <div class="form-group">
+              <label class="form-label">Search Student</label>
+              <div class="lookup-wrap">
+                <input class="form-control" id="fb-search" type="text" placeholder="Type name or ID…" oninput="fbSearchStudents(this.value)" autocomplete="off">
+                <div class="lookup-results" id="fb-lookup"></div>
+              </div>
+            </div>
+            <div class="sel-student mb-3" id="fb-sel-card">
+              <div><div class="ss-name" id="fb-ss-name">—</div><div class="text-[11px] text-amber-700 font-medium mt-0.5" id="fb-ss-meta">—</div></div>
+              <button class="ss-clear" onclick="fbClearStudent()">✕</button>
+            </div>
+            <div id="fb-manual" style="display:none">
+              <div class="form-grid-2">
+                <div class="form-group"><label class="form-label">Student Name</label><input class="form-control" id="fb-mname" type="text"></div>
+                <div class="form-group"><label class="form-label">Student ID</label><input class="form-control" id="fb-mid" type="text"></div>
+              </div>
+            </div>
+            <button class="text-[12px] font-semibold text-slate-400 hover:text-slate-700 transition" onclick="toggleFbManual()" id="fb-manual-toggle">+ Enter manually</button>
           </div>
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-4">Session Info</div>
-            <div class="form-grid-2"><div class="form-group"><label class="form-label">Session Date</label><input class="form-control" id="fb-date" type="date"></div><div class="form-group"><label class="form-label">Session Type</label><select class="form-control" id="fb-stype"><option>Mock Pre-CAS Interview</option><option>CAS Shield Review</option><option>Pre-CAS Prep Session</option><option>PCI Practice</option></select></div></div>
+
+          <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Session Info</div>
+            <div class="form-grid-2">
+              <div class="form-group"><label class="form-label">Session Date</label><input class="form-control" id="fb-date" type="date"></div>
+              <div class="form-group"><label class="form-label">Session Type</label><select class="form-control" id="fb-stype"><option>Mock Pre-CAS Interview</option><option>CAS Shield Review</option><option>Pre-CAS Prep Session</option><option>PCI Practice</option></select></div>
+            </div>
           </div>
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-4">Overall Performance</div>
-            <div class="perf-grid"><div class="perf-opt sel" data-value="Excellent" onclick="selectPerf(this)"><div class="perf-emoji">🟢</div><div class="perf-lbl">Excellent</div></div><div class="perf-opt" data-value="Good" onclick="selectPerf(this)"><div class="perf-emoji">🔵</div><div class="perf-lbl">Good</div></div><div class="perf-opt" data-value="Satisfactory" onclick="selectPerf(this)"><div class="perf-emoji">🟡</div><div class="perf-lbl">Satisfactory</div></div><div class="perf-opt" data-value="Needs Improvement" onclick="selectPerf(this)"><div class="perf-emoji">🔴</div><div class="perf-lbl">Needs Improvement</div></div></div>
+
+          <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Overall Performance</div>
+            <div class="perf-grid">
+              <div class="perf-opt sel" data-value="Excellent" onclick="selectPerf(this)"><div class="perf-emoji">🟢</div><div class="perf-lbl">Excellent</div></div>
+              <div class="perf-opt" data-value="Good" onclick="selectPerf(this)"><div class="perf-emoji">🔵</div><div class="perf-lbl">Good</div></div>
+              <div class="perf-opt" data-value="Satisfactory" onclick="selectPerf(this)"><div class="perf-emoji">🟡</div><div class="perf-lbl">Satisfactory</div></div>
+              <div class="perf-opt" data-value="Needs Improvement" onclick="selectPerf(this)"><div class="perf-emoji">🔴</div><div class="perf-lbl">Needs Improvement</div></div>
+            </div>
           </div>
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-4">Feedback &amp; Recommendations</div>
+
+          <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Feedback &amp; Recommendations</div>
             <div class="form-group"><label class="form-label">Detailed Feedback</label><textarea class="form-control" id="fb-text" placeholder="Describe the student's performance in detail…"></textarea></div>
             <div class="form-group" style="margin-bottom:0"><label class="form-label">Recommendations</label><textarea class="form-control" style="min-height:65px" id="fb-recs" placeholder="Key areas to improve…"></textarea></div>
           </div>
+
           <div class="flex gap-2 justify-end">
-            <button class="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50 transition" onclick="fbPreview()">Preview</button>
-            <button class="px-4 py-2.5 rounded-lg bg-navy text-white text-[12.5px] font-semibold hover:opacity-90 transition" onclick="fbDownloadPDF()">Download PDF</button>
-            <button class="px-4 py-2.5 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90 transition" onclick="fbSaveToDrive()">Save to Drive &amp; Sheet</button>
+            <button class="btn-ghost" onclick="fbPreview()">Preview</button>
+            <button class="btn-primary" onclick="fbDownloadPDF()">Download PDF</button>
+            <button class="btn-gold" onclick="fbSaveToDrive()">Save to Drive &amp; Sheet</button>
           </div>
         </div>
+
         <div class="lg:col-span-3">
-          <div class="preview-card bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm sticky top-20" id="fb-preview">
-            <div class="bg-navy px-5 py-3 flex items-center justify-between"><span class="text-white/60 text-[10.5px] font-bold tracking-wider uppercase">Document Preview</span><button class="text-white/50 hover:text-white text-[12px] font-semibold" onclick="document.getElementById('fb-preview').classList.remove('show')">Close ✕</button></div>
+          <div class="preview-card bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm sticky top-20" id="fb-preview">
+            <div class="bg-navy px-5 py-3 flex items-center justify-between">
+              <span class="text-white/50 text-[10.5px] font-bold tracking-wider uppercase">Document Preview</span>
+              <button class="text-white/40 hover:text-white text-[12px] font-semibold transition" onclick="document.getElementById('fb-preview').classList.remove('show')">Close ✕</button>
+            </div>
             <div class="p-7" id="fb-preview-body"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- UPLOAD (admin only) -->
+    <!-- ── UPLOAD ── -->
     <div class="view" id="view-upload">
       <div id="upload-access-check">
         <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto bg-white" id="drop-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
-          <div class="w-14 h-14 rounded-2xl bg-gold/10 flex items-center justify-center mx-auto mb-4 text-gold"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg></div>
+          <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4 text-amber-500">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
+          </div>
           <div class="font-display font-bold text-[17px] text-slate-900 mb-1">Drop your CSV file here</div>
           <div class="text-slate-400 text-[12.5px] mb-3">Must contain: LEVEL, DOB, STUDENT ID, STUDENT NAME, COURSE, SUBMITTED BY</div>
           <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 text-left text-[12px] text-amber-800">
-            <strong>Sheet-only fields (input via CSV/Sheet):</strong> LEVEL · DOB · STUDENT ID · STUDENT NAME · COURSE · SUBMITTED BY<br>
-            <strong class="mt-1 block">Portal-managed fields:</strong> All statuses (call, offer, payment, CAS, visa, scholarship, etc.) are updated from the portal only.
+            <strong>Sheet-only fields:</strong> LEVEL · DOB · STUDENT ID · STUDENT NAME · COURSE · SUBMITTED BY<br>
+            <strong class="mt-1 block">Portal-managed fields:</strong> All statuses are updated from the portal only.
           </div>
           <input type="file" id="csv-file" accept=".csv" onchange="handleFileSelect(event)" style="display:none">
-          <button class="px-5 py-2.5 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90 transition" onclick="document.getElementById('csv-file').click()">Choose file</button>
+          <button class="btn-gold" onclick="document.getElementById('csv-file').click()">Choose file</button>
         </div>
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 mt-5 max-w-3xl mx-auto shadow-sm" id="upload-preview" style="display:none">
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 mt-5 max-w-3xl mx-auto shadow-sm" id="upload-preview" style="display:none">
           <div class="text-[12px] text-slate-400 mb-3"><strong class="text-slate-700" id="preview-filename"></strong> — <span id="preview-rows"></span> rows</div>
           <div class="overflow-auto rounded-xl border border-slate-200" style="max-height:240px;margin-bottom:14px"><table class="dtable" id="preview-table"><thead id="preview-thead"></thead><tbody id="preview-tbody"></tbody></table></div>
-          <div class="flex gap-2 justify-end"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="clearUpload()">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="confirmUpload()">Upload to Google Sheet</button></div>
+          <div class="flex gap-2 justify-end">
+            <button class="btn-ghost" onclick="clearUpload()">Cancel</button>
+            <button class="btn-gold" onclick="confirmUpload()">Upload to Google Sheet</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- REPORTS (admin only) -->
+    <!-- ── REPORTS ── -->
     <div class="view" id="view-reports">
       <div id="reports-access-check">
-        <div class="flex justify-end mb-4"><button class="export-btn" onclick="exportStudentsCSV()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="report-grid"><div class="empty-state">Loading reports…</div></div>
+        <div class="flex justify-end mb-4">
+          <button class="export-btn" onclick="exportStudentsCSV()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="report-grid">
+          <div class="empty-state">Loading reports…</div>
+        </div>
       </div>
     </div>
 
   </main>
-</div>
+</div><!-- /app-main -->
 
-<!-- DRAWER OVERLAY -->
+<!-- ═══════════════════════════════════════════
+  DRAWER OVERLAY
+═══════════════════════════════════════════ -->
 <div id="drawer-overlay"></div>
 
 <!-- PRE-SCREENING MODAL -->
 <aside class="drawer" id="modal-prescreening">
   <div class="drawer-head"><div><div class="drawer-title">Pre-Screening Call</div><div class="drawer-sub" id="ps-sub"></div></div><button class="drawer-close" onclick="closeModal('modal-prescreening')">✕</button></div>
   <div class="drawer-body"><div class="qa-grid" id="ps-options"></div><div class="form-group" style="margin-top:14px"><label class="form-label">Notes</label><textarea class="form-control" id="ps-notes" style="min-height:60px" placeholder="Optional call notes…"></textarea></div></div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-prescreening')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitQuickStatus('modal-prescreening','PRE-SCREENING CALL STATUS','ps-notes')">Save</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-prescreening')">Cancel</button><button class="btn-gold" onclick="submitQuickStatus('modal-prescreening','PRE-SCREENING CALL STATUS','ps-notes')">Save</button></div>
 </aside>
 
 <!-- OFFER MODAL -->
 <aside class="drawer" id="modal-offer">
   <div class="drawer-head"><div><div class="drawer-title">Offer Status</div><div class="drawer-sub" id="offer-sub"></div></div><button class="drawer-close" onclick="closeModal('modal-offer')">✕</button></div>
   <div class="drawer-body"><div class="qa-grid" id="offer-options"></div><div id="offer-conditional-notice" class="notice" style="display:none;margin-top:14px"><strong>Conditional offer</strong> — remember to log condition docs once received.</div><div class="form-group" style="margin-top:14px"><label class="form-label">Notes / Condition details</label><textarea class="form-control" id="offer-notes" style="min-height:60px" placeholder="e.g. condition: English cert pending"></textarea></div></div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-offer')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitQuickStatus('modal-offer','OFFER STATUS','offer-notes')">Save</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-offer')">Cancel</button><button class="btn-gold" onclick="submitQuickStatus('modal-offer','OFFER STATUS','offer-notes')">Save</button></div>
 </aside>
 
 <!-- SCHOLARSHIP MODAL -->
 <aside class="drawer" id="modal-scholarship">
   <div class="drawer-head"><div><div class="drawer-title">Scholarship</div><div class="drawer-sub" id="sch-sub"></div></div><button class="drawer-close" onclick="closeModal('modal-scholarship')">✕</button></div>
   <div class="drawer-body"><div class="qa-grid" id="sch-options"></div><div class="form-group" style="margin-top:14px"><label class="form-label">Amount / Reference</label><input class="form-control" id="sch-amount" type="text" placeholder="e.g. £3,000 merit scholarship"></div><div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="sch-notes" style="min-height:60px"></textarea></div></div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-scholarship')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitQuickStatus('modal-scholarship','SCHOLARSHIP','sch-notes')">Save</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-scholarship')">Cancel</button><button class="btn-gold" onclick="submitQuickStatus('modal-scholarship','SCHOLARSHIP','sch-notes')">Save</button></div>
 </aside>
 
 <!-- PAYMENT MODAL -->
@@ -512,21 +1191,21 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
     <div class="form-group"><label class="form-label">Reference / Receipt No.</label><input class="form-control" id="pay-ref" type="text" placeholder="e.g. TXN-2026-REF"></div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="pay-notes" style="min-height:55px"></textarea></div>
   </div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-payment')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitPayment()">Save Payment</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-payment')">Cancel</button><button class="btn-gold" onclick="submitPayment()">Save Payment</button></div>
 </aside>
 
 <!-- CAS LINK MODAL -->
 <aside class="drawer" id="modal-caslink">
   <div class="drawer-head"><div><div class="drawer-title">CAS Shield Progress</div><div class="drawer-sub" id="caslink-sub"></div></div><button class="drawer-close" onclick="closeModal('modal-caslink')">✕</button></div>
   <div class="drawer-body"><div class="qa-grid" id="caslink-options"></div><div class="form-group" style="margin-top:14px"><label class="form-label">Notes</label><textarea class="form-control" id="caslink-notes" style="min-height:60px"></textarea></div></div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-caslink')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitQuickStatus('modal-caslink','CAS SHIELD','caslink-notes')">Save</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-caslink')">Cancel</button><button class="btn-gold" onclick="submitQuickStatus('modal-caslink','CAS SHIELD','caslink-notes')">Save</button></div>
 </aside>
 
 <!-- CAS STATUS MODAL -->
 <aside class="drawer" id="modal-casstatus">
   <div class="drawer-head"><div><div class="drawer-title">CAS Status</div><div class="drawer-sub" id="casstatus-sub"></div></div><button class="drawer-close" onclick="closeModal('modal-casstatus')">✕</button></div>
   <div class="drawer-body"><div class="qa-grid" id="casstatus-options"></div><div class="form-group" style="margin-top:14px"><label class="form-label">CAS Number (if issued)</label><input class="form-control" id="cas-number" type="text" placeholder="e.g. ABC123456789"></div><div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="casstatus-notes" style="min-height:55px"></textarea></div></div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-casstatus')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitCASStatus()">Save</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-casstatus')">Cancel</button><button class="btn-gold" onclick="submitCASStatus()">Save</button></div>
 </aside>
 
 <!-- VISA MODAL -->
@@ -539,21 +1218,28 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
     <div id="visa-refusal-section" style="display:none"><div class="notice"><strong>Visa Refused</strong> — capture the refusal reason for CAS Shield records.</div><div class="form-group"><label class="form-label">Refusal Reason</label><textarea class="form-control" id="visa-refusal-reason" style="min-height:65px" placeholder="Summarise the ECO refusal notice…"></textarea></div></div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="visa-notes" style="min-height:55px"></textarea></div>
   </div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-visa')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitVisa()">Save Visa Update</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-visa')">Cancel</button><button class="btn-gold" onclick="submitVisa()">Save Visa Update</button></div>
 </aside>
 
-<!-- FEEDBACK MODAL (from table) -->
+<!-- FEEDBACK FROM TABLE MODAL -->
 <aside class="drawer" id="modal-feedback">
   <div class="drawer-head"><div><div class="drawer-title">Mock Pre-CAS Feedback</div><div class="drawer-sub" id="mfb-sub"></div></div><button class="drawer-close" onclick="closeModal('modal-feedback')">✕</button></div>
-  <div class="drawer-body"><div class="form-grid-2"><div class="form-group"><label class="form-label">Session Date</label><input type="date" class="form-control" id="mfb-date"></div><div class="form-group"><label class="form-label">Overall Performance</label><select class="form-control" id="mfb-perf"><option>Excellent</option><option>Good</option><option>Satisfactory</option><option>Needs Improvement</option></select></div></div><div class="form-group"><label class="form-label">Detailed Feedback</label><textarea class="form-control" id="mfb-text" placeholder="Write mock pre-CAS interview feedback here…"></textarea></div><div class="form-group" style="margin-bottom:0"><label class="form-label">Recommendations</label><textarea class="form-control" id="mfb-recs" style="min-height:65px" placeholder="Key areas to improve…"></textarea></div></div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-feedback')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitFeedback()">Generate Doc &amp; Save</button></div>
+  <div class="drawer-body">
+    <div class="form-grid-2"><div class="form-group"><label class="form-label">Session Date</label><input type="date" class="form-control" id="mfb-date"></div><div class="form-group"><label class="form-label">Overall Performance</label><select class="form-control" id="mfb-perf"><option>Excellent</option><option>Good</option><option>Satisfactory</option><option>Needs Improvement</option></select></div></div>
+    <div class="form-group"><label class="form-label">Detailed Feedback</label><textarea class="form-control" id="mfb-text" placeholder="Write mock pre-CAS interview feedback here…"></textarea></div>
+    <div class="form-group" style="margin-bottom:0"><label class="form-label">Recommendations</label><textarea class="form-control" id="mfb-recs" style="min-height:65px" placeholder="Key areas to improve…"></textarea></div>
+  </div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-feedback')">Cancel</button><button class="btn-gold" onclick="submitFeedback()">Generate Doc &amp; Save</button></div>
 </aside>
 
 <!-- SUBMISSION MODAL -->
 <aside class="drawer" id="modal-submission">
   <div class="drawer-head"><div><div class="drawer-title">Application Submission</div><div class="drawer-sub" id="sub-sub"></div></div><button class="drawer-close" onclick="closeModal('modal-submission')">✕</button></div>
-  <div class="drawer-body"><div class="form-grid-2"><div class="form-group"><label class="form-label">Application Submitted Date</label><input type="date" class="form-control" id="sub-date"></div><div class="form-group"><label class="form-label">Submitted By</label><input type="text" class="form-control" id="sub-by" placeholder="Staff name"></div></div><div class="form-group" style="margin-bottom:0"><label class="form-label">Notes</label><textarea class="form-control" id="sub-notes" style="min-height:55px"></textarea></div></div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-submission')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitApplication()">Save</button></div>
+  <div class="drawer-body">
+    <div class="form-grid-2"><div class="form-group"><label class="form-label">Application Submitted Date</label><input type="date" class="form-control" id="sub-date"></div><div class="form-group"><label class="form-label">Submitted By</label><input type="text" class="form-control" id="sub-by" placeholder="Staff name"></div></div>
+    <div class="form-group" style="margin-bottom:0"><label class="form-label">Notes</label><textarea class="form-control" id="sub-notes" style="min-height:55px"></textarea></div>
+  </div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-submission')">Cancel</button><button class="btn-gold" onclick="submitApplication()">Save</button></div>
 </aside>
 
 <!-- CAS SHIELD UPDATE MODAL -->
@@ -571,24 +1257,45 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
     <div class="form-group"><label class="form-label">PCI Invite Date</label><input type="date" class="form-control" id="cas-invite"></div>
     <div class="form-group" style="margin-bottom:0"><label class="form-label">Team Comment</label><textarea class="form-control" id="cas-comment" style="min-height:70px"></textarea></div>
   </div>
-  <div class="drawer-foot"><button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-cas')">Cancel</button><button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" onclick="submitCASUpdate()">Save Changes</button></div>
+  <div class="drawer-foot"><button class="btn-ghost" onclick="closeModal('modal-cas')">Cancel</button><button class="btn-gold" onclick="submitCASUpdate()">Save Changes</button></div>
 </aside>
 
-<!-- PROFILE DRAWER — Full pipeline + contact + all portal-managed statuses -->
-<aside class="profile-drawer" id="profile-drawer" role="dialog" aria-modal="true">
-  <div class="border-b border-slate-200 px-6 py-5 flex items-start justify-between flex-shrink-0">
-    <div>
-      <div class="font-display font-bold text-[15.5px] text-slate-900" id="profile-drawer-title">Student Profile</div>
-      <div class="text-[11.5px] text-slate-400 font-medium mt-0.5" id="profile-drawer-sub"></div>
+<!-- NOTIFICATION MODAL -->
+<aside class="drawer drawer-wide" id="modal-notify">
+  <div class="drawer-head">
+    <div><div class="drawer-title">Send Notification</div><div class="drawer-sub" id="notify-sub"></div></div>
+    <button class="drawer-close" onclick="closeModal('modal-notify')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Recipient Role</label><select class="form-control" id="notify-role" onchange="notifyUpdateRecipientPreview()"><option value="Student">Student</option><option value="Agent">Agent</option><option value="Staff">Staff</option></select></div>
+      <div class="form-group"><label class="form-label">Notification Type</label><select class="form-control" id="notify-type"><option value="Email">Email Only</option><option value="Push">Push Notification Only</option><option value="Both">Both</option></select></div>
     </div>
-    <button class="w-8 h-8 rounded-lg bg-slate-100 border-none cursor-pointer flex items-center justify-center text-slate-500 hover:bg-slate-200 transition flex-shrink-0 ml-3" onclick="closeProfileDrawer()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div class="notice" id="notify-recipient-preview"><span>📧</span><span id="notify-recipient-text">Select a recipient role to preview the destination.</span></div>
+    <div class="form-group"><label class="form-label">Subject</label><input class="form-control" id="notify-subject" type="text" placeholder="e.g. Update on your CAS application"></div>
+    <div class="form-group" style="margin-bottom:0"><label class="form-label">Message</label><textarea class="form-control" id="notify-message" style="min-height:140px" placeholder="Write your message here…"></textarea></div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn-ghost" onclick="closeModal('modal-notify')">Cancel</button>
+    <button class="btn-gold" id="notify-send-btn" onclick="sendNotification()">Send Notification</button>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════
+  PROFILE DRAWER
+═══════════════════════════════════════════ -->
+<aside class="profile-drawer" id="profile-drawer" role="dialog" aria-modal="true">
+  <div class="border-b border-slate-100 px-6 py-5 flex items-start justify-between flex-shrink-0">
+    <div>
+      <div class="font-display font-bold text-[15px] text-slate-900" id="profile-drawer-title">Student Profile</div>
+      <div class="text-[11px] text-slate-400 font-medium mt-0.5" id="profile-drawer-sub"></div>
+    </div>
+    <button class="w-8 h-8 rounded-lg bg-slate-100 border-none cursor-pointer flex items-center justify-center text-slate-400 hover:bg-slate-200 transition ml-3" onclick="closeProfileDrawer()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
 
   <div class="flex-1 overflow-y-auto px-6 py-5" id="profile-drawer-body">
-
-    <!-- Sheet-readonly fields -->
     <div class="pd-section">
       <div class="pd-section-title">Sheet Fields <span class="readonly-badge">Read-only · Set in Google Sheet</span></div>
       <div class="pd-row-2">
@@ -603,13 +1310,11 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
       </div>
     </div>
 
-    <!-- Pipeline progress -->
     <div class="pd-section">
       <div class="pd-section-title">Pipeline Progress (10 stages)</div>
       <div id="pd-pipeline-list"></div>
     </div>
 
-    <!-- Portal-managed: Contact -->
     <div class="pd-section">
       <div class="pd-section-title">Contact Details</div>
       <div class="pd-row-2">
@@ -626,7 +1331,6 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
       <div class="pd-field"><label class="pd-label">Agent</label><input class="pd-input" id="pd-agent" type="text" placeholder="Agent name"></div>
     </div>
 
-    <!-- Stage 1 -->
     <div class="pd-section">
       <div class="pd-section-title">Stage 1 · Pre-Screening &amp; Offer</div>
       <div class="pd-row-2">
@@ -667,7 +1371,6 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
       <div class="pd-field"><label class="pd-label">Application Submitted Date</label><input class="pd-input" id="pd-app-date" type="date"></div>
     </div>
 
-    <!-- Stage 2 -->
     <div class="pd-section">
       <div class="pd-section-title">Stage 2 · Mock &amp; Pre-CAS</div>
       <div class="pd-row-2">
@@ -693,7 +1396,6 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
       </div>
     </div>
 
-    <!-- Stage 3 -->
     <div class="pd-section">
       <div class="pd-section-title">Stage 3 · CAS &amp; Visa</div>
       <div class="pd-row-2">
@@ -727,8 +1429,8 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
     <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-[12px] font-medium" id="pd-save-error" style="display:none"></div>
   </div>
 
-  <div class="border-t border-slate-200 px-6 py-4 flex justify-end gap-3 flex-shrink-0 bg-slate-50">
-    <button class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50 cursor-pointer" onclick="closeProfileDrawer()">Cancel</button>
+  <div class="border-t border-slate-100 px-6 py-4 flex justify-end gap-3 flex-shrink-0 bg-slate-50">
+    <button class="btn-ghost" onclick="closeProfileDrawer()">Cancel</button>
     <button class="pd-btn-save" id="pd-save-btn" onclick="saveStudentProfile()">
       <span id="pd-save-text">Save changes</span>
       <span class="pd-save-spinner" id="pd-save-spinner" style="display:none"></span>
@@ -737,64 +1439,22 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
 </aside>
 <div class="profile-drawer-overlay" id="profile-drawer-overlay" onclick="closeProfileDrawer()"></div>
 
-<!-- NOTIFICATION MODAL -->
-<aside class="drawer drawer-wide" id="modal-notify">
-  <div class="drawer-head">
-    <div>
-      <div class="drawer-title">Send Notification</div>
-      <div class="drawer-sub" id="notify-sub"></div>
-    </div>
-    <button class="drawer-close" onclick="closeModal('modal-notify')">✕</button>
-  </div>
-  <div class="drawer-body">
-    <div class="form-grid-2">
-      <div class="form-group">
-        <label class="form-label">Recipient Role</label>
-        <select class="form-control" id="notify-role" onchange="notifyUpdateRecipientPreview()">
-          <option value="Student">Student</option>
-          <option value="Agent">Agent</option>
-          <option value="Staff">Staff</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Notification Type</label>
-        <select class="form-control" id="notify-type">
-          <option value="Email">Email Only</option>
-          <option value="Push">Push Notification Only</option>
-          <option value="Both">Both</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="notice" id="notify-recipient-preview">
-      <span>📧</span>
-      <span id="notify-recipient-text">Select a recipient role to preview the destination.</span>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Subject</label>
-      <input class="form-control" id="notify-subject" type="text" placeholder="e.g. Update on your CAS application">
-    </div>
-    <div class="form-group" style="margin-bottom:0">
-      <label class="form-label">Message</label>
-      <textarea class="form-control" id="notify-message" style="min-height:140px" placeholder="Write your message here…"></textarea>
-    </div>
-  </div>
-  <div class="drawer-foot">
-    <button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-notify')">Cancel</button>
-    <button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" id="notify-send-btn" onclick="sendNotification()">Send Notification</button>
-  </div>
-</aside>
-
-<!-- POPOVERS & UTILS -->
+<!-- POPOVERS -->
 <div class="pop-card" id="badge-popover"></div>
 <div class="pop-card" id="kebab-menu"></div>
+
+<!-- TOASTS -->
 <div class="fixed bottom-5 right-5 z-[999] space-y-2" id="toast-wrap"></div>
-<div class="hidden fixed inset-0 bg-white/75 z-[90] flex items-center justify-center flex-col gap-3" id="loading">
+
+<!-- LOADING -->
+<div class="hidden fixed inset-0 bg-white/70 z-[90] flex items-center justify-center flex-col gap-3" id="loading">
   <div class="spinner"></div>
-  <span class="font-semibold text-[13px] text-slate-700" id="loading-msg">Processing…</span>
+  <span class="font-semibold text-[13px] text-slate-600" id="loading-msg">Processing…</span>
 </div>
 
+<!-- ═══════════════════════════════════════════
+  JAVASCRIPT — ALL ORIGINAL LOGIC PRESERVED
+═══════════════════════════════════════════ -->
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbzVg_S_d8Z8XyTjuF7ri5v9K9swAczaiF_CvruvJC-14fSC1IzEikF4O2YqWR4fR3XR/exec';
@@ -817,9 +1477,11 @@ let selectedPerf      = 'Excellent';
 let currentViewId     = 'dashboard';
 let profileActiveId   = null;
 let _currentPage      = 1;
-const PAGE_LIMIT      = 100; // Larger pages — show all students
+const PAGE_LIMIT      = 100;
 let _totalRecords     = 0;
 let _isLoadingMore    = false;
+let _activePillFilter = { type: '', value: '' };
+let pipelineChart     = null;
 
 const PAGE_META = {
   dashboard: ['Dashboard','Every applicant, one screen.'],
@@ -829,7 +1491,6 @@ const PAGE_META = {
   reports:   ['Reports','Live pipeline breakdowns.']
 };
 
-// ── PIPELINE STAGES ─────────────────────────────────────────────────────────
 const STAGE_DEFS = [
   { label: 'Application Submitted',     check: s => !!(s['APPLICATION SUBMITTED DATE']) },
   { label: 'Pre-Screening Call',        check: s => /interested|scheduled|no answer|voicemail/i.test(s['PRE-SCREENING CALL STATUS'] || '') },
@@ -856,13 +1517,23 @@ document.addEventListener('DOMContentLoaded', () => {
     bootSession(name, role);
   }
   document.addEventListener('click', e => {
-    if (!e.target.closest('.lookup-wrap'))     document.getElementById('fb-lookup').classList.remove('open');
+    if (!e.target.closest('.lookup-wrap'))    document.getElementById('fb-lookup').classList.remove('open');
     if (!e.target.closest('#badge-popover') && !e.target.closest('.badge')) document.getElementById('badge-popover').classList.remove('show');
     if (!e.target.closest('#kebab-menu') && !e.target.closest('.kebab-trigger')) document.getElementById('kebab-menu').classList.remove('show');
   });
   document.getElementById('login-username').addEventListener('keydown', e => { if (e.key === 'Enter') handleLoginSubmit(); });
   document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleLoginSubmit(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && profileActiveId) closeProfileDrawer(); });
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCmd(); }
+    if (e.key === 'Escape') {
+      if (document.getElementById('cmd-overlay').classList.contains('cmd-open')) { closeCmd(); return; }
+      if (profileActiveId) closeProfileDrawer();
+    }
+  });
+  // Cmd input
+  document.getElementById('cmd-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { const active = document.querySelector('.cmd-item.cmd-active'); if (active) active.click(); }
+  });
 });
 
 function today() { return new Date().toISOString().split('T')[0]; }
@@ -962,7 +1633,60 @@ const ICN = {
   kebab:    '<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
   edit:     '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',
 };
-function icon(name, cls) { return `<svg class="${cls||''}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICN[name]||''}</svg>`; }
+function icon(name, cls) { return `<svg class="${cls||''}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICN[name]||''}</svg>`; }
+
+// ── CMD PALETTE ──────────────────────────────────────────────────────────────
+function openCmd() {
+  const overlay = document.getElementById('cmd-overlay');
+  overlay.classList.add('cmd-open');
+  setTimeout(() => document.getElementById('cmd-input').focus(), 80);
+}
+function closeCmd() {
+  document.getElementById('cmd-overlay').classList.remove('cmd-open');
+  document.getElementById('cmd-input').value = '';
+  resetCmdResults();
+}
+function resetCmdResults() {
+  document.getElementById('cmd-results').innerHTML = `
+    <div class="cmd-section-label">Quick Actions</div>
+    <div class="cmd-item" onclick="cmdAction('dashboard')"><div class="cmd-item-icon">📊</div><div><div class="cmd-item-name">Dashboard</div><div class="cmd-item-meta">View all students & pipeline</div></div></div>
+    <div class="cmd-item" onclick="cmdAction('casshield')"><div class="cmd-item-icon">🛡️</div><div><div class="cmd-item-name">CAS Shield</div><div class="cmd-item-meta">Pre-CAS readiness checks</div></div></div>
+    <div class="cmd-item" onclick="cmdAction('feedback')"><div class="cmd-item-icon">📝</div><div><div class="cmd-item-name">Mock Pre-CAS</div><div class="cmd-item-meta">Build interview feedback</div></div></div>
+  `;
+}
+function cmdAction(view) {
+  closeCmd();
+  const tab = document.querySelector(`.nav-link[data-view="${view}"]`);
+  if (tab) switchView(view, tab);
+}
+function cmdSearch(q) {
+  if (!q.trim() || q.length < 2) { resetCmdResults(); return; }
+  const matches = allStudents.filter(s =>
+    (s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase()) ||
+    (s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase()) ||
+    (s['AGENT']||'').toLowerCase().includes(q.toLowerCase()) ||
+    (s['COURSE']||'').toLowerCase().includes(q.toLowerCase())
+  ).slice(0, 8);
+  if (!matches.length) {
+    document.getElementById('cmd-results').innerHTML = '<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No students found</div>';
+    return;
+  }
+  document.getElementById('cmd-results').innerHTML =
+    '<div class="cmd-section-label">Students</div>' +
+    matches.map(s => `
+      <div class="cmd-item" onclick="closeCmd();openStudentProfile('${(s['STUDENT ID']||'').replace(/'/g,"\\'")}')">
+        <div class="cmd-item-icon">👤</div>
+        <div>
+          <div class="cmd-item-name">${s['STUDENT NAME']||'—'}</div>
+          <div class="cmd-item-meta">${s['STUDENT ID']||''} · ${s['COURSE']||''} · ${s['AGENT']||'No agent'}</div>
+        </div>
+      </div>
+    `).join('');
+}
+// Close cmd overlay when clicking backdrop
+document.getElementById('cmd-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('cmd-overlay')) closeCmd();
+});
 
 // ── VIEW SWITCHING ───────────────────────────────────────────────────────────
 function switchView(id, tab) {
@@ -983,6 +1707,33 @@ function refreshCurrentView() {
   else if (currentViewId === 'casshield') loadCASShield();
   else if (currentViewId === 'reports')   loadReports();
   else showToast('Nothing to refresh here.','success');
+}
+
+// ── STATUS PILL FILTER HANDLERS ──────────────────────────────────────────────
+function setVisaFilter(val, btn) {
+  _activePillFilter = val ? { type: 'visa', value: val } : { type: '', value: '' };
+  document.getElementById('filter-visa').value  = val;
+  document.getElementById('filter-offer').value = '';
+  document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  filterTable();
+}
+function setOfferFilter(val, btn) {
+  _activePillFilter = { type: 'offer', value: val };
+  document.getElementById('filter-offer').value = val;
+  document.getElementById('filter-visa').value  = '';
+  document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  filterTable();
+}
+function setCASFilter(val, btn) {
+  _activePillFilter = { type: 'cas', value: val };
+  // Route through existing hidden selects as a pass-through: filter inline
+  document.getElementById('filter-offer').value = '';
+  document.getElementById('filter-visa').value  = '';
+  document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  filterTable();
 }
 
 // ── API HELPERS ──────────────────────────────────────────────────────────────
@@ -1006,8 +1757,6 @@ async function appsScriptPost(action, body = {}) {
 }
 
 // ── STUDENTS ─────────────────────────────────────────────────────────────────
-// FIX: Load ALL students — no role-based filtering on visibility
-// Staff can see everyone; role filtering only affects Reports/Upload access
 async function loadStudents() {
   _currentPage = 1; _totalRecords = 0; allStudents = []; _isLoadingMore = false;
   const existingBtn = document.getElementById('load-more-btn');
@@ -1026,6 +1775,7 @@ async function loadStudents() {
   } finally {
     filterTable();
     updateStats(allStudents);
+    updatePipelineChart(allStudents);
     populateAgentFilter(allStudents);
     _renderLoadMoreButton();
     hideLoading();
@@ -1048,6 +1798,7 @@ async function loadMoreStudents() {
     _totalRecords  = data.totalRecords ?? _totalRecords;
     _appendTableRows(incoming);
     updateStats(allStudents);
+    updatePipelineChart(allStudents);
     _renderLoadMoreButton();
     showToast(`Loaded ${incoming.length} more ✓`, 'success');
   } catch(e) {
@@ -1058,20 +1809,69 @@ async function loadMoreStudents() {
   }
 }
 
+// ── PIPELINE CHART ───────────────────────────────────────────────────────────
+function updatePipelineChart(students) {
+  const counts = STAGE_DEFS.map(st => students.filter(s => st.check(s)).length);
+  const labels = STAGE_DEFS.map(st => st.label);
+  const total  = students.length || 1;
+  const el     = document.getElementById('chart-student-count');
+  if (el) el.textContent = `${students.length} students`;
+
+  const ctx = document.getElementById('pipeline-chart');
+  if (!ctx) return;
+
+  if (pipelineChart) { pipelineChart.destroy(); }
+
+  pipelineChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: counts.map((_, i) => `rgba(212,168,51,${0.35 + (i/counts.length)*0.55})`),
+        borderColor:     'rgba(212,168,51,0.9)',
+        borderWidth: 1,
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y} students (${Math.round(ctx.parsed.y/total*100)}%)`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9, family: 'Inter' }, color: '#94A3B8', maxRotation: 30 } },
+        y: { grid: { color: '#F8FAFC' }, ticks: { font: { size: 10, family: 'Inter' }, color: '#94A3B8' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
 function _buildStudentRow(s) {
   const sid = s['STUDENT ID'] || '';
+  const safeId = sid.replace(/'/g, "\\'");
   return `<tr>
-    <td><span class="font-semibold text-[12.5px] text-slate-700">${sid}</span></td>
+    <td><span class="font-semibold text-[12px] text-slate-600">${sid}</span></td>
     <td>
       <div class="font-semibold text-[13px] text-slate-800">${s['STUDENT NAME']||'—'}</div>
-      <div class="text-[10.5px] text-slate-400 mt-0.5">${s['LEVEL']||''}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5 font-medium">${s['LEVEL']||''}</div>
     </td>
-    <td><div class="text-[12px] text-slate-600 max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap" title="${s['COURSE']||''}">${s['COURSE']||'—'}</div></td>
-    <td><div class="text-[12px] text-slate-500">${s['AGENT']||'—'}</div></td>
+    <td><div class="text-[12px] text-slate-500 max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap" title="${s['COURSE']||''}">${s['COURSE']||'—'}</div></td>
+    <td><div class="text-[12px] text-slate-400">${s['AGENT']||'—'}</div></td>
     <td>${renderPipelineCell(s)}</td>
-    <td class="text-right whitespace-nowrap">
-      <button class="w-7 h-7 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition mr-0.5" onclick="openStudentProfile('${sid}')" title="Edit profile">${icon('edit')}</button>
-      <button class="kebab-trigger w-7 h-7 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition" onclick="openKebabMenu(event,'${sid}')">${icon('kebab')}</button>
+    <td class="text-right">
+      <div class="row-actions">
+        <button class="row-action-btn" onclick="openNotifyModal('${safeId}')" title="Send notification">🔔</button>
+        <button class="row-action-btn" onclick="openStudentProfile('${safeId}')" title="Edit profile">${icon('edit')}</button>
+        <button class="kebab-trigger kebab-btn" onclick="openKebabMenu(event,'${safeId}')" title="More actions">${icon('kebab')}</button>
+      </div>
     </td>
   </tr>`;
 }
@@ -1120,20 +1920,23 @@ function populateAgentFilter(students) {
   agents.forEach(a => { const o = document.createElement('option'); o.textContent = a; sel.appendChild(o); });
 }
 
-// FIX: filterTable — NO role-based hiding, all staff see all students
 function filterTable() {
   const q     = (document.getElementById('search-input').value||'').toLowerCase();
   const agent = document.getElementById('filter-agent').value;
   const level = document.getElementById('filter-level').value;
   const offer = document.getElementById('filter-offer').value;
   const visa  = document.getElementById('filter-visa').value;
-  renderTable(allStudents.filter(s =>
-    (!q     || [s['STUDENT NAME'],s['STUDENT ID'],s['COURSE'],s['AGENT']].some(f => (f||'').toLowerCase().includes(q))) &&
-    (!agent || s['AGENT']        === agent) &&
-    (!level || s['LEVEL']        === level) &&
-    (!offer || s['OFFER STATUS'] === offer) &&
-    (!visa  || s['VISA STATUS']  === visa)
-  ));
+  const pf    = _activePillFilter;
+
+  renderTable(allStudents.filter(s => {
+    if (q && ![s['STUDENT NAME'],s['STUDENT ID'],s['COURSE'],s['AGENT']].some(f => (f||'').toLowerCase().includes(q))) return false;
+    if (agent && s['AGENT'] !== agent) return false;
+    if (level && s['LEVEL'] !== level) return false;
+    if (offer && s['OFFER STATUS'] !== offer) return false;
+    if (visa  && s['VISA STATUS']  !== visa)  return false;
+    if (pf.type === 'cas' && s['CAS STATUS'] !== pf.value) return false;
+    return true;
+  }));
 }
 
 function renderTable(students) {
@@ -1179,17 +1982,17 @@ function openKebabMenu(e, sid) {
   const hasDoc = s && s['MOCK PRE-CAS'] && s['MOCK PRE-CAS'].startsWith('http');
   const menu   = document.getElementById('kebab-menu');
   menu.innerHTML = `
-    <div class="pop-item" onclick="hideKebab();openPreScreeningModal('${sid}')">${icon('phone')}Pre-screening call</div>
-    <div class="pop-item" onclick="hideKebab();openOfferModal('${sid}')">${icon('send')}Offer status</div>
-    <div class="pop-item" onclick="hideKebab();openScholarshipModal('${sid}')">${icon('cap')}Scholarship</div>
-    <div class="pop-item" onclick="hideKebab();openPaymentModal('${sid}')">${icon('clipboard')}Payment</div>
-    <div class="pop-item" onclick="hideKebab();openCASLinkModal('${sid}')">${icon('shield')}CAS Shield progress</div>
-    <div class="pop-item" onclick="hideKebab();openCASStatusModal('${sid}')">${icon('shield')}CAS Status</div>
-    <div class="pop-item" onclick="hideKebab();openVisaModal('${sid}')">${icon('send')}Visa status</div>
-    <div class="pop-item" onclick="hideKebab();openSubmissionModal('${sid}')">${icon('send')}Application submission</div>
-    <div class="pop-item" onclick="hideKebab();openFeedbackModal('${sid}')">${icon('clipboard')}${hasDoc?'New mock feedback':'Add mock feedback'}</div>
-    <div class="pop-item" onclick="hideKebab();openNotifyModal('${sid}')">🔔&nbsp;Send Notification</div>
-    <div class="pop-item" onclick="hideKebab();openStudentProfile('${sid}')">${icon('edit')}Full profile / pipeline</div>
+    <div class="pop-item" onclick="hideKebab();openPreScreeningModal('${sid}')">${icon('phone')} Pre-screening call</div>
+    <div class="pop-item" onclick="hideKebab();openOfferModal('${sid}')">${icon('send')} Offer status</div>
+    <div class="pop-item" onclick="hideKebab();openScholarshipModal('${sid}')">${icon('cap')} Scholarship</div>
+    <div class="pop-item" onclick="hideKebab();openPaymentModal('${sid}')">${icon('clipboard')} Payment</div>
+    <div class="pop-item" onclick="hideKebab();openCASLinkModal('${sid}')">${icon('shield')} CAS Shield progress</div>
+    <div class="pop-item" onclick="hideKebab();openCASStatusModal('${sid}')">${icon('shield')} CAS Status</div>
+    <div class="pop-item" onclick="hideKebab();openVisaModal('${sid}')">${icon('send')} Visa status</div>
+    <div class="pop-item" onclick="hideKebab();openSubmissionModal('${sid}')">${icon('send')} Application submission</div>
+    <div class="pop-item" onclick="hideKebab();openFeedbackModal('${sid}')">${icon('clipboard')} ${hasDoc?'New mock feedback':'Add mock feedback'}</div>
+    <div class="pop-item" onclick="hideKebab();openNotifyModal('${sid}')">🔔&nbsp; Send Notification</div>
+    <div class="pop-item" onclick="hideKebab();openStudentProfile('${sid}')">${icon('edit')} Full profile / pipeline</div>
   `;
   positionPopover(menu, e.currentTarget);
   menu.classList.add('show');
@@ -1242,7 +2045,7 @@ async function saveField(studentId, field, value, notes='') {
     if (!result.success) throw new Error(result.error);
     const s = allStudents.find(s => s['STUDENT ID']===studentId);
     if (s) s[field] = value;
-    filterTable(); updateStats(allStudents);
+    filterTable(); updateStats(allStudents); updatePipelineChart(allStudents);
     showToast('Updated ✓','success');
   } catch(e) {
     showToast('Failed: '+e.message,'error');
@@ -1423,7 +2226,6 @@ let notifyActiveStudentId = null;
 function openNotifyModal(sid) {
   const s = allStudents.find(s => s['STUDENT ID'] === sid);
   if (!s) { showToast('Student not found: ' + sid, 'error'); return; }
-
   notifyActiveStudentId = sid;
   document.getElementById('notify-sub').textContent     = studentSub(sid);
   document.getElementById('notify-role').value          = 'Student';
@@ -1434,24 +2236,13 @@ function openNotifyModal(sid) {
   openModal('modal-notify');
 }
 
-// Resolves the recipient's email + display label for the currently selected role.
-// Student → s['EMAIL'], Agent → s['AGENT EMAIL'] (add this column to your sheet if needed),
-// Staff → currentStaff.email (set this when you extend your Users sheet / login response).
 function notifyResolveRecipient() {
   const s = allStudents.find(s => s['STUDENT ID'] === notifyActiveStudentId);
   if (!s) return { email: '', label: '' };
-
   const role = document.getElementById('notify-role').value;
-
-  if (role === 'Student') {
-    return { email: (s['EMAIL'] || '').trim(), label: s['STUDENT NAME'] || notifyActiveStudentId };
-  }
-  if (role === 'Agent') {
-    return { email: (s['AGENT EMAIL'] || '').trim(), label: s['AGENT'] || 'Agent' };
-  }
-  if (role === 'Staff') {
-    return { email: (currentStaff.email || '').trim(), label: currentStaff.name || 'Staff' };
-  }
+  if (role === 'Student') return { email: (s['EMAIL'] || '').trim(), label: s['STUDENT NAME'] || notifyActiveStudentId };
+  if (role === 'Agent')   return { email: (s['AGENT EMAIL'] || '').trim(), label: s['AGENT'] || 'Agent' };
+  if (role === 'Staff')   return { email: (currentStaff.email || '').trim(), label: currentStaff.name || 'Staff' };
   return { email: '', label: '' };
 }
 
@@ -1465,94 +2256,57 @@ function notifyUpdateRecipientPreview() {
   }
 }
 
-// Requests browser permission (if needed) and shows a local push/in-app notification.
 function notifyShowLocalPush(title, body) {
-  if (!('Notification' in window)) {
-    showToast('Push notifications are not supported in this browser.', 'error');
-    return;
-  }
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: '' });
-    return;
-  }
+  if (!('Notification' in window)) { showToast('Push notifications not supported.', 'error'); return; }
+  if (Notification.permission === 'granted') { new Notification(title, { body }); return; }
   if (Notification.permission !== 'denied') {
-    Notification.requestPermission().then(permission => {
-      if (permission === 'granted') {
-        new Notification(title, { body, icon: '' });
-      } else {
-        showToast('Push permission was not granted — notification not shown locally.', 'error');
-      }
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') new Notification(title, { body });
+      else showToast('Push permission denied.', 'error');
     });
-  } else {
-    showToast('Push notifications are blocked in your browser settings.', 'error');
-  }
+  } else { showToast('Push notifications blocked in browser settings.', 'error'); }
 }
 
 async function sendNotification() {
   const subject = document.getElementById('notify-subject').value.trim();
   const message = document.getElementById('notify-message').value.trim();
-  const role     = document.getElementById('notify-role').value;
-  const type     = document.getElementById('notify-type').value; // Email | Push | Both
-
-  // 1. Validate
+  const type     = document.getElementById('notify-type').value;
   if (!subject) { showToast('Please enter a subject.', 'error'); return; }
   if (!message) { showToast('Please enter a message.', 'error'); return; }
-
   const { email, label } = notifyResolveRecipient();
   const wantsEmail = (type === 'Email' || type === 'Both');
   const wantsPush  = (type === 'Push'  || type === 'Both');
-
-  if (wantsEmail && !email) {
-    showToast(`No email found for ${label || role} — cannot send email.`, 'error');
-    if (type === 'Email') return; // hard stop if email-only and no address
-  }
-
+  if (wantsEmail && !email) { showToast(`No email found for ${label} — cannot send email.`, 'error'); if (type === 'Email') return; }
   const btn = document.getElementById('notify-send-btn');
   btn.disabled = true;
-
   try {
-    // 2. Email (server-side via Apps Script)
     if (wantsEmail && email) {
       showLoading('Sending email…');
-      const payload = {
-        studentId:   notifyActiveStudentId,
-        recipientRole:  role,
-        recipientEmail: email,
-        recipientName:  label,
-        subject,
-        message,
-        notifyType: type,
-        sentBy: currentStaff.name
-      };
-      const result = await appsScriptPost('sendNotification', payload);
+      const result = await appsScriptPost('sendNotification', {
+        studentId: notifyActiveStudentId, recipientRole: document.getElementById('notify-role').value,
+        recipientEmail: email, recipientName: label, subject, message, notifyType: type, sentBy: currentStaff.name
+      });
       if (!result.success) throw new Error(result.error || 'Email send failed');
     }
-
-    // 3. Push / in-app (client-side, local to this browser/device)
-    if (wantsPush) {
-      notifyShowLocalPush(subject, message);
-    }
-
-    showToast(`Notification sent to ${label || role} ✓`, 'success');
+    if (wantsPush) notifyShowLocalPush(subject, message);
+    showToast(`Notification sent to ${label} ✓`, 'success');
     closeModal('modal-notify');
   } catch (e) {
-    showToast('Failed to send notification: ' + e.message, 'error');
+    showToast('Failed to send: ' + e.message, 'error');
   } finally {
-    hideLoading();
-    btn.disabled = false;
+    hideLoading(); btn.disabled = false;
   }
 }
 
-// ── SUBMISSION MODAL HELPERS / CAS SHIELD ────────────────────────────────────
+// ── CAS SHIELD ────────────────────────────────────────────────────────────────
 async function loadCASShield() {
   try {
     showLoading('Fetching CAS Shield…');
     const data = await appsScriptGet('getCASShield');
     if (!data.success) throw new Error(data.error);
     allCASData = data.records || [];
-  } catch {
-    allCASData = getMockCASData();
-  } finally {
+  } catch { allCASData = getMockCASData(); }
+  finally {
     renderCASTable(allCASData);
     hideLoading();
     showToast('CAS Shield loaded ✓','success');
@@ -1577,7 +2331,7 @@ function renderCASTable(records) {
       <td>${ynBadge(r['Information check on CAS Shield completed? Y/N'])}</td>
       <td>${ynBadge(r['Pre-CAS questionnaire on CAS shield Completed? Y/N'])}</td>
       <td class="text-[11px] text-slate-500">${r['PCI Invite']||'—'}</td>
-      <td class="text-right"><button class="px-3 py-1.5 rounded-lg bg-navy text-white text-[11px] font-semibold hover:opacity-90 transition" onclick="openCASModal('${aid}')">Update</button></td>
+      <td class="text-right"><button class="btn-primary text-[11px] py-1.5 px-3" onclick="openCASModal('${aid}')">Update</button></td>
     </tr>`;
   }).join('');
 }
@@ -1636,9 +2390,7 @@ async function submitCASUpdate() {
     showToast('CAS Shield updated ✓','success');
   } catch(e) {
     showToast('Update failed: '+e.message,'error');
-  } finally {
-    hideLoading();
-  }
+  } finally { hideLoading(); }
 }
 
 // ── FEEDBACK TOOL ─────────────────────────────────────────────────────────────
@@ -1760,9 +2512,7 @@ async function loadReports() {
     const data = await appsScriptGet('getReport');
     if (!data.success) throw new Error(data.error);
     renderReports(data.report);
-  } catch {
-    renderReports(buildLocalReport(allStudents));
-  }
+  } catch { renderReports(buildLocalReport(allStudents)); }
 }
 function buildLocalReport(students) {
   const cnt=(f,v)=>students.filter(s=>s[f]===v).length;
@@ -1778,9 +2528,9 @@ function renderReports(report) {
   const grid=document.getElementById('report-grid');if(!report){grid.innerHTML='<div class="empty-state">No data.</div>';return;}
   const funnel=buildPipelineFunnel(allStudents.length?allStudents:[]);const funnelTotal=allStudents.length||1;
   const funnelBars=Object.entries(funnel).map(([label,cnt])=>{const pct=Math.round(cnt/funnelTotal*100);return`<div class="report-bar-item"><div class="report-bar-label">${label}</div><div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div><div class="report-bar-count">${cnt}</div></div>`;}).join('');
-  const funnelCard=`<div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm md:col-span-2"><div class="text-[12.5px] font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-center justify-between"><span>Pipeline Funnel (10 stages)</span><span class="text-slate-400 font-medium">${allStudents.length} students</span></div>${funnelBars||'<div class="empty-state">No data</div>'}</div>`;
+  const funnelCard=`<div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm md:col-span-2"><div class="text-[12.5px] font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-center justify-between"><span>Pipeline Funnel (10 stages)</span><span class="text-slate-400 font-medium text-[11px]">${allStudents.length} students</span></div>${funnelBars||'<div class="empty-state">No data</div>'}</div>`;
   const sections=[{title:'Offer Status',data:report.offer},{title:'CAS Status',data:report.cas},{title:'Visa Status',data:report.visa},{title:'Payment',data:report.payment}];
-  const otherCards=sections.map(sec=>{const total=Object.values(sec.data||{}).reduce((a,b)=>a+b,0);const bars=Object.entries(sec.data||{}).map(([label,cnt])=>{const pct=total?Math.round(cnt/total*100):0;return`<div class="report-bar-item"><div class="report-bar-label">${label}</div><div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div><div class="report-bar-count">${cnt}</div></div>`;}).join('');return`<div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"><div class="text-[12.5px] font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-center justify-between"><span>${sec.title}</span><span class="text-slate-400 font-medium">${total} total</span></div>${bars||'<div class="empty-state">No data</div>'}</div>`;}).join('');
+  const otherCards=sections.map(sec=>{const total=Object.values(sec.data||{}).reduce((a,b)=>a+b,0);const bars=Object.entries(sec.data||{}).map(([label,cnt])=>{const pct=total?Math.round(cnt/total*100):0;return`<div class="report-bar-item"><div class="report-bar-label">${label}</div><div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div><div class="report-bar-count">${cnt}</div></div>`;}).join('');return`<div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm"><div class="text-[12.5px] font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-center justify-between"><span>${sec.title}</span><span class="text-slate-400 font-medium text-[11px]">${total} total</span></div>${bars||'<div class="empty-state">No data</div>'}</div>`;}).join('');
   grid.innerHTML=funnelCard+otherCards;
 }
 
@@ -1805,13 +2555,9 @@ function openStudentProfile(studentId) {
   document.getElementById('profile-drawer-title').textContent = s['STUDENT NAME']||studentId;
   document.getElementById('profile-drawer-sub').textContent   = [studentId,s['LEVEL'],s['COURSE']].filter(Boolean).join(' · ');
   document.getElementById('pd-pipeline-list').innerHTML       = renderPipelineList(s);
-
-  // Sheet readonly fields
   const setRO = (id,key) => { const el=document.getElementById(id); if(el) el.value=s[key]||''; };
   setRO('pd-sid','STUDENT ID'); setRO('pd-level','LEVEL'); setRO('pd-sname','STUDENT NAME');
   setRO('pd-course','COURSE');  setRO('pd-dob','DOB'); setRO('pd-submittedby','SUBMITTED BY');
-
-  // Portal-managed fields
   const set = (id,key) => { const el=document.getElementById(id); if(el) el.value=s[key]||''; };
   set('pd-mobile','MOBILE');   set('pd-email','EMAIL');
   set('pd-edu','EDUCATION TYPE'); set('pd-agent','AGENT');
@@ -1823,7 +2569,6 @@ function openStudentProfile(studentId) {
   set('pd-cas-shield','CAS SHIELD');          set('pd-cas-payment','CAS PAYMENT STATUS');
   set('pd-cas-requested','CAS REQUESTED STATUS'); set('pd-cas-status','CAS STATUS');
   set('pd-visa','VISA STATUS');
-
   const errEl=document.getElementById('pd-save-error'); if(errEl) errEl.style.display='none';
   document.getElementById('profile-drawer').classList.add('pd-open');
   document.getElementById('profile-drawer-overlay').classList.add('pd-overlay-show');
@@ -1841,8 +2586,6 @@ async function saveStudentProfile() {
   if (!profileActiveId) return;
   const studentId = profileActiveId;
   const val = id => (document.getElementById(id)?.value||'').trim();
-
-  // Only portal-managed fields get sent to the server (NOT readonly sheet fields)
   const patch = {
     'MOBILE':                             val('pd-mobile'),
     'EMAIL':                              val('pd-email'),
@@ -1863,19 +2606,15 @@ async function saveStudentProfile() {
     'CAS STATUS':                         val('pd-cas-status'),
     'VISA STATUS':                        val('pd-visa'),
   };
-
   const btn     = document.getElementById('pd-save-btn');
   const btnText = document.getElementById('pd-save-text');
   const spinner = document.getElementById('pd-save-spinner');
   btn.disabled=true; btnText.textContent='Saving…'; spinner.style.display='inline-block';
-
-  // Optimistic update
   const s = allStudents.find(s=>s['STUDENT ID']===studentId);
   const snapshot = s ? {...s} : null;
-  if(s){ Object.assign(s, patch); filterTable(); updateStats(allStudents); document.getElementById('pd-pipeline-list').innerHTML=renderPipelineList(s); }
+  if(s){ Object.assign(s, patch); filterTable(); updateStats(allStudents); updatePipelineChart(allStudents); document.getElementById('pd-pipeline-list').innerHTML=renderPipelineList(s); }
   closeProfileDrawer();
   showToast('Saving profile…','success');
-
   try {
     const url=new URL(APPS_SCRIPT_URL);
     url.searchParams.set('action','updateStudentProfile');
@@ -1887,7 +2626,7 @@ async function saveStudentProfile() {
     if(!data.success) throw new Error(data.error||'Unknown error');
     showToast('Profile saved ✓','success');
   } catch(err) {
-    if(s&&snapshot){ const idx=allStudents.findIndex(x=>x['STUDENT ID']===studentId); if(idx!==-1) allStudents[idx]=snapshot; filterTable(); updateStats(allStudents); }
+    if(s&&snapshot){ const idx=allStudents.findIndex(x=>x['STUDENT ID']===studentId); if(idx!==-1) allStudents[idx]=snapshot; filterTable(); updateStats(allStudents); updatePipelineChart(allStudents); }
     showToast('Save failed — changes reverted. '+err.message,'error');
   } finally {
     btn.disabled=false; btnText.textContent='Save changes'; spinner.style.display='none';
@@ -1905,7 +2644,6 @@ function showToast(msg, type='success') {
 }
 
 // ── MOCK DATA ──────────────────────────────────────────────────────────────────
-// These are only used when the API fails, so all staff can see demo data
 function getMockStudents() {
   return [
     {'STUDENT ID':'R2U001','STUDENT NAME':'Priya Sharma','LEVEL':'PG','COURSE':'MSc Computer Science','AGENT':'Agent A','DOB':'2000-05-14','SUBMITTED BY':'Sagar','PRE-SCREENING CALL STATUS':'Called – Interested','OFFER STATUS':'Received','SCHOLARSHIP':'Partial','PAYMENT':'Paid','CAS SHIELD':'Completed','CAS STATUS':'Issued','VISA STATUS':'Approved','APPLICATION SUBMITTED DATE':'2026-03-12','MOBILE':'+977 9801234567','EMAIL':'priya@email.com','MOCK INTERVIEW STATUS':'Completed','PRE-CAS INTERVIEW':'Passed','CAS PAYMENT STATUS':'Paid','CAS REQUESTED STATUS':'Requested'},
