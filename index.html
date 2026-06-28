@@ -737,6 +737,55 @@ table.dtable tbody td{padding:12px 16px;color:#1E293B;vertical-align:middle;}
 </aside>
 <div class="profile-drawer-overlay" id="profile-drawer-overlay" onclick="closeProfileDrawer()"></div>
 
+<!-- NOTIFICATION MODAL -->
+<aside class="drawer drawer-wide" id="modal-notify">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title">Send Notification</div>
+      <div class="drawer-sub" id="notify-sub"></div>
+    </div>
+    <button class="drawer-close" onclick="closeModal('modal-notify')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Recipient Role</label>
+        <select class="form-control" id="notify-role" onchange="notifyUpdateRecipientPreview()">
+          <option value="Student">Student</option>
+          <option value="Agent">Agent</option>
+          <option value="Staff">Staff</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notification Type</label>
+        <select class="form-control" id="notify-type">
+          <option value="Email">Email Only</option>
+          <option value="Push">Push Notification Only</option>
+          <option value="Both">Both</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="notice" id="notify-recipient-preview">
+      <span>📧</span>
+      <span id="notify-recipient-text">Select a recipient role to preview the destination.</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Subject</label>
+      <input class="form-control" id="notify-subject" type="text" placeholder="e.g. Update on your CAS application">
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Message</label>
+      <textarea class="form-control" id="notify-message" style="min-height:140px" placeholder="Write your message here…"></textarea>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-[12.5px] font-semibold hover:bg-slate-50" onclick="closeModal('modal-notify')">Cancel</button>
+    <button class="px-4 py-2 rounded-lg bg-gold text-navy text-[12.5px] font-bold hover:opacity-90" id="notify-send-btn" onclick="sendNotification()">Send Notification</button>
+  </div>
+</aside>
+
 <!-- POPOVERS & UTILS -->
 <div class="pop-card" id="badge-popover"></div>
 <div class="pop-card" id="kebab-menu"></div>
@@ -755,7 +804,7 @@ const SESSION_KEY_TIME = 'r2u_loginTime';
 const SESSION_TTL_MS   = 12 * 60 * 60 * 1000;
 
 // ── STATE ───────────────────────────────────────────────────────────────────
-let currentStaff      = { name: '', initials: '', role: 'Staff' };
+let currentStaff      = { name: '', initials: '', role: 'Staff', email: '' };
 let allStudents       = [];
 let allCASData        = [];
 let parsedCSVData     = [];
@@ -1139,6 +1188,7 @@ function openKebabMenu(e, sid) {
     <div class="pop-item" onclick="hideKebab();openVisaModal('${sid}')">${icon('send')}Visa status</div>
     <div class="pop-item" onclick="hideKebab();openSubmissionModal('${sid}')">${icon('send')}Application submission</div>
     <div class="pop-item" onclick="hideKebab();openFeedbackModal('${sid}')">${icon('clipboard')}${hasDoc?'New mock feedback':'Add mock feedback'}</div>
+    <div class="pop-item" onclick="hideKebab();openNotifyModal('${sid}')">🔔&nbsp;Send Notification</div>
     <div class="pop-item" onclick="hideKebab();openStudentProfile('${sid}')">${icon('edit')}Full profile / pipeline</div>
   `;
   positionPopover(menu, e.currentTarget);
@@ -1367,7 +1417,133 @@ async function submitFeedback() {
   }
 }
 
-// ── CAS SHIELD ────────────────────────────────────────────────────────────────
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+let notifyActiveStudentId = null;
+
+function openNotifyModal(sid) {
+  const s = allStudents.find(s => s['STUDENT ID'] === sid);
+  if (!s) { showToast('Student not found: ' + sid, 'error'); return; }
+
+  notifyActiveStudentId = sid;
+  document.getElementById('notify-sub').textContent     = studentSub(sid);
+  document.getElementById('notify-role').value          = 'Student';
+  document.getElementById('notify-type').value          = 'Email';
+  document.getElementById('notify-subject').value       = '';
+  document.getElementById('notify-message').value       = '';
+  notifyUpdateRecipientPreview();
+  openModal('modal-notify');
+}
+
+// Resolves the recipient's email + display label for the currently selected role.
+// Student → s['EMAIL'], Agent → s['AGENT EMAIL'] (add this column to your sheet if needed),
+// Staff → currentStaff.email (set this when you extend your Users sheet / login response).
+function notifyResolveRecipient() {
+  const s = allStudents.find(s => s['STUDENT ID'] === notifyActiveStudentId);
+  if (!s) return { email: '', label: '' };
+
+  const role = document.getElementById('notify-role').value;
+
+  if (role === 'Student') {
+    return { email: (s['EMAIL'] || '').trim(), label: s['STUDENT NAME'] || notifyActiveStudentId };
+  }
+  if (role === 'Agent') {
+    return { email: (s['AGENT EMAIL'] || '').trim(), label: s['AGENT'] || 'Agent' };
+  }
+  if (role === 'Staff') {
+    return { email: (currentStaff.email || '').trim(), label: currentStaff.name || 'Staff' };
+  }
+  return { email: '', label: '' };
+}
+
+function notifyUpdateRecipientPreview() {
+  const { email, label } = notifyResolveRecipient();
+  const el = document.getElementById('notify-recipient-text');
+  if (!email) {
+    el.textContent = `⚠️ No email on file for ${label || 'this recipient'} — email will be skipped, push only.`;
+  } else {
+    el.textContent = `Will notify: ${label} — ${email}`;
+  }
+}
+
+// Requests browser permission (if needed) and shows a local push/in-app notification.
+function notifyShowLocalPush(title, body) {
+  if (!('Notification' in window)) {
+    showToast('Push notifications are not supported in this browser.', 'error');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '' });
+    return;
+  }
+  if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        new Notification(title, { body, icon: '' });
+      } else {
+        showToast('Push permission was not granted — notification not shown locally.', 'error');
+      }
+    });
+  } else {
+    showToast('Push notifications are blocked in your browser settings.', 'error');
+  }
+}
+
+async function sendNotification() {
+  const subject = document.getElementById('notify-subject').value.trim();
+  const message = document.getElementById('notify-message').value.trim();
+  const role     = document.getElementById('notify-role').value;
+  const type     = document.getElementById('notify-type').value; // Email | Push | Both
+
+  // 1. Validate
+  if (!subject) { showToast('Please enter a subject.', 'error'); return; }
+  if (!message) { showToast('Please enter a message.', 'error'); return; }
+
+  const { email, label } = notifyResolveRecipient();
+  const wantsEmail = (type === 'Email' || type === 'Both');
+  const wantsPush  = (type === 'Push'  || type === 'Both');
+
+  if (wantsEmail && !email) {
+    showToast(`No email found for ${label || role} — cannot send email.`, 'error');
+    if (type === 'Email') return; // hard stop if email-only and no address
+  }
+
+  const btn = document.getElementById('notify-send-btn');
+  btn.disabled = true;
+
+  try {
+    // 2. Email (server-side via Apps Script)
+    if (wantsEmail && email) {
+      showLoading('Sending email…');
+      const payload = {
+        studentId:   notifyActiveStudentId,
+        recipientRole:  role,
+        recipientEmail: email,
+        recipientName:  label,
+        subject,
+        message,
+        notifyType: type,
+        sentBy: currentStaff.name
+      };
+      const result = await appsScriptPost('sendNotification', payload);
+      if (!result.success) throw new Error(result.error || 'Email send failed');
+    }
+
+    // 3. Push / in-app (client-side, local to this browser/device)
+    if (wantsPush) {
+      notifyShowLocalPush(subject, message);
+    }
+
+    showToast(`Notification sent to ${label || role} ✓`, 'success');
+    closeModal('modal-notify');
+  } catch (e) {
+    showToast('Failed to send notification: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+    btn.disabled = false;
+  }
+}
+
+// ── SUBMISSION MODAL HELPERS / CAS SHIELD ────────────────────────────────────
 async function loadCASShield() {
   try {
     showLoading('Fetching CAS Shield…');
