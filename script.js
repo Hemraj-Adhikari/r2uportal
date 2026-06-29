@@ -208,6 +208,74 @@ function esc(s){return(s||'').replace(/'/g,"\\'")}
 function lvlBadge(l){const m={PG:'badge-blue',PHD:'badge-violet',UG:'badge-green'};return l?`<span class="badge ${m[l]||'badge-slate'}" style="font-size:9px">${l}</span>`:''}
 function visaBadge(v){if(!v||v==='Not Applied')return`<span class="badge badge-slate">${v||'—'}</span>`;if(/approved/i.test(v))return`<span class="badge badge-green">${v}</span>`;if(/refused/i.test(v))return`<span class="badge badge-red">${v}</span>`;if(/pending|submitted|biometrics/i.test(v))return`<span class="badge badge-amber">${v}</span>`;return`<span class="badge badge-navy">${v}</span>`}
 
+function sendWhatsApp(phone,message){
+  const cleaned=(phone||'').replace(/\D/g,'');
+  if(!cleaned){toast('No mobile number on record','info');return}
+  const url='https://wa.me/'+cleaned+'?text='+encodeURIComponent(message||'');
+  window.open(url,'_blank','noopener,noreferrer');
+}
+
+/* ── BULK SELECTION ── */
+function getSelectedStudents(){
+  return Array.from(document.querySelectorAll('.student-row-cb:checked')).map(cb=>cb.dataset.id);
+}
+function updateBulkBar(){
+  const ids=getSelectedStudents();
+  const bar=document.getElementById('bulk-action-bar');
+  const lbl=document.getElementById('bulk-count-label');
+  if(!bar)return;
+  if(ids.length>0){
+    bar.style.display='flex';
+    lbl.textContent=ids.length+' student'+(ids.length>1?'s':'')+' selected';
+  } else {
+    bar.style.display='none';
+  }
+  // sync select-all header checkbox state
+  const allCbs=document.querySelectorAll('.student-row-cb');
+  const sa=document.getElementById('select-all-students');
+  if(sa){sa.indeterminate=ids.length>0&&ids.length<allCbs.length;sa.checked=allCbs.length>0&&ids.length===allCbs.length}
+}
+function toggleSelectAllStudents(checked){
+  document.querySelectorAll('.student-row-cb').forEach(cb=>{cb.checked=checked});
+  updateBulkBar();
+}
+function clearStudentSelection(){
+  document.querySelectorAll('.student-row-cb').forEach(cb=>{cb.checked=false});
+  const sa=document.getElementById('select-all-students');
+  if(sa){sa.checked=false;sa.indeterminate=false}
+  updateBulkBar();
+}
+function bulkEmail(){
+  const ids=getSelectedStudents();
+  if(!ids.length){toast('No students selected','info');return}
+  const sel=ids.map(id=>(students||[]).find(s=>s['STUDENT ID']===id)).filter(Boolean);
+  const names=sel.map(s=>s['STUDENT NAME']).join(', ');
+  toast(`Opening email composer for ${ids.length} student${ids.length>1?'s':''}…`,'info');
+  // Pre-populate email composer if it exists, else switch to email view
+  const toField=document.getElementById('email-to');
+  const emails=sel.map(s=>s['EMAIL']).filter(Boolean).join(', ');
+  if(toField){toField.value=emails}
+  switchView('email',document.querySelector('.sb-link[data-view=email]'));
+  if(emails&&toField){toField.value=emails;toField.dispatchEvent(new Event('input'))}
+}
+function bulkStatusUpdate(){
+  const ids=getSelectedStudents();
+  if(!ids.length){toast('No students selected','info');return}
+  const field=prompt(`Update which field for ${ids.length} student${ids.length>1?'s':''}?\nExamples: OFFER STATUS, VISA STATUS, PAYMENT`);
+  if(!field||!field.trim())return;
+  const value=prompt(`Set "${field.trim()}" to:`);
+  if(value===null)return;
+  const patch={[field.trim()]:value.trim()};
+  ids.forEach(id=>{
+    const s=(students||[]).find(s=>s['STUDENT ID']===id);
+    if(s)Object.assign(s,patch);
+    window.queueBatchEdit(id,patch);
+  });
+  filterTableStudents();
+  toast(`✓ Updated ${ids.length} record${ids.length>1?'s':''}:`+` ${field.trim()} → ${value.trim()}`,'success');
+  clearStudentSelection();
+}
+
 function buildRow(s){
   const sid=s['STUDENT ID']||'',safeId=esc(sid);
   const bg=avatarBg(s['STUDENT NAME']);const ini=initials(s['STUDENT NAME']);
@@ -216,6 +284,7 @@ function buildRow(s){
   const partner=s['AGENT']||s['CHANNEL PARTNER']||'—';
   
   return`<tr>
+    <td style="text-align:center;width:36px"><input type="checkbox" class="student-row-cb" data-id="${safeId}" onchange="updateBulkBar()" style="cursor:pointer;accent-color:var(--navy-700)"></td>
     <td>${sid}</td>
     <td><div class="student-cell"><div class="s-avatar" style="background:${bg}">${ini}</div><div><div class="s-name">${s['STUDENT NAME']||'—'} ${lvlBadge(s['LEVEL'])}</div><div class="s-meta">${partner!=='—'?partner:''}</div></div></div></td>
     <td><span style="font-size:11.5px;color:var(--text-tertiary);max-width:150px;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap" title="${s['COURSE']||''}">${s['COURSE']||'—'}</span></td>
@@ -230,6 +299,7 @@ function buildRow(s){
         </button>
         <div class="row-actions" style="display:flex;gap:3px">
           <button class="row-btn" onclick="openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="row-btn" onclick="sendWhatsApp('${esc(s['MOBILE']||'')}','Hi ${esc(s['STUDENT NAME']||'there')}, this is a message from our admissions team.')" title="WhatsApp" style="color:#25D366"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
           <button class="kebab-trigger row-btn" onclick="openRowMenu(event,'${safeId}')" title="More"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
         </div>
       </div>
@@ -250,8 +320,9 @@ function filterTableStudents(){
     return true;
   });
   const tb=document.getElementById('students-page-table-body');
-  if(tb){tb.innerHTML=filtered.length?filtered.map(buildRow).join(''):'<tr><td colspan="7" class="empty-state">No students match current filters</td></tr>'}
+  if(tb){tb.innerHTML=filtered.length?filtered.map(buildRow).join(''):'<tr><td colspan="8" class="empty-state">No students match current filters</td></tr>'}
   const c=document.getElementById('students-tbl-count');if(c)c.textContent=`${filtered.length} of ${students.length}`;
+  clearStudentSelection();
 }
 
 /* ═══════════ ROW MENU ═══════════ */
