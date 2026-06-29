@@ -321,23 +321,36 @@ function buildRow(s){
   const dots=list.map((st,i)=>`${i>0?`<span class="pl-connector${list[i-1].done?' done':''}"></span>`:''}${`<span class="pl-dot${st.done?' done':(i===cur?' cur':'')}" title="${st.label}"></span>`}`).join('');
   const partner=s['AGENT']||s['CHANNEL PARTNER']||'—';
   
-  return`<tr>
-    <td style="text-align:center;width:36px"><input type="checkbox" class="student-row-cb" data-id="${safeId}" onchange="updateBulkBar()" style="cursor:pointer;accent-color:var(--navy-700)"></td>
-    <td>${sid}</td>
-    <td><div class="student-cell"><div class="s-avatar" style="background:${bg}">${ini}</div><div><div class="s-name">${s['STUDENT NAME']||'—'}</div><div class="s-meta">${partner!=='—'?partner:''}</div></div></div></td>
+  return`<tr onclick="openDetail('${safeId}')" style="cursor:pointer">
+    <td style="text-align:center;width:36px" onclick="event.stopPropagation()"><input type="checkbox" class="student-row-cb" data-id="${safeId}" onchange="updateBulkBar()" style="cursor:pointer;accent-color:var(--navy-700)"></td>
+    <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)">${sid}</span></td>
+    <td>
+      <div class="student-name-cell">
+        <div class="student-row-avatar" style="background:${bg}">${ini}</div>
+        <div>
+          <div class="student-name-text">${s['STUDENT NAME']||'—'}</div>
+          <div class="student-sub-text">${partner!=='—'?partner:''}</div>
+        </div>
+      </div>
+    </td>
     <td><div class="course-cell"><span class="course-name" title="${s['COURSE']||''}">${s['COURSE']||'—'}</span>${lvlPill(s['LEVEL'])}</div></td>
     <td><div class="agent-cell"><span class="a-dot" style="background:${avatarBg(partner)}"></span><span class="a-name">${partner}</span></div></td>
-    <td><div class="pl-cell">${dots}<span class="pl-score">${done}/9</span></div></td>
+    <td>
+      <div class="pipeline-mini">
+        <div class="pipeline-mini-bar"><div class="pipeline-mini-fill" style="width:${Math.round(done/STAGE_DEFS.length*100)}%"></div></div>
+        <span class="pipeline-mini-label">${done}/${STAGE_DEFS.length}</span>
+      </div>
+    </td>
     <td>${visaBadge(s['VISA STATUS'])}</td>
-    <td style="text-align:right">
+    <td style="text-align:right" onclick="event.stopPropagation()">
       <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
-        <button class="btn-edit-large" onclick="openStageDrawer('${safeId}')" title="Update pipeline">
+        <button class="btn-edit-large" onclick="event.stopPropagation();openStageDrawer('${safeId}')" title="Update pipeline">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
           Update
         </button>
         <div class="row-actions" style="display:flex;gap:3px">
-          <button class="row-btn" onclick="openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          <button class="row-btn" onclick="sendWhatsApp('${esc(s['MOBILE']||'')}','Hi ${esc(s['STUDENT NAME']||'there')}, this is a message from our admissions team.')" title="WhatsApp" style="color:#25D366"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
+          <button class="row-btn" onclick="event.stopPropagation();openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="row-btn" onclick="event.stopPropagation();sendWhatsApp('${esc(s['MOBILE']||'')}','Hi ${esc(s['STUDENT NAME']||'there')}, this is a message from our admissions team.')" title="WhatsApp" style="color:#25D366"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
           <button class="kebab-trigger row-btn" onclick="openRowMenu(event,'${safeId}')" title="More"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
         </div>
       </div>
@@ -470,6 +483,19 @@ function openDetail(sid){
       <div style="font-size:12px;font-weight:600;color:${isDone?'var(--emerald-700)':isLocked?'var(--text-disabled)':'var(--amber-700)'}">${isLocked?'Locked':val}</div>
     </div>`;
   }).join('');
+  // Update hero pipeline ring
+  const ringFill=document.getElementById('hero-ring-fill');
+  const ringLabel=document.getElementById('hero-ring-label');
+  if(ringFill&&ringLabel){
+    const total=STAGE_DEFS.length;
+    const pct=done/total;
+    const circ=2*Math.PI*22; // r=22
+    const filled=pct*circ;
+    ringFill.setAttribute('stroke-dasharray',filled+' '+circ);
+    ringLabel.textContent=done+'/'+total;
+    ringFill.style.stroke=pct===1?'var(--emerald-400)':pct>0.6?'var(--gold-400)':'rgba(255,255,255,.3)';
+  }
+
   switchView('student-detail',null);
   // Load student documents from Drive
   const docsEl = document.getElementById('dp-docs-section');
