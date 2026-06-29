@@ -1,5 +1,5 @@
 /* ═══════════ CONFIG ═══════════ */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRHGyPqmZU5Rp-Xb5nPux8Vt4nf36GrPzLCvZm3bVp3KmY4hGWY6ZEwZcdDMxoK4qx/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRHGyPqmZU5Rp-Xb5nPux8Vt4nf36GrPzLCvZm3bVp3KmY4hGWY6ZEwZc.../exec';
 const SK_ROLE='r2u_role',SK_USER='r2u_user',SK_TIME='r2u_time',SESSION_TTL=12*60*60*1000;
 
 /* ═══════════ STATE ═══════════ */
@@ -32,6 +32,7 @@ let pillFilterStudents={type:'',value:''};
 let totalRecords=0,currentPage=1;
 let detailStudentId=null;
 let stageEdits={};
+let viewHistory=[];
 
 /* ═══════════ PIPELINE STAGES ═══════════ */
 const STAGE_DEFS=[
@@ -137,7 +138,8 @@ const PAGE_META={
   'student-detail':['Student','Manage profile and pipeline'],
   universities:['Partner Universities','Sep 2026 intake — courses, entry criteria & fees']
 };
-function switchView(id,tab){
+function switchView(id,tab,opts={}){
+  if(!opts.skipHistory&&currentView&&currentView!==id)viewHistory.push(currentView);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.sb-link').forEach(t=>t.classList.remove('active'));
   const el=document.getElementById('view-'+id);
@@ -153,8 +155,41 @@ function switchView(id,tab){
   if(id==='followup')renderFollowup();
   if(id==='partners')renderPartners();
   if(id==='students'){filterTableStudents();updateStats();updateFunnel();renderDashboardPartners();}
+  updateTopNavState();
+  closeSidebarMobile();
 }
-function goHome(){switchView('students',document.querySelector('.sb-link[data-view="students"]'))}
+function goHome(){viewHistory=[];switchView('students',document.querySelector('.sb-link[data-view="students"]'))}
+
+/* ═══════════ TOP-NAV: BACK / HOME (mobile + desktop) ═══════════ */
+function goBack(){
+  // micro-state: university detail panel sits inside the same 'universities' view
+  if(currentView==='universities'){
+    const dv=document.getElementById('uni-detail-view');
+    if(dv&&dv.style.display!=='none'){showUniList();return;}
+  }
+  const prev=viewHistory.pop();
+  if(prev){
+    const tab=document.querySelector(`.sb-link[data-view="${prev}"]`);
+    switchView(prev,tab,{skipHistory:true});
+  }else{
+    goHome();
+  }
+}
+function updateTopNavState(){
+  const backBtn=document.getElementById('topnav-back-btn');
+  if(!backBtn)return;
+  const uniDetailOpen=currentView==='universities'&&document.getElementById('uni-detail-view')&&document.getElementById('uni-detail-view').style.display!=='none';
+  const canGoBack=viewHistory.length>0||uniDetailOpen;
+  backBtn.disabled=!canGoBack;
+}
+function toggleSidebarMobile(){
+  document.getElementById('sidebar').classList.toggle('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.toggle('show');
+}
+function closeSidebarMobile(){
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
 function refreshView(){
   if(currentView==='students')loadStudents();
   else if(currentView==='casshield')loadCAS();
@@ -462,13 +497,17 @@ function openAddPartner(){toast('Add partner form coming soon','info')}
 /* ═══════════ ADD STUDENT ═══════════ */
 let asSelectedFiles = [];
 
-function openAddStudent() {
+function openAddStudent(prefillUniversity) {
   // Reset form
   ['as-name','as-id','as-dob','as-nationality','as-mobile','as-email',
    'as-course','as-university','as-agent','as-notes'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  if (prefillUniversity) {
+    const uniEl = document.getElementById('as-university');
+    if (uniEl) uniEl.value = prefillUniversity;
+  }
   document.getElementById('as-level').value = '';
   document.getElementById('as-submitted-by').value = staff.name || '';
   asSelectedFiles = [];
@@ -897,36 +936,62 @@ function renderUniGrid(){
     const u=UNI_DATA[k];
     const [bg,fg]=uniColor(uniKeys.indexOf(k));
     const courseCount=u.courses.filter(c=>c.name&&!c.section&&c.level&&!['Level','Course Level','FEE STRUCTURE','SCHOLARSHIP','Intake'].includes(c.level)).length;
-    const cats=u.categories.slice(0,2).map(c=>`<span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:var(--slate-100);color:var(--text-muted);border-radius:4px;padding:2px 6px">${c}</span>`).join('');
+    const cats=u.categories.slice(0,2).map(c=>`<span class="badge badge-slate" style="font-size:9px">${c}</span>`).join('');
     const initials=k.slice(0,3);
     // Fee from criteria
     const fee=(u.criteria&&u.criteria['FEE STRUCTURE']&&u.criteria['FEE STRUCTURE'][0])||'';
-    const feeShort=fee?fee.split('\n')[0].trim().substring(0,20):'';
-    const ielts=(u.criteria&&u.criteria['ENGLISH LANGUAGE CRITERIA']&&u.criteria['ENGLISH LANGUAGE CRITERIA'][0])||'';
-    const ieltsShort=ielts.match(/IELTS:\s*[\d.]+/i)?ielts.match(/IELTS:\s*[\d.]+/i)[0]:'';
+    const feeShort=fee?fee.split('\n')[0].trim().substring(0,28):'—';
+    const scholarship=(u.criteria&&u.criteria['SCHOLARSHIP']&&u.criteria['SCHOLARSHIP'].find(v=>v&&v.trim()))||'';
+    const scholarshipShort=scholarship?scholarship.split('\n')[0].trim().substring(0,28):'—';
+    const firstCourse=u.courses.find(c=>c.name&&!c.section);
+    const intake=(firstCourse&&firstCourse.intake)||'—';
+    const campus=(firstCourse&&firstCourse.campus)||'';
 
-    return `<div class="card" style="cursor:pointer;transition:box-shadow .15s,transform .15s;padding:0;overflow:hidden" onclick="openUniDetail('${k}')" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
-      <div style="height:6px;background:${bg}"></div>
-      <div style="padding:14px 16px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div style="width:40px;height:40px;border-radius:8px;background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.04em;flex-shrink:0">${initials}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:700;color:var(--text-primary);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${u.title}</div>
-          </div>
+    return `<div class="uni-card" onmouseenter="this.classList.add('hover')" onmouseleave="this.classList.remove('hover')">
+      <div class="uni-card-band" style="background:linear-gradient(135deg,${bg}14,var(--surface-muted))">
+        ${campus?`<span class="uni-loc-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(campus)}</span>`:''}
+        <div class="uni-card-id" style="background:${bg};color:${fg}">${initials}</div>
+        <div class="uni-card-title">${u.title}</div>
+        <div class="uni-card-cats">${cats}</div>
+      </div>
+      <div class="uni-bento">
+        <div class="uni-bento-tile">
+          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+          <div><div class="uni-bento-label">Fee from</div><div class="uni-bento-val">${esc(feeShort)}</div></div>
         </div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">${cats}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border-subtle)">
-          <div style="display:flex;gap:12px">
-            <div><div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Courses</div><div style="font-size:13px;font-weight:700;color:var(--navy-700)">${courseCount}</div></div>
-            ${feeShort?`<div><div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Fee from</div><div style="font-size:11px;font-weight:700;color:var(--text-primary)">${feeShort}</div></div>`:''}
-            ${ieltsShort?`<div><div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">IELTS</div><div style="font-size:11px;font-weight:600;color:var(--text-secondary)">${ieltsShort.replace('IELTS:','').trim()}</div></div>`:''}
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        <div class="uni-bento-tile">
+          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+          <div><div class="uni-bento-label">Courses</div><div class="uni-bento-val">${courseCount}</div></div>
         </div>
+        <div class="uni-bento-tile">
+          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a4 4 0 100-8 4 4 0 000 8z"/><path d="M5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2"/></svg></div>
+          <div><div class="uni-bento-label">Scholarship</div><div class="uni-bento-val">${esc(scholarshipShort)}</div></div>
+        </div>
+        <div class="uni-bento-tile">
+          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div><div class="uni-bento-label">Intake</div><div class="uni-bento-val">${esc(intake)}</div></div>
+        </div>
+      </div>
+      <div class="uni-card-actions">
+        <button class="btn btn-primary btn-sm uni-act-btn" onclick="openUniDetail('${k}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="15" x2="12" y2="15"/><circle cx="9" cy="10" r="1.5"/></svg>
+          View details
+        </button>
+        <button class="btn btn-gold btn-sm uni-act-btn" onclick="onboardToUniversity('${k}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          Onboard students
+        </button>
       </div>
     </div>`;
   }).join('');
 }
+
+window.onboardToUniversity=function(key){
+  const u=UNI_DATA[key];
+  if(!u){toast('University not found','error');return}
+  openAddStudent(u.title);
+  toast('Onboarding for '+u.title,'info');
+};
 
 // ---- Detail view ----
 function openUniDetail(key){
@@ -937,6 +1002,7 @@ function openUniDetail(key){
 
   document.getElementById('uni-list-view').style.display='none';
   document.getElementById('uni-detail-view').style.display='block';
+  updateTopNavState();
 
   const colorIdx=uniKeys.indexOf(key);
   const [bg,fg]=uniColor(colorIdx);
@@ -1051,6 +1117,7 @@ window.showUniList=function(){
   document.getElementById('uni-list-view').style.display='';
   document.getElementById('uni-detail-view').style.display='none';
   currentUniKey=null;
+  updateTopNavState();
 };
 
 window.openUniDetail=openUniDetail;
