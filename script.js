@@ -568,7 +568,7 @@ function renderUniGrid(){
   grid.innerHTML=filtered.map((k,i)=>{
     const u=UNI_DATA[k];
     const [bg,fg]=uniColor(uniKeys.indexOf(k));
-    const courseCount=u.courses.filter(c=>c.name&&!c.section).length;
+    const courseCount=u.courses.filter(c=>c.name&&!c.section&&c.level&&!['Level','Course Level','FEE STRUCTURE','SCHOLARSHIP','Intake'].includes(c.level)).length;
     const cats=u.categories.slice(0,2).map(c=>`<span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:var(--slate-100);color:var(--text-muted);border-radius:4px;padding:2px 6px">${c}</span>`).join('');
     const initials=k.slice(0,3);
     // Fee from criteria
@@ -634,7 +634,7 @@ function openUniDetail(key){
   renderUniCriteria(u);
 
   // Courses
-  allCurrentCourses=u.courses.filter(c=>c.name&&!c.section&&c.level&&c.level.length>2&&!['Level','Course Level','FEE STRUCTURE'].includes(c.level));
+  allCurrentCourses=u.courses.filter(c=>c.name&&!c.section&&c.level&&!['Level','Course Level','FEE STRUCTURE','SCHOLARSHIP','Intake'].includes(c.level));
   document.getElementById('uni-course-count').textContent=allCurrentCourses.length;
   populateCourseLevelFilter(allCurrentCourses);
   renderCourseTable(allCurrentCourses);
