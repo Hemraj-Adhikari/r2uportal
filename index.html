@@ -369,22 +369,41 @@
         <span class="detail-breadcrumb-sep">›</span>
         <span class="detail-breadcrumb-cur" id="detail-breadcrumb-name">Student</span>
       </div>
-      <div class="detail-top">
+      <div class="detail-hero-card">
+        <div class="hero-pipeline-ring">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="4"/>
+            <circle id="hero-ring-fill" cx="26" cy="26" r="22" fill="none" stroke="var(--gold-400)" stroke-width="4"
+              stroke-dasharray="0 138" stroke-linecap="round"
+              transform="rotate(-90 26 26)" style="transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1)"/>
+            <text x="26" y="30" text-anchor="middle" font-family="Inter,sans-serif" font-weight="800" font-size="13" fill="rgba(255,255,255,.85)" id="hero-ring-label">0/9</text>
+          </svg>
+          <div class="hero-pipeline-score">Pipeline</div>
+        </div>
         <div class="detail-hero">
-          <div class="detail-avatar" id="detail-avatar">—</div>
-          <div>
+          <div class="detail-avatar" id="detail-avatar" style="width:54px;height:54px;border-radius:14px;font-size:18px;font-weight:700">—</div>
+          <div style="flex:1;min-width:0">
             <div class="detail-name" id="detail-name">—</div>
-            <div class="detail-meta">
-              <span id="detail-id" style="font-family:'JetBrains Mono',monospace;font-size:11.5px"></span>
+            <div class="detail-meta" style="margin-top:6px">
+              <span id="detail-id" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.4)"></span>
               <span class="detail-meta-sep">·</span><span id="detail-level"></span>
-              <span class="detail-meta-sep">·</span><span id="detail-course" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+              <span class="detail-meta-sep">·</span><span id="detail-course" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.55);font-size:12px"></span>
             </div>
           </div>
         </div>
-        <div class="detail-actions">
-          <button class="btn btn-secondary btn-sm" onclick="openNotifyFromDetail()">Send notification</button>
-          <button class="btn btn-secondary btn-sm" onclick="openFeedbackFromDetail()">Mock feedback</button>
-          <button class="btn btn-primary btn-sm" onclick="openStageDrawer(detailStudentId)">Update pipeline</button>
+        <div class="detail-actions-bar">
+          <button class="btn btn-secondary btn-sm" onclick="openNotifyFromDetail()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            Notify
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="openFeedbackFromDetail()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3.5" width="12" height="18" rx="2"/><path d="M9 3.5h6v3H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            Mock feedback
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openStageDrawer(detailStudentId)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            Update pipeline
+          </button>
         </div>
       </div>
       <div class="detail-layout">
