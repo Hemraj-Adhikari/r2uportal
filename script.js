@@ -214,6 +214,7 @@ function buildRow(s){
   const list=stageList(s);const done=list.filter(x=>x.done).length;const cur=stageCurrent(s);
   const dots=list.map((st,i)=>`${i>0?`<span class="pl-connector${list[i-1].done?' done':''}"></span>`:''}${`<span class="pl-dot${st.done?' done':(i===cur?' cur':'')}" title="${st.label}"></span>`}`).join('');
   const partner=s['AGENT']||s['CHANNEL PARTNER']||'—';
+  
   return`<tr>
     <td>${sid}</td>
     <td><div class="student-cell"><div class="s-avatar" style="background:${bg}">${ini}</div><div><div class="s-name">${s['STUDENT NAME']||'—'} ${lvlBadge(s['LEVEL'])}</div><div class="s-meta">${partner!=='—'?partner:''}</div></div></div></td>
@@ -221,11 +222,18 @@ function buildRow(s){
     <td><div class="agent-cell"><span class="a-dot" style="background:${avatarBg(partner)}"></span><span class="a-name">${partner}</span></div></td>
     <td><div class="pl-cell">${dots}<span class="pl-score">${done}/9</span></div></td>
     <td>${visaBadge(s['VISA STATUS'])}</td>
-    <td style="text-align:right"><div class="row-actions">
-      <button class="row-btn" onclick="openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-      <button class="row-btn" onclick="openStageDrawer('${safeId}')" title="Update pipeline"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></button>
-      <button class="kebab-trigger row-btn" onclick="openRowMenu(event,'${safeId}')" title="More"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
-    </div></td>
+    <td style="text-align:right">
+      <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+        <button class="btn-edit-large" onclick="openStageDrawer('${safeId}')" title="Update pipeline">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Update
+        </button>
+        <div class="row-actions" style="display:flex;gap:3px">
+          <button class="row-btn" onclick="openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="kebab-trigger row-btn" onclick="openRowMenu(event,'${safeId}')" title="More"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
+        </div>
+      </div>
+    </td>
   </tr>`;
 }
 
@@ -466,7 +474,7 @@ function getMockCAS(){return[{'Applicant ID':'STU-2026-001','Applicant Name':'Aa
 /* ═══════════ PERF PATCH ═══════════ */
 (function(){
 'use strict';
-const CLIENT_CACHE_TTL_MS=10*60*1000,QUEUE_FLUSH_MIN_MS=2000,QUEUE_FLUSH_MAX_MS=5000,QUEUE_RETRY_BASE_MS=1500;
+const CLIENT_CACHE_TTL_MS=10*60*1000,QUEUE_FLUSH_MIN_MS=200,QUEUE_FLUSH_MAX_MS=800,QUEUE_RETRY_BASE_MS=1000;
 const clientCache=new Map();
 function cacheKey(a,p){return a+':'+JSON.stringify(p||{})}
 function getCached(a,p){const e=clientCache.get(cacheKey(a,p));if(!e)return null;if(Date.now()-e.ts>CLIENT_CACHE_TTL_MS){clientCache.delete(cacheKey(a,p));return null}return e.data}
@@ -498,6 +506,7 @@ window.saveStagesOptimized = function() {
   toast('✓ Saved','success');
   closeDrawer('drw-stage');
   window.queueBatchEdit(sid,patch);
+  window.flushSaveQueueNow();
   stageEdits = {};
 };
 function nextFrame(){return new Promise(r=>requestAnimationFrame(()=>r()))}
