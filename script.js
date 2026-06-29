@@ -448,7 +448,7 @@ async function saveStages(){
   const s=students.find(s=>s['STUDENT ID']===activeStudentId);if(!s)return;
   const txt=document.getElementById('stage-save-txt'),spin=document.getElementById('stage-save-spin');
   txt.textContent='Saving…';spin.style.display='';
-  const patch={};Object.values(stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});
+  const patch={};Object.values(stageEdits).forEach(e=>{if(e&&e.key&&e.val!==undefined&&e.val!==null)patch[e.key]=e.val});
   Object.assign(s,patch);filterTableStudents();updateStats();updateFunnel();renderDashboardPartners();
   if(currentView==='student-detail'&&detailStudentId===activeStudentId)openDetail(activeStudentId);
   try{const res=await apiPost('updateStudentProfile',{studentId:activeStudentId,updatedBy:staff.name,...patch});if(!res.success)throw new Error(res.error||'Save error');toast('Pipeline updated','success')}
@@ -468,7 +468,7 @@ function openDetail(sid){
   const bg=avatarBg(s['STUDENT NAME']),ini=initials(s['STUDENT NAME']);
   const av=document.getElementById('detail-avatar');av.style.background=bg;av.textContent=ini;
   const ro=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val||'—'};
-  ro('dp-sid',s['STUDENT ID']);ro('dp-sname',s['STUDENT NAME']);ro('dp-course',s['COURSE']);ro('dp-dob',s['DOB']);ro('dp-agent',s['AGENT']||s['CHANNEL PARTNER']);ro('dp-mobile-ro',s['MOBILE']);ro('dp-email-ro',s['EMAIL']);
+  const rawDob_=s['DOB']||'';let dobDisplay_='—';if(rawDob_){const d_=new Date(rawDob_);dobDisplay_=!isNaN(d_.getTime())?d_.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):rawDob_;}ro('dp-sid',s['STUDENT ID']);ro('dp-sname',s['STUDENT NAME']);ro('dp-course',s['COURSE']);ro('dp-dob',dobDisplay_);ro('dp-agent',s['AGENT']||s['CHANNEL PARTNER']);ro('dp-mobile-ro',s['MOBILE']);ro('dp-email-ro',s['EMAIL']);
   document.getElementById('dp-level').innerHTML=lvlPill(s['LEVEL'])||'—';
   const list=stageList(s);const done=list.filter(x=>x.done).length;
   document.getElementById('dp-pipeline-score').textContent=done+'/'+STAGE_DEFS.length;
@@ -1028,23 +1028,35 @@ window.flushSaveQueueNow=function(){if(flushTimer){clearTimeout(flushTimer);flus
 window.addEventListener('beforeunload',()=>{if(saveQueue.size>0)flushQueue()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&saveQueue.size>0)flushQueue()});
 window.saveStagesOptimized = function() {
-  if(!Object.keys(stageEdits||{}).length){closeDrawer('drw-stage');return}
+  if(!Object.keys(stageEdits||{}).length){closeDrawer('drw-stage');toast('No changes to save','info');return}
   const sid = activeStudentId;
   const s = (students||[]).find(s=>s['STUDENT ID']===sid);
-  if(!s) return;
+  if(!s){toast('Student not found','error');return}
   const patch = {};
-  Object.values(stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});
+  Object.values(stageEdits).forEach(e=>{
+    // Allow empty string (clearing a field) but skip null/undefined
+    if(e && e.key && e.val !== undefined && e.val !== null) patch[e.key]=e.val;
+  });
+  if(!Object.keys(patch).length){closeDrawer('drw-stage');toast('No changes to save','info');return}
   Object.assign(s,patch);
   if(typeof filterTableStudents==='function') filterTableStudents();
   if(typeof updateStats==='function') updateStats();
   if(typeof updateFunnel==='function') updateFunnel();
   if(typeof renderDashboardPartners==='function') renderDashboardPartners();
   if(currentView==='student-detail' && detailStudentId===sid && typeof openDetail==='function') openDetail(sid);
-  toast('✓ Saved','success');
+  toast('✓ Pipeline updated','success');
   closeDrawer('drw-stage');
-  window.queueBatchEdit(sid,patch);
-  window.flushSaveQueueNow();
   stageEdits = {};
+  // Sync to Google Sheet
+  try{
+    window.queueBatchEdit(sid,patch);
+    window.flushSaveQueueNow();
+  }catch(err){
+    // Also try direct API as fallback
+    apiPost('updateStudentProfile',{studentId:sid,updatedBy:staff.name,...patch})
+      .then(r=>{if(!r.success)toast('Sheet sync issue: '+r.error,'info')})
+      .catch(()=>{});
+  }
 };
 function nextFrame(){return new Promise(r=>requestAnimationFrame(()=>r()))}
 window.loadDashboardLazy=async function(){const cached=getCached('getStudents',{page:1,limit:100});if(cached){window.students=cached.students||[];window.totalRecords=cached.totalRecords??window.students.length;if(typeof updateStats==='function')updateStats();if(typeof updateFunnel==='function')updateFunnel()}else{loading('Fetching students…')}
