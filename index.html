@@ -66,6 +66,9 @@
   </div>
 </div>
 
+<!-- SIDEBAR BACKDROP (mobile) -->
+<div id="sidebar-backdrop" onclick="closeSidebarMobile()"></div>
+
 <!-- SIDEBAR -->
 <aside id="sidebar">
   <a class="sb-logo-row" onclick="goHome()" href="javascript:void(0)">
@@ -218,6 +221,17 @@
 <!-- MAIN -->
 <div id="app-main">
   <header id="app-header">
+    <button class="hdr-icon-btn hdr-hamburger" onclick="toggleSidebarMobile()" title="Menu">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topnav-group">
+      <button class="topnav-circle-btn" id="topnav-back-btn" onclick="goBack()" title="Back" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <button class="topnav-circle-btn" id="topnav-home-btn" onclick="goHome()" title="Home">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v10a1 1 0 001 1h12a1 1 0 001-1V10"/><path d="M9 21v-6h6v6"/></svg>
+      </button>
+    </div>
     <div>
       <div class="hdr-title" id="page-title">Students</div>
       <div class="hdr-sub" id="page-subtitle">Loading…</div>
