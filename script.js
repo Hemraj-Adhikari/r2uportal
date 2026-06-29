@@ -1335,3 +1335,93 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 })();
+
+/* ═══════════ STUDENT PROFILE EDIT ═══════════ */
+function toggleProfileEdit(){
+  const s=students.find(s=>s['STUDENT ID']===detailStudentId);
+  if(!s)return;
+  // Populate edit fields from current student data
+  document.getElementById('dp-edit-sid').value=s['STUDENT ID']||'';
+  document.getElementById('dp-edit-name').value=s['STUDENT NAME']||'';
+  document.getElementById('dp-edit-course').value=s['COURSE']||'';
+  document.getElementById('dp-edit-dob').value=s['DOB']||'';
+  document.getElementById('dp-edit-agent').value=s['AGENT']||s['CHANNEL PARTNER']||'';
+  document.getElementById('dp-edit-mobile').value=s['MOBILE']||'';
+  document.getElementById('dp-edit-email').value=s['EMAIL']||'';
+  document.getElementById('dp-edit-nationality').value=s['NATIONALITY']||'';
+  // Set level dropdown
+  const levelSel=document.getElementById('dp-edit-level');
+  const curLevel=s['LEVEL']||'';
+  let matched=false;
+  for(let opt of levelSel.options){if(opt.value===curLevel){opt.selected=true;matched=true;break}}
+  if(!matched){const opt=document.createElement('option');opt.value=curLevel;opt.text=curLevel;levelSel.appendChild(opt);levelSel.value=curLevel}
+  // Switch view
+  document.getElementById('dp-record-readonly').style.display='none';
+  document.getElementById('dp-record-edit').style.display='block';
+  document.getElementById('dp-record-badge').style.display='none';
+  document.getElementById('dp-edit-btn').textContent='Editing…';
+  document.getElementById('dp-edit-btn').disabled=true;
+}
+
+function cancelProfileEdit(){
+  document.getElementById('dp-record-readonly').style.display='block';
+  document.getElementById('dp-record-edit').style.display='none';
+  document.getElementById('dp-record-badge').style.display='';
+  document.getElementById('dp-edit-btn').textContent='Edit';
+  document.getElementById('dp-edit-btn').disabled=false;
+}
+
+async function saveProfileEdit(){
+  const sid=detailStudentId;
+  const s=students.find(s=>s['STUDENT ID']===sid);
+  if(!s){toast('Student not found','error');return}
+
+  const name=document.getElementById('dp-edit-name').value.trim();
+  const course=document.getElementById('dp-edit-course').value.trim();
+  const dob=document.getElementById('dp-edit-dob').value;
+  const level=document.getElementById('dp-edit-level').value;
+  const agent=document.getElementById('dp-edit-agent').value.trim();
+  const mobile=document.getElementById('dp-edit-mobile').value.trim();
+  const email=document.getElementById('dp-edit-email').value.trim();
+  const nationality=document.getElementById('dp-edit-nationality').value.trim();
+
+  if(!name){toast('Full name is required','error');return}
+
+  const lbl=document.getElementById('dp-save-lbl');
+  const spin=document.getElementById('dp-save-spin');
+  const btn=document.getElementById('dp-save-btn');
+  lbl.textContent='Saving…';spin.style.display='';btn.disabled=true;
+
+  const patch={
+    'STUDENT NAME':name,
+    'COURSE':course,
+    'DOB':dob,
+    'LEVEL':level,
+    'AGENT':agent,
+    'MOBILE':mobile,
+    'EMAIL':email,
+    'NATIONALITY':nationality
+  };
+
+  // Update local state immediately
+  Object.assign(s,patch);
+
+  try{
+    const res=await apiPost('updateStudentProfile',{
+      studentId:sid,
+      updatedBy:staff.name,
+      ...patch
+    });
+    if(!res.success)throw new Error(res.error||'Save failed');
+    toast('Profile updated & synced to Google Sheet','success');
+  }catch(e){
+    toast('Saved locally — sheet sync failed: '+e.message,'info');
+  }finally{
+    lbl.textContent='Save changes';spin.style.display='none';btn.disabled=false;
+  }
+
+  // Refresh detail view with new data
+  cancelProfileEdit();
+  openDetail(sid);
+  filterTableStudents();
+}
