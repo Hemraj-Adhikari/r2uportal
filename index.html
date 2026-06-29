@@ -496,7 +496,7 @@
         </div>
         <div class="detail-main">
           <div class="detail-section">
-            <div class="detail-section-head"><div class="detail-section-title">Stage details</div><button class="btn btn-primary btn-sm" onclick="openStageDrawer(detailStudentId)">Update stages</button></div>
+            <div class="detail-section-head"><div class="detail-section-title">Stage details</div><button class="btn btn-primary btn-sm" onclick="if(detailStudentId)openStageDrawer(detailStudentId);else toast('No student loaded','error')">Update stages</button></div>
             <div class="detail-section-body">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="dp-stage-summary"></div>
             </div>
