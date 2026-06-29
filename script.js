@@ -123,7 +123,7 @@ function openCmd(){document.getElementById('cmd-overlay').classList.add('open');
 function closeCmd(){document.getElementById('cmd-overlay').classList.remove('open');document.getElementById('cmd-input').value='';resetCmd()}
 function cmdNav(view){closeCmd();const tab=document.querySelector(`.sb-link[data-view="${view}"]`);if(tab)switchView(view,tab);else switchView(view,null)}
 function resetCmd(){document.getElementById('cmd-results').innerHTML=`<div class="cmd-section">Quick actions</div><div class="cmd-item" onclick="cmdNav('students')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><div class="cmd-item-name">Students</div><div class="cmd-item-meta">All enrolled students</div></div></div><div class="cmd-item" onclick="cmdNav('partners')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div><div class="cmd-item-name">Channel Partners</div><div class="cmd-item-meta">Agents and referral network</div></div></div><div class="cmd-item" onclick="cmdNav('reports')"><div class="cmd-item-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="4" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="15"/></svg></div><div><div class="cmd-item-name">Reports</div><div class="cmd-item-meta">Pipeline analytics</div></div></div>`}
-function cmdSearch(q){if(!q.trim()||q.length<2){resetCmd();return}const m=students.filter(s=>(s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);if(!m.length){document.getElementById('cmd-results').innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px">No students found</div>';return}document.getElementById('cmd-results').innerHTML='<div class="cmd-section">Students</div>'+m.map(s=>`<div class="cmd-item" onclick="closeCmd();openDetail('${jsStr(s['STUDENT ID']||'')}')"><div class="cmd-item-icon" style="background:${avatarBg(s['STUDENT NAME'])};color:#FFF;font-size:10px;font-weight:700">${initials(s['STUDENT NAME'])}</div><div><div class="cmd-item-name">${s['STUDENT NAME']||'—'}</div><div class="cmd-item-meta">${s['STUDENT ID']||''} · ${s['COURSE']||''}</div></div></div>`).join('')}
+function cmdSearch(q){if(!q.trim()||q.length<2){resetCmd();return}const m=students.filter(s=>(s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);if(!m.length){document.getElementById('cmd-results').innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px">No students found</div>';return}document.getElementById('cmd-results').innerHTML='<div class="cmd-section">Students</div>'+m.map(s=>`<div class="cmd-item" onclick="closeCmd();openDetail('${esc(s['STUDENT ID']||'')}')"><div class="cmd-item-icon" style="background:${avatarBg(s['STUDENT NAME'])};color:#FFF;font-size:10px;font-weight:700">${initials(s['STUDENT NAME'])}</div><div><div class="cmd-item-name">${s['STUDENT NAME']||'—'}</div><div class="cmd-item-meta">${s['STUDENT ID']||''} · ${s['COURSE']||''}</div></div></div>`).join('')}
 
 /* ═══════════ VIEW SWITCHING ═══════════ */
 const PAGE_META={
@@ -242,8 +242,7 @@ const AVATAR_COLORS=['#162338','#1D4ED8','#059669','#7C3AED','#B07712','#DC2626'
 function avatarBg(n){if(!n)return'#374151';let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))%AVATAR_COLORS.length;return AVATAR_COLORS[Math.abs(h)]}
 function initials(n){if(!n)return'?';return n.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)}
 function esc(s){return(s||'').replace(/'/g,"\\'")}
-// Escape for safe embedding in HTML attribute values (onclick="...jsStr(val)...")
-function jsStr(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\r?\n/g,' ')}function lvlBadge(l){const m={PG:'badge-blue',PHD:'badge-violet',UG:'badge-green'};return l?`<span class="badge ${m[l]||'badge-slate'}" style="font-size:9px">${l}</span>`:''}
+function lvlBadge(l){const m={PG:'badge-blue',PHD:'badge-violet',UG:'badge-green'};return l?`<span class="badge ${m[l]||'badge-slate'}" style="font-size:9px">${l}</span>`:''}
 function visaBadge(v){if(!v||v==='Not Applied')return`<span class="badge badge-slate">${v||'—'}</span>`;if(/approved/i.test(v))return`<span class="badge badge-green">${v}</span>`;if(/refused/i.test(v))return`<span class="badge badge-red">${v}</span>`;if(/pending|submitted|biometrics/i.test(v))return`<span class="badge badge-amber">${v}</span>`;return`<span class="badge badge-navy">${v}</span>`}
 
 function sendWhatsApp(phone,message){
@@ -316,14 +315,14 @@ function bulkStatusUpdate(){
 
 function lvlPill(l){if(!l)return'';const k=/UG/i.test(l)?'UG':/PG/i.test(l)?'PG':/PHD/i.test(l)?'PHD':'other';return`<span class="lvl-pill lvl-${k}">${l}</span>`}
 function buildRow(s){
-  const sid=s['STUDENT ID']||'',safeId=jsStr(sid);
+  const sid=s['STUDENT ID']||'',safeId=esc(sid);
   const bg=avatarBg(s['STUDENT NAME']);const ini=initials(s['STUDENT NAME']);
   const list=stageList(s);const done=list.filter(x=>x.done).length;const cur=stageCurrent(s);
   const dots=list.map((st,i)=>`${i>0?`<span class="pl-connector${list[i-1].done?' done':''}"></span>`:''}${`<span class="pl-dot${st.done?' done':(i===cur?' cur':'')}" title="${st.label}"></span>`}`).join('');
   const partner=s['AGENT']||s['CHANNEL PARTNER']||'—';
   
   return`<tr>
-    <td style="text-align:center;width:36px"><input type="checkbox" class="student-row-cb" data-id="${esc(sid)}" onchange="updateBulkBar()" style="cursor:pointer;accent-color:var(--navy-700)"></td>
+    <td style="text-align:center;width:36px"><input type="checkbox" class="student-row-cb" data-id="${safeId}" onchange="updateBulkBar()" style="cursor:pointer;accent-color:var(--navy-700)"></td>
     <td>${sid}</td>
     <td><div class="student-cell"><div class="s-avatar" style="background:${bg}">${ini}</div><div><div class="s-name">${s['STUDENT NAME']||'—'}</div><div class="s-meta">${partner!=='—'?partner:''}</div></div></div></td>
     <td><div class="course-cell"><span class="course-name" title="${s['COURSE']||''}">${s['COURSE']||'—'}</span>${lvlPill(s['LEVEL'])}</div></td>
@@ -338,7 +337,7 @@ function buildRow(s){
         </button>
         <div class="row-actions" style="display:flex;gap:3px">
           <button class="row-btn" onclick="openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          <button class="row-btn" onclick="sendWhatsApp('${jsStr(s['MOBILE']||'')}','Hi ${jsStr(s['STUDENT NAME']||'there')}, this is a message from our admissions team.')" title="WhatsApp" style="color:#25D366"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
+          <button class="row-btn" onclick="sendWhatsApp('${esc(s['MOBILE']||'')}','Hi ${esc(s['STUDENT NAME']||'there')}, this is a message from our admissions team.')" title="WhatsApp" style="color:#25D366"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
           <button class="kebab-trigger row-btn" onclick="openRowMenu(event,'${safeId}')" title="More"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
         </div>
       </div>
@@ -368,14 +367,13 @@ function filterTableStudents(){
 function openRowMenu(e,sid){
   e.stopPropagation();activeStudentId=sid;
   const menu=document.getElementById('row-menu');
-  const safe=jsStr(sid);
   menu.innerHTML=`
-    <div class="pop-item" onclick="hideMenu();openDetail('${safe}')">Open profile</div>
+    <div class="pop-item" onclick="hideMenu();openDetail('${sid}')">Open profile</div>
     <div class="pop-divider"></div>
-    <div class="pop-item" onclick="hideMenu();openStageDrawer('${safe}')">Update pipeline</div>
+    <div class="pop-item" onclick="hideMenu();openStageDrawer('${sid}')">Update pipeline</div>
     <div class="pop-divider"></div>
-    <div class="pop-item" onclick="hideMenu();openNotify('${safe}')">Send notification</div>
-    <div class="pop-item" onclick="hideMenu();openFeedbackDrawer('${safe}')">Mock feedback</div>`;
+    <div class="pop-item" onclick="hideMenu();openNotify('${sid}')">Send notification</div>
+    <div class="pop-item" onclick="hideMenu();openFeedbackDrawer('${sid}')">Mock feedback</div>`;
   const r=e.currentTarget.getBoundingClientRect();let left=r.left,top=r.bottom+4;
   if(left+200>window.innerWidth)left=window.innerWidth-206;
   menu.style.top=top+'px';menu.style.left=Math.max(8,left)+'px';menu.classList.add('show');
@@ -419,7 +417,7 @@ function renderStagePipeline(s){
       }else if(sd.type==='mock_stages'){
         const curLevel=MOCK_STAGES.indexOf(curVal);
         contentHTML+=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${sd.desc}</div><div class="stage-options">`;
-        MOCK_STAGES.forEach((ms,mi)=>{const isSel=curVal===ms;const mockUnlocked=mi===0||curLevel>=mi-1;contentHTML+=`<div class="stage-opt${isSel?' selected':''}${!mockUnlocked?' locked-row':''}" data-val="${esc(ms)}" onclick="pickMockStage(this,${i},'${esc(ms)}')" style="${!mockUnlocked?'opacity:.4;pointer-events:none':''}"><span class="stage-opt-icon">${isSel||curLevel>=mi?'✅':'⭕'}</span>Mock ${ms}</div>`});
+        MOCK_STAGES.forEach((ms,mi)=>{const isSel=curVal===ms;const mockUnlocked=mi===0||curLevel>=mi-1;contentHTML+=`<div class="stage-opt${isSel?' selected':''}${!mockUnlocked?' locked-row':''}" onclick="pickMockStage(this,${i},'${esc(ms)}',${mi},${curLevel})" style="${!mockUnlocked?'opacity:.4;pointer-events:none':''}"><span class="stage-opt-icon">${isSel||curLevel>=mi?'✅':'⭕'}</span>Mock ${ms}</div>`});
         contentHTML+=`</div>`;
       }
       contentHTML+=`<div class="stage-notes"><label>Notes (optional)</label><textarea placeholder="Add notes…" id="stage-note-${i}" data-note-key="${esc(noteKey)}" oninput="stageEdits['note_${i}']={key:'${esc(noteKey)}',val:this.value}">${escHtml(noteVal)}</textarea></div>`;
@@ -430,21 +428,14 @@ function renderStagePipeline(s){
 }
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function pickStageOpt(el,idx,key,val){el.closest('.stage-options').querySelectorAll('.stage-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');stageEdits[idx]={key,val}}
-function pickMockStage(el,idx,val){
-  stageEdits[idx]={key:'MOCK INTERVIEW STATUS',val};
-  // Update visual selection within the mock-stages block without full re-render
-  el.closest('.stage-options').querySelectorAll('.stage-opt').forEach((o,mi)=>{
-    const isSel=o.dataset&&o.dataset.val===val;
-    o.classList.toggle('selected',isSel);
-  });
-}
+function pickMockStage(el,idx,val){stageEdits[idx]={key:'MOCK INTERVIEW STATUS',val};const s=students.find(s=>s['STUDENT ID']===activeStudentId);if(s)renderStagePipeline(s)}
 async function saveStages(){
   if(typeof saveStagesOptimized==='function'){saveStagesOptimized();return}
   if(!Object.keys(stageEdits).length){closeDrawer('drw-stage');return}
   const s=students.find(s=>s['STUDENT ID']===activeStudentId);if(!s)return;
   const txt=document.getElementById('stage-save-txt'),spin=document.getElementById('stage-save-spin');
   txt.textContent='Saving…';spin.style.display='';
-  const patch={};Object.values(stageEdits).forEach(e=>{if(e && e.key != null && e.val != null)patch[e.key]=e.val});
+  const patch={};Object.values(stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});
   Object.assign(s,patch);filterTableStudents();updateStats();updateFunnel();renderDashboardPartners();
   if(currentView==='student-detail'&&detailStudentId===activeStudentId)openDetail(activeStudentId);
   try{const res=await apiPost('updateStudentProfile',{studentId:activeStudentId,updatedBy:staff.name,...patch});if(!res.success)throw new Error(res.error||'Save error');toast('Pipeline updated','success')}
@@ -769,19 +760,19 @@ function renderFollowup(){
   const urgent=students.filter(s=>!/(called|scheduled|received|connectivity|hold)/i.test(s['PRE-SCREENING CALL STATUS']||'')&&stageDoneCount(s)<STAGE_DEFS.length);
   const sched=students.filter(s=>/scheduled/i.test(s['PRE-SCREENING CALL STATUS']||''));
   const mkTable=list=>{if(!list.length)return'<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Nothing here — great work!</div>';
-    return`<table class="dt"><thead><tr><th>Student</th><th>Channel Partner</th><th>Stage</th><th>Call status</th><th style="text-align:right">Actions</th></tr></thead><tbody>${list.map(s=>{const sid=jsStr(s['STUDENT ID']||'');const bg=avatarBg(s['STUDENT NAME']);const ini=initials(s['STUDENT NAME']);const stageIdx=stageCurrent(s);const stage=STAGE_DEFS[stageIdx]?.label||'Complete';const cs=s['PRE-SCREENING CALL STATUS']||'Not Called';return`<tr><td><div class="student-cell"><div class="s-avatar" style="background:${bg};width:26px;height:26px;font-size:9px">${ini}</div><div><div class="s-name">${s['STUDENT NAME']||'—'}</div><div class="s-meta">${s['STUDENT ID']||''}</div></div></div></td><td><span class="a-name" style="max-width:none">${s['AGENT']||'—'}</span></td><td style="font-size:11px;color:var(--text-muted)">${stage}</td><td>${visaBadge(cs)}</td><td style="text-align:right"><div style="display:flex;gap:4px;justify-content:flex-end"><button class="btn btn-secondary btn-sm" onclick="openStageDrawer('${sid}')">Update</button><button class="btn btn-primary btn-sm" onclick="openDetail('${sid}')">View</button></div></td></tr>`}).join('')}</tbody></table>`;};
+    return`<table class="dt"><thead><tr><th>Student</th><th>Channel Partner</th><th>Stage</th><th>Call status</th><th style="text-align:right">Actions</th></tr></thead><tbody>${list.map(s=>{const sid=esc(s['STUDENT ID']||'');const bg=avatarBg(s['STUDENT NAME']);const ini=initials(s['STUDENT NAME']);const stageIdx=stageCurrent(s);const stage=STAGE_DEFS[stageIdx]?.label||'Complete';const cs=s['PRE-SCREENING CALL STATUS']||'Not Called';return`<tr><td><div class="student-cell"><div class="s-avatar" style="background:${bg};width:26px;height:26px;font-size:9px">${ini}</div><div><div class="s-name">${s['STUDENT NAME']||'—'}</div><div class="s-meta">${s['STUDENT ID']||''}</div></div></div></td><td><span class="a-name" style="max-width:none">${s['AGENT']||'—'}</span></td><td style="font-size:11px;color:var(--text-muted)">${stage}</td><td>${visaBadge(cs)}</td><td style="text-align:right"><div style="display:flex;gap:4px;justify-content:flex-end"><button class="btn btn-secondary btn-sm" onclick="openStageDrawer('${sid}')">Update</button><button class="btn btn-primary btn-sm" onclick="openDetail('${sid}')">View</button></div></td></tr>`}).join('')}</tbody></table>`;};
   c.innerHTML=`<div class="fu-group"><div class="fu-group-header"><span style="width:8px;height:8px;border-radius:50%;background:var(--crimson-500);display:inline-block"></span><span class="fu-group-title">Urgent — not yet called</span><span class="badge badge-red" style="margin-left:4px">${urgent.length}</span></div>${mkTable(urgent)}</div><div class="fu-group"><div class="fu-group-header"><span style="width:8px;height:8px;border-radius:50%;background:var(--amber-500);display:inline-block"></span><span class="fu-group-title">Scheduled</span><span class="badge badge-amber" style="margin-left:4px">${sched.length}</span></div>${mkTable(sched)}</div>`;
 }
 
 /* ═══════════ CAS SHIELD ═══════════ */
 async function loadCAS(){loading('Fetching CAS Shield…');try{const data=await apiGet('getCASShield');if(!data.success)throw new Error(data.error);casData=data.records||[]}catch{casData=getMockCAS()}finally{renderCAS(casData);hideLoading();toast('CAS Shield loaded','success')}}
-function renderCAS(recs){const tb=document.getElementById('cas-table-body');if(!recs.length){tb.innerHTML='<tr><td colspan="13" class="empty-state">No records</td></tr>';return}const yn=(v,warn)=>{if(!v)return'<span class="cas-yn-no">—</span>';const lv=v.toLowerCase().trim();if(lv==='yes'||lv==='y')return warn?`<span class="cas-yn-warn">Yes</span>`:`<span class="cas-yn-yes">Yes</span>`;if(lv==='no'||lv==='n')return'<span class="cas-yn-no">No</span>';return`<span style="font-size:11px">${v}</span>`};tb.innerHTML=recs.map(r=>{const aid=jsStr(r['Applicant ID']||'');return`<tr><td>${r['Applicant ID']||''}</td><td style="font-weight:600;font-size:12px">${r['Applicant Name']||''}</td><td><span class="a-name" style="max-width:none">${r['Agent (Name)']||''}</span></td><td style="font-size:11px;color:var(--text-muted)">${r['Nationality']||''}</td><td style="font-size:11px;color:var(--text-muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Course Name']||''}</td><td>${yn(r['Study Gap Y/N'])}</td><td>${yn(r['Same Level Studies Y/N'])}</td><td>${yn(r['Visa Refusal Y/N'],true)}</td><td>${yn(r['Ready for PCI'])}</td><td>${yn(r['Information check on CAS Shield completed? Y/N'])}</td><td>${yn(r['Pre-CAS questionnaire on CAS shield Completed? Y/N'])}</td><td style="font-size:11px;color:var(--text-muted)">${r['PCI Invite']||'—'}</td><td style="text-align:right"><button class="btn btn-secondary btn-sm" onclick="openCASUpdate('${aid}')">Update</button></td></tr>`}).join('')}
+function renderCAS(recs){const tb=document.getElementById('cas-table-body');if(!recs.length){tb.innerHTML='<tr><td colspan="13" class="empty-state">No records</td></tr>';return}const yn=(v,warn)=>{if(!v)return'<span class="cas-yn-no">—</span>';const lv=v.toLowerCase().trim();if(lv==='yes'||lv==='y')return warn?`<span class="cas-yn-warn">Yes</span>`:`<span class="cas-yn-yes">Yes</span>`;if(lv==='no'||lv==='n')return'<span class="cas-yn-no">No</span>';return`<span style="font-size:11px">${v}</span>`};tb.innerHTML=recs.map(r=>{const aid=esc(r['Applicant ID']||'');return`<tr><td>${r['Applicant ID']||''}</td><td style="font-weight:600;font-size:12px">${r['Applicant Name']||''}</td><td><span class="a-name" style="max-width:none">${r['Agent (Name)']||''}</span></td><td style="font-size:11px;color:var(--text-muted)">${r['Nationality']||''}</td><td style="font-size:11px;color:var(--text-muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Course Name']||''}</td><td>${yn(r['Study Gap Y/N'])}</td><td>${yn(r['Same Level Studies Y/N'])}</td><td>${yn(r['Visa Refusal Y/N'],true)}</td><td>${yn(r['Ready for PCI'])}</td><td>${yn(r['Information check on CAS Shield completed? Y/N'])}</td><td>${yn(r['Pre-CAS questionnaire on CAS shield Completed? Y/N'])}</td><td style="font-size:11px;color:var(--text-muted)">${r['PCI Invite']||'—'}</td><td style="text-align:right"><button class="btn btn-secondary btn-sm" onclick="openCASUpdate('${aid}')">Update</button></td></tr>`}).join('')}
 function filterCAS(){const q=(document.getElementById('cas-search').value||'').toLowerCase();const pci=document.getElementById('cas-filter-pci').value;const visa=document.getElementById('cas-filter-visa').value;renderCAS(casData.filter(r=>(!q||[r['Applicant Name'],r['Applicant ID'],r['Agent (Name)']].some(f=>(f||'').toLowerCase().includes(q)))&&(!pci||(r['Ready for PCI']||'')===pci)&&(!visa||(r['Visa Refusal Y/N']||'')===visa)))}
 function openCASUpdate(aid){const r=casData.find(r=>r['Applicant ID']===aid);if(!r)return;activeCASId=aid;document.getElementById('drw-casupd-sub').textContent=(r['Applicant Name']||'')+' · '+aid;document.getElementById('cup-pci').value=r['Ready for PCI']||'No';document.getElementById('cup-visa-r').value=r['Visa Refusal Y/N']||'No';document.getElementById('cup-info').value=r['Information check on CAS Shield completed? Y/N']||'No';document.getElementById('cup-precas').value=r['Pre-CAS questionnaire on CAS shield Completed? Y/N']||'No';document.getElementById('cup-gap').value=r['Study Gap Y/N']||'No';document.getElementById('cup-same').value=r['Same Level Studies Y/N']||'No';document.getElementById('cup-invite').value=r['PCI Invite']||'';document.getElementById('cup-comment').value=r['Team Comment']||'';openDrawer('drw-cas-update')}
 async function submitCASUpdate(){const u={applicantId:activeCASId,'Ready for PCI':document.getElementById('cup-pci').value,'Visa Refusal Y/N':document.getElementById('cup-visa-r').value,'Information check on CAS Shield completed? Y/N':document.getElementById('cup-info').value,'Pre-CAS questionnaire on CAS shield Completed? Y/N':document.getElementById('cup-precas').value,'Study Gap Y/N':document.getElementById('cup-gap').value,'Same Level Studies Y/N':document.getElementById('cup-same').value,'PCI Invite':document.getElementById('cup-invite').value,'Team Comment':document.getElementById('cup-comment').value,updatedBy:staff.name};try{loading('Saving…');const res=await apiPost('updateCASShield',u);if(!res.success)throw new Error(res.error);const r=casData.find(r=>r['Applicant ID']===activeCASId);if(r)Object.assign(r,u);filterCAS();closeDrawer('drw-cas-update');toast('CAS record updated','success')}catch(e){toast('Failed: '+e.message,'error')}finally{hideLoading()}}
 
 /* ═══════════ FEEDBACK TOOL ═══════════ */
-function fbSearch(q){const el=document.getElementById('fb-lookup');if(!q||q.length<2){el.classList.remove('open');return}const m=students.filter(s=>(s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);el.innerHTML=m.length?m.map(s=>`<div class="lookup-item" onclick="fbSelect('${jsStr(s['STUDENT ID']||'')}')"><div class="lookup-item-name">${s['STUDENT NAME']||'—'}</div><div class="lookup-item-sub">${s['STUDENT ID']||''} · ${s['COURSE']||''}</div></div>`).join(''):'<div style="padding:12px;color:var(--text-muted);font-size:12px;text-align:center">No students found</div>';el.classList.add('open')}
+function fbSearch(q){const el=document.getElementById('fb-lookup');if(!q||q.length<2){el.classList.remove('open');return}const m=students.filter(s=>(s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);el.innerHTML=m.length?m.map(s=>`<div class="lookup-item" onclick="fbSelect('${esc(s['STUDENT ID']||'')}')"><div class="lookup-item-name">${s['STUDENT NAME']||'—'}</div><div class="lookup-item-sub">${s['STUDENT ID']||''} · ${s['COURSE']||''}</div></div>`).join(''):'<div style="padding:12px;color:var(--text-muted);font-size:12px;text-align:center">No students found</div>';el.classList.add('open')}
 function fbSelect(id){const s=students.find(s=>s['STUDENT ID']===id);if(!s)return;fbStudent=s;document.getElementById('fb-sel-name').textContent=s['STUDENT NAME']||id;document.getElementById('fb-sel-sub').textContent=`${s['STUDENT ID']} · ${s['LEVEL']||''} · ${s['COURSE']||''} · ${s['AGENT']||'No partner'}`;document.getElementById('fb-sel').classList.add('show');document.getElementById('fb-search').value='';document.getElementById('fb-lookup').classList.remove('open');fbPreview()}
 function fbClear(){fbStudent=null;document.getElementById('fb-sel').classList.remove('show');document.getElementById('fb-search').value='';fbPreview()}
 function toggleFbManual(){fbManual=!fbManual;document.getElementById('fb-manual').style.display=fbManual?'block':'none';document.getElementById('fb-manual-btn').textContent=fbManual?'✕ Hide':'+ Enter manually';if(fbManual)fbClear()}
@@ -794,7 +785,7 @@ async function fbSave(){const d=getFbData();if(!d?.studentName){toast('Select a 
 function resetFeedback(){fbClear();document.getElementById('fb-text').value='';document.getElementById('fb-recs').value='';document.getElementById('fb-date').value=today();document.getElementById('fb-search').value='';document.getElementById('fb-university').value='';document.getElementById('fb-mockno').value='1';fbQA={};document.querySelectorAll('.qa-toggle').forEach(b=>b.classList.remove('sel-good','sel-bad'));pickPerf(document.querySelector('.perf-opt[data-val="Excellent"]'));document.getElementById('fb-success').classList.remove('show');fbPreview();window.scrollTo({top:0,behavior:'smooth'})}
 
 /* ═══════════ EMAIL ═══════════ */
-function emailSearch(q){const el=document.getElementById('email-lookup');if(!q||q.length<2){el.classList.remove('open');return}const m=students.filter(s=>(s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);el.innerHTML=m.length?m.map(s=>`<div class="lookup-item" onclick="emailSelect('${jsStr(s['STUDENT ID']||'')}')"><div class="lookup-item-name">${s['STUDENT NAME']||'—'}</div><div class="lookup-item-sub">${s['STUDENT ID']||''}</div></div>`).join(''):'<div style="padding:12px;color:var(--text-muted);font-size:12px;text-align:center">No students found</div>';el.classList.add('open')}
+function emailSearch(q){const el=document.getElementById('email-lookup');if(!q||q.length<2){el.classList.remove('open');return}const m=students.filter(s=>(s['STUDENT NAME']||'').toLowerCase().includes(q.toLowerCase())||(s['STUDENT ID']||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);el.innerHTML=m.length?m.map(s=>`<div class="lookup-item" onclick="emailSelect('${esc(s['STUDENT ID']||'')}')"><div class="lookup-item-name">${s['STUDENT NAME']||'—'}</div><div class="lookup-item-sub">${s['STUDENT ID']||''}</div></div>`).join(''):'<div style="padding:12px;color:var(--text-muted);font-size:12px;text-align:center">No students found</div>';el.classList.add('open')}
 function emailSelect(id){const s=students.find(s=>s['STUDENT ID']===id);if(!s)return;emailStudent=s;document.getElementById('email-sel-name').textContent=s['STUDENT NAME']||id;document.getElementById('email-sel-sub').textContent=`${s['STUDENT ID']} · ${s['EMAIL']||'No email on file'}`;document.getElementById('email-sel').classList.add('show');document.getElementById('email-search').value='';document.getElementById('email-lookup').classList.remove('open')}
 function emailClear(){emailStudent=null;document.getElementById('email-sel').classList.remove('show');document.getElementById('email-search').value=''}
 function emailClearForm(){emailClear();['email-subject','email-message'].forEach(id=>document.getElementById(id).value='')}
@@ -1016,7 +1007,7 @@ window.saveStagesOptimized = function() {
   const s = (students||[]).find(s=>s['STUDENT ID']===sid);
   if(!s) return;
   const patch = {};
-  Object.values(stageEdits).forEach(e=>{if(e && e.key != null && e.val != null)patch[e.key]=e.val});
+  Object.values(stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});
   Object.assign(s,patch);
   if(typeof filterTableStudents==='function') filterTableStudents();
   if(typeof updateStats==='function') updateStats();
@@ -1180,167 +1171,3 @@ function openUniDetail(key){
   const colorIdx=uniKeys.indexOf(key);
   const [bg,fg]=uniColor(colorIdx);
   const initials=key.slice(0,3);
-
-  document.getElementById('uni-detail-breadcrumb').textContent=u.title;
-  document.getElementById('uni-detail-title').textContent=u.title;
-  document.getElementById('uni-detail-avatar').textContent=initials;
-  document.getElementById('uni-detail-avatar').style.background=bg;
-  document.getElementById('uni-detail-avatar').style.color=fg;
-
-  // Categories as badges
-  document.getElementById('uni-detail-cats').innerHTML=u.categories.map(c=>
-    `<span class="badge badge-slate" style="font-size:9.5px">${c}</span>`
-  ).join('');
-
-  // Nav buttons
-  const idx=uniKeys.indexOf(key);
-  document.getElementById('uni-prev-btn').disabled=(idx===0);
-  document.getElementById('uni-next-btn').disabled=(idx===uniKeys.length-1);
-
-  // Criteria
-  renderUniCriteria(u);
-
-  // Courses
-  allCurrentCourses=u.courses.filter(c=>c.name&&!c.section&&c.level&&!['Level','Course Level','FEE STRUCTURE','SCHOLARSHIP','Intake'].includes(c.level));
-  document.getElementById('uni-course-count').textContent=allCurrentCourses.length;
-  populateCourseLevelFilter(allCurrentCourses);
-  renderCourseTable(allCurrentCourses);
-
-  // Default tab = criteria
-  showUniDetailTab('criteria');
-}
-
-function renderUniCriteria(u){
-  const grid=document.getElementById('uni-criteria-grid');
-  const c=u.criteria||{};
-  const keys=Object.keys(c);
-
-  // Color coding for criteria types
-  const criteriaColors={
-    'ACADEMIC CRITERIA':'var(--navy-600)',
-    'ENGLISH LANGUAGE CRITERIA':'var(--emerald-600)',
-    'ENGLISH WAIVER CRITERIA':'var(--violet-600)',
-    'FEE STRUCTURE':'var(--gold-700)',
-    'SCHOLARSHIP':'var(--emerald-700)',
-    'GAP':'var(--amber-700)',
-    'CAS Deposit':'var(--sky-700)',
-    'Enrollment Fee':'var(--text-secondary)',
-  };
-
-  if(!keys.length){grid.innerHTML='<div class="empty-state">No criteria data available.</div>';return;}
-
-  grid.innerHTML=keys.map(label=>{
-    const vals=c[label];
-    if(!vals||!vals.length||vals.every(v=>!v))return'';
-    const color=criteriaColors[label]||'var(--text-primary)';
-    const cats=u.categories;
-    // Pair vals with categories if multiple
-    const rows=vals.map((v,i)=>{
-      if(!v&&v!==0)return'';
-      const cat=cats[i]||'';
-      return `<div style="padding:10px 14px;border-bottom:1px solid var(--border-subtle)">
-        ${cat?`<div style="font-size:9px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">${cat}</div>`:''}
-        <div style="font-size:11.5px;color:var(--text-secondary);white-space:pre-wrap;line-height:1.55">${v.trim()}</div>
-      </div>`;
-    }).filter(Boolean).join('');
-    if(!rows)return'';
-    return `<div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:10px 14px;background:var(--surface-inset);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:7px">
-        <div style="width:3px;height:14px;background:${color};border-radius:2px;flex-shrink:0"></div>
-        <span style="font-size:10.5px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:.06em">${label}</span>
-      </div>
-      ${rows}
-    </div>`;
-  }).join('');
-}
-
-function populateCourseLevelFilter(courses){
-  const sel=document.getElementById('course-level-filter');
-  if(!sel)return;
-  const levels=[...new Set(courses.map(c=>c.level).filter(Boolean))].sort();
-  sel.innerHTML='<option value="">All levels</option>'+levels.map(l=>`<option value="${l}">${l}</option>`).join('');
-}
-
-function renderCourseTable(courses){
-  const body=document.getElementById('uni-courses-body');
-  if(!body)return;
-  if(!courses.length){body.innerHTML='<tr><td colspan="5" class="empty-state">No courses found.</td></tr>';return;}
-  body.innerHTML=courses.map(c=>`<tr>
-    <td style="font-weight:500;font-size:12px">${esc(c.name||'')}</td>
-    <td><span class="badge badge-slate" style="font-size:9.5px">${esc(c.level||'')}</span></td>
-    <td style="font-size:11.5px;color:var(--text-muted)">${esc(c.campus||'—')}</td>
-    <td style="font-size:11.5px;color:var(--text-muted)">${esc(c.intake||'')}</td>
-    <td style="font-size:11px;color:var(--amber-700)">${c.extra?esc(c.extra):'—'}</td>
-  </tr>`).join('');
-}
-
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-// ---- Public functions ----
-window.filterUniGrid=function(){renderUniGrid();};
-
-window.setUniFilter=function(f,btn){
-  uniFilter=f;
-  document.querySelectorAll('#view-universities .seg-btn').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  renderUniGrid();
-};
-
-window.showUniList=function(){
-  document.getElementById('uni-list-view').style.display='';
-  document.getElementById('uni-detail-view').style.display='none';
-  currentUniKey=null;
-  updateTopNavState();
-};
-
-window.openUniDetail=openUniDetail;
-
-window.uniNavStep=function(dir){
-  if(!currentUniKey)return;
-  const idx=uniKeys.indexOf(currentUniKey);
-  const next=uniKeys[idx+dir];
-  if(next)openUniDetail(next);
-};
-
-window.showUniDetailTab=function(tab){
-  ['criteria','courses'].forEach(t=>{
-    document.getElementById('uni-panel-'+t).style.display=(t===tab?'':'none');
-    const btn=document.getElementById('udctab-'+t);
-    if(btn){btn.classList.toggle('active',t===tab);}
-  });
-};
-
-window.filterCourses=function(){
-  const q=(document.getElementById('course-search-input')?.value||'').toLowerCase();
-  const lvl=(document.getElementById('course-level-filter')?.value||'');
-  const filtered=allCurrentCourses.filter(c=>{
-    const matchQ=!q||(c.name||'').toLowerCase().includes(q);
-    const matchL=!lvl||c.level===lvl;
-    return matchQ&&matchL;
-  });
-  renderCourseTable(filtered);
-};
-
-// Hook into switchView
-const _origSwitchView=window.switchView;
-window.switchView=function(view,el){
-  if(view==='universities'){
-    // Call original first to handle sidebar active state
-    if(_origSwitchView)_origSwitchView.call(this,view,el);
-    // Then init uni grid
-    showUniList();
-    renderUniGrid();
-    return;
-  }
-  if(_origSwitchView)_origSwitchView.call(this,view,el);
-};
-
-// Also init if already on universities view
-document.addEventListener('DOMContentLoaded',function(){
-  if(document.querySelector('.sb-link[data-view="universities"]')){
-    // Pre-load data
-    loadUniData();
-  }
-});
-
-})();
