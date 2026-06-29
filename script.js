@@ -395,15 +395,25 @@ function hideMenu(){document.getElementById('row-menu').classList.remove('show')
 
 /* ═══════════ STAGE PIPELINE DRAWER ═══════════ */
 function openStageDrawer(sid){
-  const s=students.find(s=>s['STUDENT ID']===sid);if(!s){toast('Student not found','error');return}
-  activeStudentId=sid;stageEdits={};
-  document.getElementById('drw-stage-sub').textContent=(s['STUDENT NAME']||sid)+' · '+sid;
-  renderStagePipeline(s);openDrawer('drw-stage');
+  // Type-safe: Google Sheets sometimes returns numeric IDs
+  const sidStr=String(sid||'').trim();
+  const s=students.find(s=>String(s['STUDENT ID']||'').trim()===sidStr);
+  if(!s){
+    toast('Student not found (ID: '+sidStr+')','error');
+    console.error('[StageDrawer] sid=',sid,'available IDs=',students.map(x=>x['STUDENT ID']));
+    return;
+  }
+  activeStudentId=sidStr;
+  stageEdits={};
+  document.getElementById('drw-stage-sub').textContent=(s['STUDENT NAME']||sidStr)+' \u00b7 '+sidStr;
+  renderStagePipeline(s);
+  openDrawer('drw-stage');
 }
 function renderStagePipeline(s){
-  const wrap=document.getElementById('stage-pipeline-content');wrap.innerHTML='';
-  // Merge any not-yet-saved edits on top of the stored record so re-renders
-  // (e.g. triggered by pickMockStage) never wipe out values the user already typed/picked.
+  const wrap=document.getElementById('stage-pipeline-content');
+  if(!wrap){console.error('[renderStagePipeline] stage-pipeline-content not found');return;}
+  if(!s){console.error('[renderStagePipeline] no student passed');wrap.innerHTML='<div style="padding:20px;color:red">Error: No student data</div>';return;}
+  wrap.innerHTML='';
   const pending={};
   Object.values(stageEdits||{}).forEach(e=>{if(e&&e.key)pending[e.key]=e.val});
   const merged=Object.assign({},s,pending);
@@ -420,21 +430,28 @@ function renderStagePipeline(s){
     let contentHTML=`<div class="stage-title">${sd.label}</div>`;
     if(isDone&&curVal)contentHTML+=`<div class="stage-current-val">✓ ${curVal}</div>`;
     if(!isDone&&!isLocked&&curVal)contentHTML+=`<div class="stage-current-val">${curVal}</div>`;
-    if(isLocked){contentHTML+=`<div class="stage-locked-msg">Complete "${STAGE_DEFS[i-1]?.label||'previous stage'}" first to unlock this stage.</div>`}
-    else{
-      if(sd.type==='date'){contentHTML+=`<div style="margin-top:6px"><input type="date" class="form-control" style="max-width:180px" value="${esc(curVal)}" data-stage-idx="${i}" data-stage-key="${esc(sd.key)}" oninput="stageEdits[${i}]={key:'${esc(sd.key)}',val:this.value}"></div>`}
-      else if(sd.type==='select'){
-        contentHTML+=`<div class="stage-options">`;
-        sd.options.forEach(opt=>{const isSel=curVal===opt.val;contentHTML+=`<div class="stage-opt${isSel?' selected':''}" onclick="pickStageOpt(this,${i},'${esc(sd.key)}','${esc(opt.val)}')"><span class="stage-opt-icon">${opt.icon}</span>${opt.val}</div>`});
-        contentHTML+=`</div>`;
-      }else if(sd.type==='mock_stages'){
-        const curLevel=MOCK_STAGES.indexOf(curVal);
-        contentHTML+=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${sd.desc}</div><div class="stage-options">`;
-        MOCK_STAGES.forEach((ms,mi)=>{const isSel=curVal===ms;const mockUnlocked=mi===0||curLevel>=mi-1;contentHTML+=`<div class="stage-opt${isSel?' selected':''}${!mockUnlocked?' locked-row':''}" onclick="pickMockStage(this,${i},'${esc(ms)}',${mi},${curLevel})" style="${!mockUnlocked?'opacity:.4;pointer-events:none':''}"><span class="stage-opt-icon">${isSel||curLevel>=mi?'✅':'⭕'}</span>Mock ${ms}</div>`});
-        contentHTML+=`</div>`;
-      }
-      contentHTML+=`<div class="stage-notes"><label>Notes (optional)</label><textarea placeholder="Add notes…" id="stage-note-${i}" data-note-key="${esc(noteKey)}" oninput="stageEdits['note_${i}']={key:'${esc(noteKey)}',val:this.value}">${escHtml(noteVal)}</textarea></div>`;
+    // Show lock warning but STILL show inputs (just dimmed) so user can override
+    if(isLocked){
+      contentHTML+=`<div class="stage-locked-msg">⚠ Previous stage not complete — editing anyway is allowed.</div>`;
     }
+    // Always render inputs regardless of locked state
+    const disabledAttr=isLocked?'style="opacity:.5"':'';
+    if(sd.type==='date'){
+      // Normalize date value for input[type=date] — needs YYYY-MM-DD
+      let dateVal=curVal;
+      if(dateVal){const dp=new Date(dateVal);if(!isNaN(dp.getTime()))dateVal=dp.toISOString().split('T')[0];}
+      contentHTML+=`<div style="margin-top:6px" ${disabledAttr}><input type="date" class="form-control" style="max-width:180px" value="${esc(dateVal)}" data-stage-idx="${i}" data-stage-key="${esc(sd.key)}" oninput="stageEdits[${i}]={key:'${esc(sd.key)}',val:this.value}"></div>`;
+    } else if(sd.type==='select'){
+      contentHTML+=`<div class="stage-options" ${disabledAttr}>`;
+      sd.options.forEach(opt=>{const isSel=curVal===opt.val;contentHTML+=`<div class="stage-opt${isSel?' selected':''}" onclick="${isLocked?'':'pickStageOpt(this,'+i+',\''+esc(sd.key)+'\',\''+esc(opt.val)+'\')'}"><span class="stage-opt-icon">${opt.icon}</span>${opt.val}</div>`});
+      contentHTML+=`</div>`;
+    } else if(sd.type==='mock_stages'){
+      const curLevel=MOCK_STAGES.indexOf(curVal);
+      contentHTML+=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${sd.desc}</div><div class="stage-options" ${disabledAttr}>`;
+      MOCK_STAGES.forEach((ms,mi)=>{const isSel=curVal===ms;const mockUnlocked=mi===0||curLevel>=mi-1;contentHTML+=`<div class="stage-opt${isSel?' selected':''}${!mockUnlocked?' locked-row':''}" onclick="${mockUnlocked&&!isLocked?'pickMockStage(this,'+i+',\''+esc(ms)+'\','+mi+','+curLevel+')':''}" style="${!mockUnlocked?'opacity:.4;pointer-events:none':''}"><span class="stage-opt-icon">${isSel||curLevel>=mi?'✅':'⭕'}</span>Mock ${ms}</div>`});
+      contentHTML+=`</div>`;
+    }
+    contentHTML+=`<div class="stage-notes"><label>Notes (optional)</label><textarea placeholder="Add notes…" id="stage-note-${i}" data-note-key="${esc(noteKey)}" oninput="stageEdits['note_${i}']={key:'${esc(noteKey)}',val:this.value}">${escHtml(noteVal)}</textarea></div>`;
     step.innerHTML=`<div class="stage-node">${nodeInner}</div><div class="stage-content">${contentHTML}</div>`;
     wrap.appendChild(step);
   });
@@ -458,7 +475,8 @@ async function saveStages(){
 
 /* ═══════════ STUDENT DETAIL ═══════════ */
 function openDetail(sid){
-  const s=students.find(s=>s['STUDENT ID']===sid);if(!s){toast('Student not found: '+sid,'error');return}
+  const sidStr=String(sid||'').trim();
+  const s=students.find(s=>String(s['STUDENT ID']||'').trim()===sidStr);sid=sidStr;if(!s){toast('Student not found: '+sid,'error');return}
   detailStudentId=sid;
   document.getElementById('detail-breadcrumb-name').textContent=s['STUDENT NAME']||sid;
   document.getElementById('detail-name').textContent=s['STUDENT NAME']||'Unknown Student';
@@ -1030,8 +1048,8 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 window.saveStagesOptimized = function() {
   if(!Object.keys(stageEdits||{}).length){closeDrawer('drw-stage');toast('No changes to save','info');return}
   const sid = activeStudentId;
-  const s = (students||[]).find(s=>s['STUDENT ID']===sid);
-  if(!s){toast('Student not found','error');return}
+  const s = (students||[]).find(s=>String(s['STUDENT ID']||'').trim()===String(sid||'').trim());
+  if(!s){toast('Student not found (ID: '+sid+')','error');return}
   const patch = {};
   Object.values(stageEdits).forEach(e=>{
     // Allow empty string (clearing a field) but skip null/undefined
