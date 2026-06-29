@@ -605,105 +605,166 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 }
 .btn-edit-large:hover { background: var(--navy-600); transform: translateY(-1px); }
 .btn-edit-large svg { color: var(--gold-400); }
+/* ════════════════════════════════════════════════════════════════
+   DASHBOARD + REPORTS REVAMP
+   Append this block to the END of style.css (after line 710).
+   It overrides/extends the existing KPI, pipeline, table and report
+   rules — nothing above needs to be deleted.
+════════════════════════════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════
-   TOP-NAV — fixed Back/Home, every page
-══════════════════════════════════════════ */
-.topnav-group{display:flex;align-items:center;gap:6px;flex-shrink:0;padding-right:6px;margin-right:2px;border-right:1px solid var(--border-subtle)}
-.topnav-circle-btn{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--surface-card);border:1px solid var(--border-default);
+/* ── KPI CARDS v2 — icon chip, tint, trend pill ───────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi-card{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 18px;border-radius:var(--r-lg);
+  border:1px solid var(--kpi-border,var(--border-subtle));
+  background:var(--kpi-bg,var(--surface-card));
+  box-shadow:var(--shadow-xs);
+  transition:box-shadow .15s,transform .15s;
+  overflow:visible;
+}
+.kpi-card::after{content:none} /* retire old top-accent bar */
+.kpi-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+
+.kpi-icon{
+  width:42px;height:42px;flex-shrink:0;border-radius:11px;
   display:flex;align-items:center;justify-content:center;
-  color:var(--text-tertiary);cursor:pointer;transition:all .14s;
-  box-shadow:var(--shadow-xs);flex-shrink:0;
+  background:var(--kpi-icon-bg,var(--navy-50));
+  color:var(--kpi-icon-fg,var(--navy-600));
 }
-.topnav-circle-btn:hover:not(:disabled){border-color:var(--navy-400);color:var(--navy-700);background:var(--navy-50);box-shadow:var(--shadow-sm)}
-.topnav-circle-btn:disabled{opacity:.35;cursor:not-allowed}
-#topnav-home-btn{background:var(--navy-800);border-color:var(--navy-800);color:var(--gold-300)}
-#topnav-home-btn:hover{background:var(--navy-700);color:var(--gold-200)}
-.hdr-hamburger{display:none}
+.kpi-icon svg{width:19px;height:19px}
 
-/* ══════════════════════════════════════════
-   UNIVERSITY CARD V2 — bento layout
-══════════════════════════════════════════ */
-#uni-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;padding:4px 0 24px}
-.uni-card{
-  background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);
-  box-shadow:var(--shadow-xs);overflow:hidden;display:flex;flex-direction:column;
-  transition:box-shadow .18s ease,transform .18s ease;
+.kpi-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi-label{
+  font-size:9.5px;font-weight:700;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.09em;margin-bottom:0;
+  order:2;
 }
-.uni-card.hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
-.uni-card-band{position:relative;padding:16px 16px 14px;border-bottom:1px solid var(--border-subtle)}
-.uni-loc-pill{
-  position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:4px;
-  background:var(--navy-800);color:var(--gold-200);font-size:9px;font-weight:700;
-  letter-spacing:.03em;border-radius:99px;padding:4px 9px 4px 7px;
-  max-width:124px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+.kpi-val-row{display:flex;align-items:baseline;gap:8px;order:1}
+.kpi-val{font-size:22px;font-weight:800;line-height:1.1;letter-spacing:-.03em;color:var(--text-primary)}
+.kpi-trend{
+  display:inline-flex;align-items:center;gap:2px;
+  font-size:10.5px;font-weight:700;
+  color:var(--emerald-600);
 }
-.uni-loc-pill svg{flex-shrink:0}
-.uni-card-id{
-  width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:800;letter-spacing:.03em;margin-bottom:10px;
-}
-.uni-card-title{
-  font-size:13px;font-weight:700;color:var(--text-primary);line-height:1.32;
-  margin-bottom:8px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px;
-}
-.uni-card-cats{display:flex;gap:4px;flex-wrap:wrap}
-.uni-bento{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-subtle)}
-.uni-bento-tile{background:var(--surface-card);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;min-width:0}
-.uni-bento-icon{
-  width:24px;height:24px;border-radius:7px;background:var(--navy-50);color:var(--navy-600);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.uni-bento-label{font-size:8.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
-.uni-bento-val{font-size:11px;font-weight:700;color:var(--text-primary);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.uni-card-actions{display:flex;gap:8px;padding:12px;margin-top:auto;border-top:1px solid var(--border-subtle)}
-.uni-act-btn{flex:1;justify-content:center}
+.kpi-trend.down{color:var(--crimson-500)}
+.kpi-trend.flat{color:var(--text-muted)}
+.kpi-sub{order:3;font-size:10.5px;font-weight:500;color:var(--text-muted);margin-top:1px}
 
-/* ══════════════════════════════════════════
-   RESPONSIVE — sidebar drawer + stacked layouts
-══════════════════════════════════════════ */
-#sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(3,13,26,.55);z-index:49;backdrop-filter:blur(2px)}
-#sidebar-backdrop.show{display:block}
+/* tint variants — apply by adding modifier class to .kpi-card */
+.kpi-blue{--kpi-bg:#F4F8FF;--kpi-border:#E1ECFE;--kpi-icon-bg:#DCE9FF;--kpi-icon-fg:#2563EB}
+.kpi-green{--kpi-bg:#F2FBF6;--kpi-border:#DCF3E6;--kpi-icon-bg:#D7F4E3;--kpi-icon-fg:#16A34A}
+.kpi-amber{--kpi-bg:#FFF9F0;--kpi-border:#FBEBD3;--kpi-icon-bg:#FCEBD0;--kpi-icon-fg:#D97706}
+.kpi-violet{--kpi-bg:#F8F6FF;--kpi-border:#ECE6FE;--kpi-icon-bg:#EAE2FE;--kpi-icon-fg:#7C3AED}
 
-@media (max-width: 900px){
-  :root{--sidebar-w:248px}
-  #sidebar{transform:translateX(-100%);transition:transform .22s ease;box-shadow:var(--shadow-xl)}
-  #sidebar.mobile-open{transform:translateX(0)}
-  #app-main{margin-left:0}
-  #app-content{padding:14px 14px 24px}
-  .hdr-hamburger{display:flex}
-  .hdr-search{display:none}
-  #app-header{padding:0 12px;gap:8px}
-  .topnav-group{padding-right:4px;margin-right:0}
+/* ── REPORTS HEADER STRIP (Live · date · Export CSV) ──────────── */
+.rpt-topbar{
+  display:flex;align-items:center;gap:14px;margin-bottom:16px;
+}
+.rpt-live{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;color:var(--emerald-700);
+  background:var(--emerald-50);border:1px solid var(--emerald-100);
+  border-radius:99px;padding:4px 10px 4px 8px;
+}
+.rpt-live-dot{width:6px;height:6px;border-radius:50%;background:var(--emerald-500);animation:pulseGold 1.6s ease-in-out infinite}
+.rpt-timestamp{font-size:11.5px;color:var(--text-muted);font-weight:500}
+.rpt-topbar-spacer{margin-left:auto;display:flex;gap:8px}
 
-  .pipeline-row,.detail-layout{grid-template-columns:1fr!important}
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
-  .report-stat-grid{grid-template-columns:repeat(2,1fr)}
-  .perf-grid{grid-template-columns:repeat(2,1fr)}
-  .form-row-2,[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
-  .page-header{flex-wrap:wrap;gap:10px}
-  .page-header > div:last-child{width:100%;flex-wrap:wrap}
-  .filter-bar{flex-wrap:wrap}
-  .doc-preview-wrap{position:static}
-  #uni-grid{grid-template-columns:1fr}
-}
+/* ── PIPELINE FUNNEL + DISTRIBUTION + STAGE OVERVIEW ROW ──────── */
+.reports-row{display:grid;grid-template-columns:1.05fr 0.85fr 1.1fr;gap:14px;margin-bottom:18px;align-items:stretch}
+@media (max-width:1280px){.reports-row{grid-template-columns:1fr}}
 
-@media (max-width: 480px){
-  .uni-bento{grid-template-columns:1fr}
-  .uni-card-actions{flex-direction:column}
-  .detail-top{flex-direction:column;align-items:stretch}
-  .detail-actions{flex-wrap:wrap}
-  .kpi-grid{grid-template-columns:1fr}
-  .report-stat-grid{grid-template-columns:1fr}
-}
+.rpt-panel{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);box-shadow:var(--shadow-xs);display:flex;flex-direction:column}
+.rpt-panel-head{padding:14px 18px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-subtle)}
+.rpt-panel-icon{width:26px;height:26px;border-radius:7px;background:var(--navy-50);color:var(--navy-600);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rpt-panel-icon svg{width:13px;height:13px}
+.rpt-panel-title{font-size:12.5px;font-weight:700;color:var(--text-primary)}
+.rpt-panel-sub{font-size:10.5px;color:var(--text-muted);margin-top:1px}
+.rpt-panel-body{padding:16px 18px;flex:1;display:flex;flex-direction:column}
+.rpt-panel-select{margin-left:auto;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--surface-muted);border:1px solid var(--border-default);border-radius:var(--r-sm);padding:4px 8px;cursor:pointer}
 
-/* ── ACCESSIBILITY / QUALITY FLOOR ── */
-.topnav-circle-btn:focus-visible,.hdr-hamburger:focus-visible,.uni-act-btn:focus-visible{
-  outline:2px solid var(--gold-400);outline-offset:2px;
+/* funnel rows inside the panel (reuse .funnel-item but tighten) */
+.rpt-panel .funnel-item{grid-template-columns:122px 1fr 28px;gap:12px}
+.rpt-panel .funnel-bar-track{height:6px;border-radius:3px}
+.rpt-panel .funnel-bar-fill{border-radius:3px;background:linear-gradient(90deg,#1D4ED8,#3B82F6)}
+
+/* ── DONUT CHART (Pipeline Distribution) ───────────────────────── */
+.donut-wrap{display:flex;align-items:center;gap:18px;flex:1}
+.donut-chart{
+  position:relative;width:148px;height:148px;flex-shrink:0;border-radius:50%;
+  background:conic-gradient(var(--donut-stops, #E5E7EB 0deg 360deg));
 }
-@media (prefers-reduced-motion: reduce){
-  .uni-card,#sidebar,.toast,.login-card{transition:none!important;animation:none!important}
+.donut-chart::before{
+  content:'';position:absolute;inset:20px;border-radius:50%;
+  background:var(--surface-card);box-shadow:inset 0 0 0 1px var(--border-subtle);
 }
+.donut-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;z-index:1;
+}
+.donut-center-val{font-size:24px;font-weight:800;color:var(--text-primary);line-height:1}
+.donut-center-lbl{font-size:10px;color:var(--text-muted);font-weight:600;margin-top:2px}
+
+.donut-legend{display:flex;flex-direction:column;gap:9px;flex:1;min-width:0}
+.donut-legend-row{display:flex;align-items:center;gap:8px}
+.donut-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.donut-legend-name{flex:1;font-size:11.5px;color:var(--text-secondary);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.donut-legend-num{font-size:11.5px;font-weight:700;color:var(--text-primary)}
+
+/* ── LINE / AREA CHART (Pipeline Stage Overview) ───────────────── */
+.linechart-wrap{flex:1;display:flex;flex-direction:column;min-height:180px}
+.linechart-svg{width:100%;height:100%;overflow:visible}
+.linechart-area{fill:url(#lineAreaGradient);opacity:.9}
+.linechart-line{fill:none;stroke:#3B82F6;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+.linechart-dot{fill:#3B82F6;stroke:#fff;stroke-width:2}
+.linechart-dot-label{font-size:10px;font-weight:700;fill:var(--text-primary)}
+.linechart-axis-label{font-size:9px;fill:var(--text-muted);font-weight:600;text-transform:uppercase}
+
+/* ── STUDENT RECORDS TABLE (dot pipeline + dark pill) ──────────── */
+.tbl-card .tbl-header{padding:14px 18px}
+table.dt thead th{font-size:9.5px}
+.pl-cell{gap:3px}
+.pl-dot{width:6px;height:6px}
+.pl-score{font-size:10.5px;font-weight:700;color:var(--text-secondary)}
+
+.btn-edit-large{
+  background:var(--navy-900);border-radius:99px;padding:6px 16px;
+  font-size:11px;font-weight:600;letter-spacing:.01em;
+  box-shadow:none;
+}
+.btn-edit-large:hover{background:var(--navy-700);transform:none}
+.btn-edit-large svg{display:none} /* reference design has no icon in the pill */
+
+/* ── CHANNEL PARTNERS SIDE PANEL (Reports page) ────────────────── */
+.cp-side-card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);box-shadow:var(--shadow-xs);overflow:hidden}
+.cp-side-head{padding:14px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:flex-start;justify-content:space-between}
+.cp-side-title{font-size:13px;font-weight:700;color:var(--text-primary)}
+.cp-side-sub{font-size:10.5px;color:var(--text-muted);margin-top:2px}
+.cp-side-list{display:flex;flex-direction:column;max-height:420px;overflow-y:auto}
+.cp-side-row{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border-subtle)}
+.cp-side-row:last-child{border-bottom:none}
+.cp-side-avatar{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:var(--navy-50);color:var(--navy-700)}
+.cp-side-name{font-size:12px;font-weight:700;color:var(--text-primary)}
+.cp-side-type{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;font-weight:600}
+.cp-side-stats{margin-left:auto;display:flex;gap:14px;text-align:right}
+.cp-side-stat-val{font-size:12.5px;font-weight:700;color:var(--text-primary);line-height:1.1}
+.cp-side-stat-lbl{font-size:8.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
+.cp-side-foot{padding:11px 18px;border-top:1px solid var(--border-subtle);text-align:center}
+.cp-side-foot a{font-size:11.5px;font-weight:600;color:var(--navy-700);text-decoration:none}
+.cp-side-foot a:hover{color:var(--gold-600)}
+
+/* ── REPORTS PAGE — secondary status panels (Offer/Visa/CAS/etc.) ── */
+.rpt-status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+@media (max-width:1100px){.rpt-status-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:700px){.rpt-status-grid{grid-template-columns:1fr}}
+.rpt-status-card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);box-shadow:var(--shadow-xs);padding:16px 18px}
+.rpt-status-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rpt-status-head .rpt-panel-title{font-size:12.5px}
+.rpt-status-total{font-size:10.5px;color:var(--text-muted);font-weight:600}
+.rpt-status-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.rpt-status-row:last-child{margin-bottom:0}
+.rpt-status-label{width:96px;flex-shrink:0;font-size:11px;color:var(--text-tertiary);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rpt-status-track{flex:1;height:6px;border-radius:3px;background:var(--surface-inset);overflow:hidden}
+.rpt-status-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.rpt-status-num{width:18px;flex-shrink:0;text-align:right;font-size:11px;font-weight:700;color:var(--text-secondary)}
