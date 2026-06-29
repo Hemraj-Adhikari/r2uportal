@@ -491,3 +491,271 @@ try{const data=await window.apiGetCached('getStudents',{page:1,limit:100});if(da
 window.searchStudentsLocal=function(query){const q=(query||'').toLowerCase();if(!q)return window.students||[];return(window.students||[]).filter(s=>['STUDENT NAME','STUDENT ID','COURSE','AGENT'].some(f=>(s[f]||'').toLowerCase().includes(q)))};
 console.log('[R2U perf patch v2] loaded');
 })();
+
+// ============================================================
+// PARTNER UNIVERSITIES MODULE — Native CRM View
+// ============================================================
+(function(){
+'use strict';
+
+// ---- Colour palette for uni avatars ----
+const UNI_COLORS=[
+  ['#1E3A5F','#E8C84E'],['#6B3FA0','#F0E6FF'],['#1A5C38','#D1FAE5'],
+  ['#7C2D12','#FEE2E2'],['#0C4A6E','#BAE6FD'],['#4C1D95','#EDE9FE'],
+  ['#134E4A','#CCFBF1'],['#713F12','#FEF3C7'],['#831843','#FCE7F3'],
+  ['#064E3B','#A7F3D0'],['#1E40AF','#DBEAFE'],['#9D174D','#FCE7F3'],
+];
+
+function uniColor(idx){return UNI_COLORS[idx%UNI_COLORS.length];}
+
+// ---- Data ----
+let UNI_DATA={};
+let uniKeys=[];
+let currentUniKey=null;
+let uniFilter='all';
+let allCurrentCourses=[];
+
+function loadUniData(){
+  if(Object.keys(UNI_DATA).length)return;
+  try{
+    const el=document.getElementById('uni-rawdata');
+    if(el)UNI_DATA=JSON.parse(el.textContent);
+    uniKeys=Object.keys(UNI_DATA);
+  }catch(e){console.error('Uni data load error',e);}
+}
+
+// ---- Grid render ----
+function renderUniGrid(){
+  loadUniData();
+  const q=(document.getElementById('uni-search-input')?.value||'').toLowerCase().trim();
+  const grid=document.getElementById('uni-grid');
+  if(!grid)return;
+
+  const filtered=uniKeys.filter(k=>{
+    const u=UNI_DATA[k];
+    const matchFilter=uniFilter==='all'||u.categories.some(c=>c.toUpperCase().includes(uniFilter));
+    if(!matchFilter)return false;
+    if(!q)return true;
+    // search title + courses
+    if(u.title.toLowerCase().includes(q))return true;
+    return u.courses.some(c=>c.name&&c.name.toLowerCase().includes(q));
+  });
+
+  document.getElementById('uni-total-count').textContent=filtered.length;
+
+  if(!filtered.length){
+    grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;padding:40px">No universities found for your search.</div>';
+    return;
+  }
+
+  grid.innerHTML=filtered.map((k,i)=>{
+    const u=UNI_DATA[k];
+    const [bg,fg]=uniColor(uniKeys.indexOf(k));
+    const courseCount=u.courses.filter(c=>c.name&&!c.section).length;
+    const cats=u.categories.slice(0,2).map(c=>`<span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:var(--slate-100);color:var(--text-muted);border-radius:4px;padding:2px 6px">${c}</span>`).join('');
+    const initials=k.slice(0,3);
+    // Fee from criteria
+    const fee=(u.criteria&&u.criteria['FEE STRUCTURE']&&u.criteria['FEE STRUCTURE'][0])||'';
+    const feeShort=fee?fee.split('\n')[0].trim().substring(0,20):'';
+    const ielts=(u.criteria&&u.criteria['ENGLISH LANGUAGE CRITERIA']&&u.criteria['ENGLISH LANGUAGE CRITERIA'][0])||'';
+    const ieltsShort=ielts.match(/IELTS:\s*[\d.]+/i)?ielts.match(/IELTS:\s*[\d.]+/i)[0]:'';
+
+    return `<div class="card" style="cursor:pointer;transition:box-shadow .15s,transform .15s;padding:0;overflow:hidden" onclick="openUniDetail('${k}')" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+      <div style="height:6px;background:${bg}"></div>
+      <div style="padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:40px;height:40px;border-radius:8px;background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.04em;flex-shrink:0">${initials}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:var(--text-primary);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${u.title}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">${cats}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border-subtle)">
+          <div style="display:flex;gap:12px">
+            <div><div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Courses</div><div style="font-size:13px;font-weight:700;color:var(--navy-700)">${courseCount}</div></div>
+            ${feeShort?`<div><div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Fee from</div><div style="font-size:11px;font-weight:700;color:var(--text-primary)">${feeShort}</div></div>`:''}
+            ${ieltsShort?`<div><div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">IELTS</div><div style="font-size:11px;font-weight:600;color:var(--text-secondary)">${ieltsShort.replace('IELTS:','').trim()}</div></div>`:''}
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- Detail view ----
+function openUniDetail(key){
+  loadUniData();
+  currentUniKey=key;
+  const u=UNI_DATA[key];
+  if(!u)return;
+
+  document.getElementById('uni-list-view').style.display='none';
+  document.getElementById('uni-detail-view').style.display='block';
+
+  const colorIdx=uniKeys.indexOf(key);
+  const [bg,fg]=uniColor(colorIdx);
+  const initials=key.slice(0,3);
+
+  document.getElementById('uni-detail-breadcrumb').textContent=u.title;
+  document.getElementById('uni-detail-title').textContent=u.title;
+  document.getElementById('uni-detail-avatar').textContent=initials;
+  document.getElementById('uni-detail-avatar').style.background=bg;
+  document.getElementById('uni-detail-avatar').style.color=fg;
+
+  // Categories as badges
+  document.getElementById('uni-detail-cats').innerHTML=u.categories.map(c=>
+    `<span class="badge badge-slate" style="font-size:9.5px">${c}</span>`
+  ).join('');
+
+  // Nav buttons
+  const idx=uniKeys.indexOf(key);
+  document.getElementById('uni-prev-btn').disabled=(idx===0);
+  document.getElementById('uni-next-btn').disabled=(idx===uniKeys.length-1);
+
+  // Criteria
+  renderUniCriteria(u);
+
+  // Courses
+  allCurrentCourses=u.courses.filter(c=>c.name&&!c.section&&c.level&&c.level.length>2&&!['Level','Course Level','FEE STRUCTURE'].includes(c.level));
+  document.getElementById('uni-course-count').textContent=allCurrentCourses.length;
+  populateCourseLevelFilter(allCurrentCourses);
+  renderCourseTable(allCurrentCourses);
+
+  // Default tab = criteria
+  showUniDetailTab('criteria');
+}
+
+function renderUniCriteria(u){
+  const grid=document.getElementById('uni-criteria-grid');
+  const c=u.criteria||{};
+  const keys=Object.keys(c);
+
+  // Color coding for criteria types
+  const criteriaColors={
+    'ACADEMIC CRITERIA':'var(--navy-600)',
+    'ENGLISH LANGUAGE CRITERIA':'var(--emerald-600)',
+    'ENGLISH WAIVER CRITERIA':'var(--violet-600)',
+    'FEE STRUCTURE':'var(--gold-700)',
+    'SCHOLARSHIP':'var(--emerald-700)',
+    'GAP':'var(--amber-700)',
+    'CAS Deposit':'var(--sky-700)',
+    'Enrollment Fee':'var(--text-secondary)',
+  };
+
+  if(!keys.length){grid.innerHTML='<div class="empty-state">No criteria data available.</div>';return;}
+
+  grid.innerHTML=keys.map(label=>{
+    const vals=c[label];
+    if(!vals||!vals.length||vals.every(v=>!v))return'';
+    const color=criteriaColors[label]||'var(--text-primary)';
+    const cats=u.categories;
+    // Pair vals with categories if multiple
+    const rows=vals.map((v,i)=>{
+      if(!v&&v!==0)return'';
+      const cat=cats[i]||'';
+      return `<div style="padding:10px 14px;border-bottom:1px solid var(--border-subtle)">
+        ${cat?`<div style="font-size:9px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">${cat}</div>`:''}
+        <div style="font-size:11.5px;color:var(--text-secondary);white-space:pre-wrap;line-height:1.55">${v.trim()}</div>
+      </div>`;
+    }).filter(Boolean).join('');
+    if(!rows)return'';
+    return `<div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:10px 14px;background:var(--surface-inset);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:7px">
+        <div style="width:3px;height:14px;background:${color};border-radius:2px;flex-shrink:0"></div>
+        <span style="font-size:10.5px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:.06em">${label}</span>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function populateCourseLevelFilter(courses){
+  const sel=document.getElementById('course-level-filter');
+  if(!sel)return;
+  const levels=[...new Set(courses.map(c=>c.level).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All levels</option>'+levels.map(l=>`<option value="${l}">${l}</option>`).join('');
+}
+
+function renderCourseTable(courses){
+  const body=document.getElementById('uni-courses-body');
+  if(!body)return;
+  if(!courses.length){body.innerHTML='<tr><td colspan="5" class="empty-state">No courses found.</td></tr>';return;}
+  body.innerHTML=courses.map(c=>`<tr>
+    <td style="font-weight:500;font-size:12px">${esc(c.name||'')}</td>
+    <td><span class="badge badge-slate" style="font-size:9.5px">${esc(c.level||'')}</span></td>
+    <td style="font-size:11.5px;color:var(--text-muted)">${esc(c.campus||'—')}</td>
+    <td style="font-size:11.5px;color:var(--text-muted)">${esc(c.intake||'')}</td>
+    <td style="font-size:11px;color:var(--amber-700)">${c.extra?esc(c.extra):'—'}</td>
+  </tr>`).join('');
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ---- Public functions ----
+window.filterUniGrid=function(){renderUniGrid();};
+
+window.setUniFilter=function(f,btn){
+  uniFilter=f;
+  document.querySelectorAll('#view-universities .seg-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderUniGrid();
+};
+
+window.showUniList=function(){
+  document.getElementById('uni-list-view').style.display='';
+  document.getElementById('uni-detail-view').style.display='none';
+  currentUniKey=null;
+};
+
+window.openUniDetail=openUniDetail;
+
+window.uniNavStep=function(dir){
+  if(!currentUniKey)return;
+  const idx=uniKeys.indexOf(currentUniKey);
+  const next=uniKeys[idx+dir];
+  if(next)openUniDetail(next);
+};
+
+window.showUniDetailTab=function(tab){
+  ['criteria','courses'].forEach(t=>{
+    document.getElementById('uni-panel-'+t).style.display=(t===tab?'':'none');
+    const btn=document.getElementById('udctab-'+t);
+    if(btn){btn.classList.toggle('active',t===tab);}
+  });
+};
+
+window.filterCourses=function(){
+  const q=(document.getElementById('course-search-input')?.value||'').toLowerCase();
+  const lvl=(document.getElementById('course-level-filter')?.value||'');
+  const filtered=allCurrentCourses.filter(c=>{
+    const matchQ=!q||(c.name||'').toLowerCase().includes(q);
+    const matchL=!lvl||c.level===lvl;
+    return matchQ&&matchL;
+  });
+  renderCourseTable(filtered);
+};
+
+// Hook into switchView
+const _origSwitchView=window.switchView;
+window.switchView=function(view,el){
+  if(view==='universities'){
+    // Call original first to handle sidebar active state
+    if(_origSwitchView)_origSwitchView.call(this,view,el);
+    // Then init uni grid
+    showUniList();
+    renderUniGrid();
+    return;
+  }
+  if(_origSwitchView)_origSwitchView.call(this,view,el);
+};
+
+// Also init if already on universities view
+document.addEventListener('DOMContentLoaded',function(){
+  if(document.querySelector('.sb-link[data-view="universities"]')){
+    // Pre-load data
+    loadUniData();
+  }
+});
+
+})();
