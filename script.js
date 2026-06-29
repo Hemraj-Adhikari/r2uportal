@@ -1,5 +1,5 @@
 /* ═══════════ CONFIG ═══════════ */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcj94FfV5QzK7HlKXsQMK6-p2pmUlI7QLiAK6cM6BRfNRAxQa93WCtFSgA-5zC0G4b/exec';
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzVg_S_d8Z8XyTjuF7ri5v9K9swAczaiF_CvruvJC-14fSC1IzEikF4O2YqWR4fR3XR/exec';
 const SK_ROLE='r2u_role',SK_USER='r2u_user',SK_TIME='r2u_time',SESSION_TTL=12*60*60*1000;
 
 /* ═══════════ STATE ═══════════ */
@@ -32,7 +32,6 @@ let pillFilterStudents={type:'',value:''};
 let totalRecords=0,currentPage=1;
 let detailStudentId=null;
 let stageEdits={};
-let viewHistory=[];
 
 /* ═══════════ PIPELINE STAGES ═══════════ */
 const STAGE_DEFS=[
@@ -92,9 +91,7 @@ function bootSession(name,role){
   document.getElementById('sb-role').textContent=role;
   document.getElementById('hdr-avatar').textContent=ini.slice(0,1);
   document.getElementById('page-subtitle').textContent='Welcome back, '+name.split(' ')[0]+'!';
-  applyRole(role);hideLogin();
-  // Always fetch fresh students immediately on login (no cache-skip)
-  loadStudents().then(()=>{loadDashboardLazy();});
+  applyRole(role);hideLogin();loadDashboardLazy();
 }
 
 /* ═══════════ AUTH ═══════════ */
@@ -138,8 +135,7 @@ const PAGE_META={
   'student-detail':['Student','Manage profile and pipeline'],
   universities:['Partner Universities','Sep 2026 intake — courses, entry criteria & fees']
 };
-function switchView(id,tab,opts={}){
-  if(!opts.skipHistory&&currentView&&currentView!==id)viewHistory.push(currentView);
+function switchView(id,tab){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.sb-link').forEach(t=>t.classList.remove('active'));
   const el=document.getElementById('view-'+id);
@@ -155,41 +151,8 @@ function switchView(id,tab,opts={}){
   if(id==='followup')renderFollowup();
   if(id==='partners')renderPartners();
   if(id==='students'){filterTableStudents();updateStats();updateFunnel();renderDashboardPartners();}
-  updateTopNavState();
-  closeSidebarMobile();
 }
-function goHome(){viewHistory=[];switchView('students',document.querySelector('.sb-link[data-view="students"]'))}
-
-/* ═══════════ TOP-NAV: BACK / HOME (mobile + desktop) ═══════════ */
-function goBack(){
-  // micro-state: university detail panel sits inside the same 'universities' view
-  if(currentView==='universities'){
-    const dv=document.getElementById('uni-detail-view');
-    if(dv&&dv.style.display!=='none'){showUniList();return;}
-  }
-  const prev=viewHistory.pop();
-  if(prev){
-    const tab=document.querySelector(`.sb-link[data-view="${prev}"]`);
-    switchView(prev,tab,{skipHistory:true});
-  }else{
-    goHome();
-  }
-}
-function updateTopNavState(){
-  const backBtn=document.getElementById('topnav-back-btn');
-  if(!backBtn)return;
-  const uniDetailOpen=currentView==='universities'&&document.getElementById('uni-detail-view')&&document.getElementById('uni-detail-view').style.display!=='none';
-  const canGoBack=viewHistory.length>0||uniDetailOpen;
-  backBtn.disabled=!canGoBack;
-}
-function toggleSidebarMobile(){
-  document.getElementById('sidebar').classList.toggle('mobile-open');
-  document.getElementById('sidebar-backdrop').classList.toggle('show');
-}
-function closeSidebarMobile(){
-  document.getElementById('sidebar').classList.remove('mobile-open');
-  document.getElementById('sidebar-backdrop').classList.remove('show');
-}
+function goHome(){switchView('students',document.querySelector('.sb-link[data-view="students"]'))}
 function refreshView(){
   if(currentView==='students')loadStudents();
   else if(currentView==='casshield')loadCAS();
@@ -245,102 +208,24 @@ function esc(s){return(s||'').replace(/'/g,"\\'")}
 function lvlBadge(l){const m={PG:'badge-blue',PHD:'badge-violet',UG:'badge-green'};return l?`<span class="badge ${m[l]||'badge-slate'}" style="font-size:9px">${l}</span>`:''}
 function visaBadge(v){if(!v||v==='Not Applied')return`<span class="badge badge-slate">${v||'—'}</span>`;if(/approved/i.test(v))return`<span class="badge badge-green">${v}</span>`;if(/refused/i.test(v))return`<span class="badge badge-red">${v}</span>`;if(/pending|submitted|biometrics/i.test(v))return`<span class="badge badge-amber">${v}</span>`;return`<span class="badge badge-navy">${v}</span>`}
 
-function sendWhatsApp(phone,message){
-  const cleaned=(phone||'').replace(/\D/g,'');
-  if(!cleaned){toast('No mobile number on record','info');return}
-  const url='https://wa.me/'+cleaned+'?text='+encodeURIComponent(message||'');
-  window.open(url,'_blank','noopener,noreferrer');
-}
-
-/* ── BULK SELECTION ── */
-function getSelectedStudents(){
-  return Array.from(document.querySelectorAll('.student-row-cb:checked')).map(cb=>cb.dataset.id);
-}
-function updateBulkBar(){
-  const ids=getSelectedStudents();
-  const bar=document.getElementById('bulk-action-bar');
-  const lbl=document.getElementById('bulk-count-label');
-  if(!bar)return;
-  if(ids.length>0){
-    bar.style.display='flex';
-    lbl.textContent=ids.length+' student'+(ids.length>1?'s':'')+' selected';
-  } else {
-    bar.style.display='none';
-  }
-  // sync select-all header checkbox state
-  const allCbs=document.querySelectorAll('.student-row-cb');
-  const sa=document.getElementById('select-all-students');
-  if(sa){sa.indeterminate=ids.length>0&&ids.length<allCbs.length;sa.checked=allCbs.length>0&&ids.length===allCbs.length}
-}
-function toggleSelectAllStudents(checked){
-  document.querySelectorAll('.student-row-cb').forEach(cb=>{cb.checked=checked});
-  updateBulkBar();
-}
-function clearStudentSelection(){
-  document.querySelectorAll('.student-row-cb').forEach(cb=>{cb.checked=false});
-  const sa=document.getElementById('select-all-students');
-  if(sa){sa.checked=false;sa.indeterminate=false}
-  updateBulkBar();
-}
-function bulkEmail(){
-  const ids=getSelectedStudents();
-  if(!ids.length){toast('No students selected','info');return}
-  const sel=ids.map(id=>(students||[]).find(s=>s['STUDENT ID']===id)).filter(Boolean);
-  const names=sel.map(s=>s['STUDENT NAME']).join(', ');
-  toast(`Opening email composer for ${ids.length} student${ids.length>1?'s':''}…`,'info');
-  // Pre-populate email composer if it exists, else switch to email view
-  const toField=document.getElementById('email-to');
-  const emails=sel.map(s=>s['EMAIL']).filter(Boolean).join(', ');
-  if(toField){toField.value=emails}
-  switchView('email',document.querySelector('.sb-link[data-view=email]'));
-  if(emails&&toField){toField.value=emails;toField.dispatchEvent(new Event('input'))}
-}
-function bulkStatusUpdate(){
-  const ids=getSelectedStudents();
-  if(!ids.length){toast('No students selected','info');return}
-  const field=prompt(`Update which field for ${ids.length} student${ids.length>1?'s':''}?\nExamples: OFFER STATUS, VISA STATUS, PAYMENT`);
-  if(!field||!field.trim())return;
-  const value=prompt(`Set "${field.trim()}" to:`);
-  if(value===null)return;
-  const patch={[field.trim()]:value.trim()};
-  ids.forEach(id=>{
-    const s=(students||[]).find(s=>s['STUDENT ID']===id);
-    if(s)Object.assign(s,patch);
-    window.queueBatchEdit(id,patch);
-  });
-  filterTableStudents();
-  toast(`✓ Updated ${ids.length} record${ids.length>1?'s':''}:`+` ${field.trim()} → ${value.trim()}`,'success');
-  clearStudentSelection();
-}
-
 function buildRow(s){
   const sid=s['STUDENT ID']||'',safeId=esc(sid);
   const bg=avatarBg(s['STUDENT NAME']);const ini=initials(s['STUDENT NAME']);
   const list=stageList(s);const done=list.filter(x=>x.done).length;const cur=stageCurrent(s);
   const dots=list.map((st,i)=>`${i>0?`<span class="pl-connector${list[i-1].done?' done':''}"></span>`:''}${`<span class="pl-dot${st.done?' done':(i===cur?' cur':'')}" title="${st.label}"></span>`}`).join('');
   const partner=s['AGENT']||s['CHANNEL PARTNER']||'—';
-  
   return`<tr>
-    <td style="text-align:center;width:36px"><input type="checkbox" class="student-row-cb" data-id="${safeId}" onchange="updateBulkBar()" style="cursor:pointer;accent-color:var(--navy-700)"></td>
     <td>${sid}</td>
     <td><div class="student-cell"><div class="s-avatar" style="background:${bg}">${ini}</div><div><div class="s-name">${s['STUDENT NAME']||'—'} ${lvlBadge(s['LEVEL'])}</div><div class="s-meta">${partner!=='—'?partner:''}</div></div></div></td>
     <td><span style="font-size:11.5px;color:var(--text-tertiary);max-width:150px;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap" title="${s['COURSE']||''}">${s['COURSE']||'—'}</span></td>
     <td><div class="agent-cell"><span class="a-dot" style="background:${avatarBg(partner)}"></span><span class="a-name">${partner}</span></div></td>
     <td><div class="pl-cell">${dots}<span class="pl-score">${done}/9</span></div></td>
     <td>${visaBadge(s['VISA STATUS'])}</td>
-    <td style="text-align:right">
-      <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
-        <button class="btn-edit-large" onclick="openStageDrawer('${safeId}')" title="Update pipeline">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-          Update
-        </button>
-        <div class="row-actions" style="display:flex;gap:3px">
-          <button class="row-btn" onclick="openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          <button class="row-btn" onclick="sendWhatsApp('${esc(s['MOBILE']||'')}','Hi ${esc(s['STUDENT NAME']||'there')}, this is a message from our admissions team.')" title="WhatsApp" style="color:#25D366"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>
-          <button class="kebab-trigger row-btn" onclick="openRowMenu(event,'${safeId}')" title="More"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
-        </div>
-      </div>
-    </td>
+    <td style="text-align:right"><div class="row-actions">
+      <button class="row-btn" onclick="openDetail('${safeId}')" title="Open profile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <button class="row-btn" onclick="openStageDrawer('${safeId}')" title="Update pipeline"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></button>
+      <button class="kebab-trigger row-btn" onclick="openRowMenu(event,'${safeId}')" title="More"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
+    </div></td>
   </tr>`;
 }
 
@@ -357,9 +242,8 @@ function filterTableStudents(){
     return true;
   });
   const tb=document.getElementById('students-page-table-body');
-  if(tb){tb.innerHTML=filtered.length?filtered.map(buildRow).join(''):'<tr><td colspan="8" class="empty-state">No students match current filters</td></tr>'}
+  if(tb){tb.innerHTML=filtered.length?filtered.map(buildRow).join(''):'<tr><td colspan="7" class="empty-state">No students match current filters</td></tr>'}
   const c=document.getElementById('students-tbl-count');if(c)c.textContent=`${filtered.length} of ${students.length}`;
-  clearStudentSelection();
 }
 
 /* ═══════════ ROW MENU ═══════════ */
@@ -462,12 +346,6 @@ function openDetail(sid){
     </div>`;
   }).join('');
   switchView('student-detail',null);
-  // Load student documents from Drive
-  const docsEl = document.getElementById('dp-docs-section');
-  if (docsEl) {
-    docsEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">Loading documents…</div>';
-    loadStudentDocuments(sid);
-  }
 }
 function backToDashboard(){switchView('students',document.querySelector('.sb-link[data-view="students"]'))}
 function openNotifyFromDetail(){openNotify(detailStudentId)}
@@ -494,240 +372,7 @@ function renderPartnerCard(p){
 function renderDashboardPartners(){const partners=buildPartnerData().slice(0,6);const grid=document.getElementById('dashboard-cp-grid');if(!grid)return;grid.innerHTML=partners.length?partners.map(renderPartnerCard).join(''):'<div class="empty-state" style="grid-column:1/-1">No partner data yet</div>'}
 function renderPartners(){const partners=buildPartnerData();const grid=document.getElementById('full-cp-grid');if(!grid)return;grid.innerHTML=partners.length?partners.map(renderPartnerCard).join(''):'<div class="empty-state" style="grid-column:1/-1">No partners found</div>'}
 function openAddPartner(){toast('Add partner form coming soon','info')}
-/* ═══════════ ADD STUDENT ═══════════ */
-let asSelectedFiles = [];
-
-function openAddStudent(prefillUniversity) {
-  // Reset form
-  ['as-name','as-id','as-dob','as-nationality','as-mobile','as-email',
-   'as-course','as-university','as-agent','as-notes'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  if (prefillUniversity) {
-    const uniEl = document.getElementById('as-university');
-    if (uniEl) uniEl.value = prefillUniversity;
-  }
-  document.getElementById('as-level').value = '';
-  document.getElementById('as-submitted-by').value = staff.name || '';
-  asSelectedFiles = [];
-  asRenderFileList();
-  document.getElementById('as-error').style.display = 'none';
-  document.getElementById('as-success').style.display = 'none';
-  document.getElementById('as-submit-btn').disabled = false;
-  document.getElementById('as-submit-lbl').textContent = 'Add Student';
-  document.getElementById('as-submit-spin').style.display = 'none';
-  document.getElementById('as-drop-zone').style.borderColor = '';
-  document.getElementById('as-drop-zone').style.background = '';
-  const overlay = document.getElementById('add-student-overlay');
-  overlay.style.display = 'block';
-  overlay.onclick = e => { if (e.target === overlay) closeAddStudent(); };
-  setTimeout(() => document.getElementById('as-name').focus(), 80);
-}
-
-function closeAddStudent() {
-  document.getElementById('add-student-overlay').style.display = 'none';
-}
-
-function asHandleDrop(e) {
-  e.preventDefault();
-  document.getElementById('as-drop-zone').style.borderColor = '';
-  document.getElementById('as-drop-zone').style.background = '';
-  const files = Array.from(e.dataTransfer.files);
-  files.forEach(f => {
-    if (!asSelectedFiles.find(x => x.name === f.name)) asSelectedFiles.push(f);
-  });
-  asRenderFileList();
-}
-
-function asHandleFiles(fileList) {
-  Array.from(fileList).forEach(f => {
-    if (!asSelectedFiles.find(x => x.name === f.name)) asSelectedFiles.push(f);
-  });
-  document.getElementById('as-files').value = '';
-  asRenderFileList();
-}
-
-function asRemoveFile(idx) {
-  asSelectedFiles.splice(idx, 1);
-  asRenderFileList();
-}
-
-function asRenderFileList() {
-  const wrap = document.getElementById('as-file-list');
-  const items = document.getElementById('as-file-items');
-  if (!asSelectedFiles.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'block';
-  items.innerHTML = asSelectedFiles.map((f, i) => {
-    const kb = (f.size / 1024).toFixed(0);
-    const ext = f.name.split('.').pop().toUpperCase();
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-inset);border-radius:var(--r-md);margin-bottom:5px;border:1px solid var(--border-subtle)">
-      <div style="width:30px;height:30px;background:var(--navy-100);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--navy-700);flex-shrink:0">${ext}</div>
-      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div><div style="font-size:10px;color:var(--text-muted)">${kb} KB</div></div>
-      <button onclick="asRemoveFile(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:2px 5px;border-radius:var(--r-sm)" title="Remove">✕</button>
-    </div>`;
-  }).join('');
-}
-
-// Convert File to base64
-function asFileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res({ name: file.name, type: file.type, data: r.result.split(',')[1], size: file.size });
-    r.onerror = () => rej(new Error('Read failed: ' + file.name));
-    r.readAsDataURL(file);
-  });
-}
-
-async function submitAddStudent() {
-  const btn = document.getElementById('as-submit-btn');
-  const lbl = document.getElementById('as-submit-lbl');
-  const spin = document.getElementById('as-submit-spin');
-  const errEl = document.getElementById('as-error');
-  const successEl = document.getElementById('as-success');
-
-  errEl.style.display = 'none';
-  successEl.style.display = 'none';
-
-  // Collect values
-  const name = document.getElementById('as-name').value.trim();
-  const sid = document.getElementById('as-id').value.trim();
-  const dob = document.getElementById('as-dob').value;
-  const level = document.getElementById('as-level').value;
-  const course = document.getElementById('as-course').value.trim();
-  const nationality = document.getElementById('as-nationality').value.trim();
-  const mobile = document.getElementById('as-mobile').value.trim();
-  const email = document.getElementById('as-email').value.trim();
-  const university = document.getElementById('as-university').value.trim();
-  const agent = document.getElementById('as-agent').value.trim();
-  const submittedBy = document.getElementById('as-submitted-by').value.trim() || staff.name;
-  const notes = document.getElementById('as-notes').value.trim();
-
-  // Validate required
-  if (!name || !sid || !level || !course) {
-    errEl.textContent = 'Please fill in: Full Name, Student ID, Level, and Course.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  btn.disabled = true;
-  lbl.textContent = 'Saving…';
-  spin.style.display = '';
-
-  try {
-    // 1. Convert files to base64 (if any)
-    let filesPayload = [];
-    if (asSelectedFiles.length) {
-      lbl.textContent = 'Preparing files…';
-      filesPayload = await Promise.all(asSelectedFiles.map(asFileToBase64));
-    }
-
-    // 2. Send to Google Apps Script
-    lbl.textContent = 'Adding to Sheet…';
-    const payload = {
-      action: 'addStudent',
-      studentData: {
-        'STUDENT NAME': name,
-        'STUDENT ID': sid,
-        'DOB': dob,
-        'LEVEL': level,
-        'COURSE': course,
-        'NATIONALITY': nationality,
-        'MOBILE': mobile,
-        'EMAIL': email,
-        'UNIVERSITY': university,
-        'AGENT': agent,
-        'SUBMITTED BY': submittedBy,
-        'NOTES': notes,
-        'ADDED DATE': today(),
-        'ADDED BY': staff.name || 'CRM'
-      },
-      files: filesPayload
-    };
-
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-
-    if (!data.success) throw new Error(data.error || 'Server error');
-
-    // 3. Update local students array
-    const newStudent = {
-      'STUDENT ID': sid,
-      'STUDENT NAME': name,
-      'DOB': dob,
-      'LEVEL': level,
-      'COURSE': course,
-      'NATIONALITY': nationality,
-      'MOBILE': mobile,
-      'EMAIL': email,
-      'UNIVERSITY': university,
-      'AGENT': agent,
-      'SUBMITTED BY': submittedBy,
-      'NOTES': notes
-    };
-    students.unshift(newStudent);
-    filterTableStudents();
-    updateStats();
-    updateFunnel();
-
-    // 4. Show success
-    const fileCount = filesPayload.length;
-    document.getElementById('as-success-detail').textContent =
-      `${name} (${sid}) added to Google Sheet.` +
-      (fileCount ? ` ${fileCount} file${fileCount > 1 ? 's' : ''} uploaded to Drive.` : '');
-
-    if (data.driveFolderUrl) {
-      document.getElementById('as-drive-link').href = data.driveFolderUrl;
-      document.getElementById('as-drive-link-wrap').style.display = 'block';
-    } else {
-      document.getElementById('as-drive-link-wrap').style.display = 'none';
-    }
-
-    successEl.style.display = 'block';
-    lbl.textContent = '✓ Added';
-    toast(`${name} added to CRM`, 'success');
-
-    // Auto-close after 2.5s
-    setTimeout(() => closeAddStudent(), 2500);
-
-  } catch (e) {
-    errEl.textContent = 'Error: ' + e.message;
-    errEl.style.display = 'block';
-    btn.disabled = false;
-    lbl.textContent = 'Add Student';
-    spin.style.display = 'none';
-  }
-}
-
-/* ═══════════ STUDENT DOCUMENTS (download from CRM) ═══════════ */
-// Called from student detail page to show linked documents
-async function loadStudentDocuments(studentId) {
-  const wrap = document.getElementById('dp-docs-section');
-  if (!wrap) return;
-  wrap.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">Loading documents…</div>';
-  try {
-    const data = await apiGet('getStudentFiles', { studentId });
-    if (!data.success || !data.files || !data.files.length) {
-      wrap.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">No documents on file.</div>';
-      return;
-    }
-    wrap.innerHTML = data.files.map(f => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-inset);border-radius:var(--r-md);margin-bottom:5px;border:1px solid var(--border-subtle)">
-        <div style="width:28px;height:28px;background:var(--navy-100);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--navy-700);flex-shrink:0">${(f.name.split('.').pop()||'DOC').toUpperCase().slice(0,4)}</div>
-        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div><div style="font-size:10px;color:var(--text-muted)">${f.size ? Math.round(f.size/1024)+' KB' : ''}</div></div>
-        <a href="${f.url}" target="_blank" style="background:var(--navy-600);color:#fff;border:none;border-radius:var(--r-md);padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download
-        </a>
-      </div>`).join('');
-  } catch (e) {
-    wrap.innerHTML = `<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0">Could not load documents: ${e.message}</div>`;
-  }
-}
+function openAddStudent(){toast('Add student form coming soon','info')}
 
 /* ═══════════ DRAWERS ═══════════ */
 function openDrawer(id){document.getElementById(id).classList.add('open');document.getElementById('drawer-overlay').classList.add('show')}
@@ -821,7 +466,7 @@ function getMockCAS(){return[{'Applicant ID':'STU-2026-001','Applicant Name':'Aa
 /* ═══════════ PERF PATCH ═══════════ */
 (function(){
 'use strict';
-const CLIENT_CACHE_TTL_MS=10*60*1000,QUEUE_FLUSH_MIN_MS=200,QUEUE_FLUSH_MAX_MS=800,QUEUE_RETRY_BASE_MS=1000;
+const CLIENT_CACHE_TTL_MS=10*60*1000,QUEUE_FLUSH_MIN_MS=2000,QUEUE_FLUSH_MAX_MS=5000,QUEUE_RETRY_BASE_MS=1500;
 const clientCache=new Map();
 function cacheKey(a,p){return a+':'+JSON.stringify(p||{})}
 function getCached(a,p){const e=clientCache.get(cacheKey(a,p));if(!e)return null;if(Date.now()-e.ts>CLIENT_CACHE_TTL_MS){clientCache.delete(cacheKey(a,p));return null}return e.data}
@@ -837,25 +482,7 @@ window.queueBatchEdit=function(sid,map){Object.entries(map).forEach(([f,v])=>win
 window.flushSaveQueueNow=function(){if(flushTimer){clearTimeout(flushTimer);flushTimer=null}return flushQueue()};
 window.addEventListener('beforeunload',()=>{if(saveQueue.size>0)flushQueue()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&saveQueue.size>0)flushQueue()});
-window.saveStagesOptimized = function() {
-  if(!Object.keys(stageEdits||{}).length){closeDrawer('drw-stage');return}
-  const sid = activeStudentId;
-  const s = (students||[]).find(s=>s['STUDENT ID']===sid);
-  if(!s) return;
-  const patch = {};
-  Object.values(stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});
-  Object.assign(s,patch);
-  if(typeof filterTableStudents==='function') filterTableStudents();
-  if(typeof updateStats==='function') updateStats();
-  if(typeof updateFunnel==='function') updateFunnel();
-  if(typeof renderDashboardPartners==='function') renderDashboardPartners();
-  if(currentView==='student-detail' && detailStudentId===sid && typeof openDetail==='function') openDetail(sid);
-  toast('✓ Saved','success');
-  closeDrawer('drw-stage');
-  window.queueBatchEdit(sid,patch);
-  window.flushSaveQueueNow();
-  stageEdits = {};
-};
+window.saveStagesOptimized=function(){if(!Object.keys(window.stageEdits||{}).length){closeDrawer('drw-stage');return}const sid=window.activeStudentId;const s=(window.students||[]).find(s=>s['STUDENT ID']===sid);if(!s)return;const patch={};Object.values(window.stageEdits).forEach(e=>{if(e.val)patch[e.key]=e.val});Object.assign(s,patch);if(typeof filterTableStudents==='function')filterTableStudents();if(typeof updateStats==='function')updateStats();if(typeof updateFunnel==='function')updateFunnel();if(typeof renderDashboardPartners==='function')renderDashboardPartners();if(currentView==='student-detail'&&detailStudentId===sid&&typeof openDetail==='function')openDetail(sid);toast('✓ Saved','success');closeDrawer('drw-stage');window.queueBatchEdit(sid,patch);window.stageEdits={}};
 function nextFrame(){return new Promise(r=>requestAnimationFrame(()=>r()))}
 window.loadDashboardLazy=async function(){const cached=getCached('getStudents',{page:1,limit:100});if(cached){window.students=cached.students||[];window.totalRecords=cached.totalRecords??window.students.length;if(typeof updateStats==='function')updateStats();if(typeof updateFunnel==='function')updateFunnel()}else{loading('Fetching students…')}
 await nextFrame();if(typeof filterTableStudents==='function')filterTableStudents();
@@ -863,318 +490,4 @@ await nextFrame();if(typeof renderDashboardPartners==='function')renderDashboard
 try{const data=await window.apiGetCached('getStudents',{page:1,limit:100});if(data&&data.success){window.students=data.students||[];window.totalRecords=data.totalRecords??window.students.length;window.currentPage=data.page??1}else if(!cached){window.students=getMock();window.totalRecords=window.students.length}}catch(e){if(!cached){window.students=getMock();window.totalRecords=window.students.length}}finally{if(typeof filterTableStudents==='function')filterTableStudents();if(typeof updateStats==='function')updateStats();if(typeof updateFunnel==='function')updateFunnel();if(typeof renderDashboardPartners==='function')renderDashboardPartners();hideLoading()}};
 window.searchStudentsLocal=function(query){const q=(query||'').toLowerCase();if(!q)return window.students||[];return(window.students||[]).filter(s=>['STUDENT NAME','STUDENT ID','COURSE','AGENT'].some(f=>(s[f]||'').toLowerCase().includes(q)))};
 console.log('[R2U perf patch v2] loaded');
-})();
-
-// ============================================================
-// PARTNER UNIVERSITIES MODULE — Native CRM View
-// ============================================================
-(function(){
-'use strict';
-
-// ---- Colour palette for uni avatars ----
-const UNI_COLORS=[
-  ['#1E3A5F','#E8C84E'],['#6B3FA0','#F0E6FF'],['#1A5C38','#D1FAE5'],
-  ['#7C2D12','#FEE2E2'],['#0C4A6E','#BAE6FD'],['#4C1D95','#EDE9FE'],
-  ['#134E4A','#CCFBF1'],['#713F12','#FEF3C7'],['#831843','#FCE7F3'],
-  ['#064E3B','#A7F3D0'],['#1E40AF','#DBEAFE'],['#9D174D','#FCE7F3'],
-];
-
-function uniColor(idx){return UNI_COLORS[idx%UNI_COLORS.length];}
-
-// ---- Data ----
-let UNI_DATA={};
-let uniKeys=[];
-let currentUniKey=null;
-let uniFilter='all';
-let allCurrentCourses=[];
-
-function loadUniData(){
-  if(Object.keys(UNI_DATA).length)return;
-  try{
-    const el=document.getElementById('uni-rawdata');
-    if(el&&el.textContent.trim().length>2){
-      UNI_DATA=JSON.parse(el.textContent);
-      uniKeys=Object.keys(UNI_DATA);
-    } else {
-      // Data not yet loaded (async fetch) - listen for ready event
-      document.addEventListener('uni-data-ready',function(){
-        try{
-          const el2=document.getElementById('uni-rawdata');
-          if(el2){UNI_DATA=JSON.parse(el2.textContent);uniKeys=Object.keys(UNI_DATA);}
-          if(document.getElementById('uni-grid'))renderUniGrid();
-        }catch(e){console.error('Uni data load error',e);}
-      },{once:true});
-    }
-  }catch(e){console.error('Uni data load error',e);}
-}
-
-// ---- Grid render ----
-function renderUniGrid(){
-  loadUniData();
-  const q=(document.getElementById('uni-search-input')?.value||'').toLowerCase().trim();
-  const grid=document.getElementById('uni-grid');
-  if(!grid)return;
-
-  const filtered=uniKeys.filter(k=>{
-    const u=UNI_DATA[k];
-    const matchFilter=uniFilter==='all'||u.categories.some(c=>c.toUpperCase().includes(uniFilter));
-    if(!matchFilter)return false;
-    if(!q)return true;
-    // search title + courses
-    if(u.title.toLowerCase().includes(q))return true;
-    return u.courses.some(c=>c.name&&c.name.toLowerCase().includes(q));
-  });
-
-  document.getElementById('uni-total-count').textContent=filtered.length;
-
-  if(!filtered.length){
-    grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;padding:40px">No universities found for your search.</div>';
-    return;
-  }
-
-  grid.innerHTML=filtered.map((k,i)=>{
-    const u=UNI_DATA[k];
-    const [bg,fg]=uniColor(uniKeys.indexOf(k));
-    const courseCount=u.courses.filter(c=>c.name&&!c.section&&c.level&&!['Level','Course Level','FEE STRUCTURE','SCHOLARSHIP','Intake'].includes(c.level)).length;
-    const cats=u.categories.slice(0,2).map(c=>`<span class="badge badge-slate" style="font-size:9px">${c}</span>`).join('');
-    const initials=k.slice(0,3);
-    // Fee from criteria — extract UG and PG separately
-    const feeLines=(u.criteria&&u.criteria['FEE STRUCTURE'])||[];
-    const feeText=feeLines.join('\n');
-    const ugMatch=feeText.match(/UG[:\s]+([^\n,]+)/i);
-    const pgMatch=feeText.match(/PG[:\s]+([^\n,]+)/i);
-    const ugFee=ugMatch?ugMatch[1].trim().substring(0,20):(feeLines[0]?feeLines[0].trim().substring(0,20):'—');
-    const pgFee=pgMatch?pgMatch[1].trim().substring(0,20):(feeLines[1]?feeLines[1].trim().substring(0,20):null);
-    const scholarship=(u.criteria&&u.criteria['SCHOLARSHIP']&&u.criteria['SCHOLARSHIP'].find(v=>v&&v.trim()))||'';
-    const scholarshipShort=scholarship?scholarship.split('\n')[0].trim().substring(0,28):'—';
-    const firstCourse=u.courses.find(c=>c.name&&!c.section);
-    const intake=(firstCourse&&firstCourse.intake)||'—';
-    const campus=(firstCourse&&firstCourse.campus)||'';
-
-    return `<div class="uni-card" onmouseenter="this.classList.add('hover')" onmouseleave="this.classList.remove('hover')">
-      <div class="uni-card-band" style="background:linear-gradient(135deg,${bg}14,var(--surface-muted))">
-        ${campus?`<span class="uni-loc-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(campus)}</span>`:''}
-        <div class="uni-card-id" style="background:${bg};color:${fg}">${initials}</div>
-        <div class="uni-card-title">${u.title}</div>
-        <div class="uni-card-cats">${cats}</div>
-      </div>
-      <div class="uni-bento">
-        <div class="uni-bento-tile">
-          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-          <div><div class="uni-bento-label">Fee Structure</div>
-            <div style="display:flex;align-items:center;gap:4px;margin-top:2px"><span class="uni-fee-badge uni-fee-ug">UG</span><span class="uni-bento-val">${esc(ugFee)}</span></div>
-            ${pgFee?`<div style="display:flex;align-items:center;gap:4px;margin-top:3px"><span class="uni-fee-badge uni-fee-pg">PG</span><span class="uni-bento-val">${esc(pgFee)}</span></div>`:''}
-          </div>
-        </div>
-        <div class="uni-bento-tile">
-          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
-          <div><div class="uni-bento-label">Courses</div><div class="uni-bento-val">${courseCount}</div></div>
-        </div>
-        <div class="uni-bento-tile">
-          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a4 4 0 100-8 4 4 0 000 8z"/><path d="M5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2"/></svg></div>
-          <div><div class="uni-bento-label">Scholarship</div><div class="uni-bento-val">${esc(scholarshipShort)}</div></div>
-        </div>
-        <div class="uni-bento-tile">
-          <div class="uni-bento-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-          <div><div class="uni-bento-label">Intake</div><div class="uni-bento-val">${esc(intake)}</div></div>
-        </div>
-      </div>
-      <div class="uni-card-actions">
-        <button class="btn btn-primary btn-sm uni-act-btn" onclick="openUniDetail('${k}')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="15" x2="12" y2="15"/><circle cx="9" cy="10" r="1.5"/></svg>
-          View details
-        </button>
-        <button class="btn btn-gold btn-sm uni-act-btn" onclick="onboardToUniversity('${k}')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          Onboard students
-        </button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-window.onboardToUniversity=function(key){
-  const u=UNI_DATA[key];
-  if(!u){toast('University not found','error');return}
-  openAddStudent(u.title);
-  toast('Onboarding for '+u.title,'info');
-};
-
-// ---- Detail view ----
-function openUniDetail(key){
-  loadUniData();
-  currentUniKey=key;
-  const u=UNI_DATA[key];
-  if(!u)return;
-
-  document.getElementById('uni-list-view').style.display='none';
-  document.getElementById('uni-detail-view').style.display='block';
-  updateTopNavState();
-
-  const colorIdx=uniKeys.indexOf(key);
-  const [bg,fg]=uniColor(colorIdx);
-  const initials=key.slice(0,3);
-
-  document.getElementById('uni-detail-breadcrumb').textContent=u.title;
-  document.getElementById('uni-detail-title').textContent=u.title;
-  document.getElementById('uni-detail-avatar').textContent=initials;
-  document.getElementById('uni-detail-avatar').style.background=bg;
-  document.getElementById('uni-detail-avatar').style.color=fg;
-
-  // Categories as badges
-  document.getElementById('uni-detail-cats').innerHTML=u.categories.map(c=>
-    `<span class="badge badge-slate" style="font-size:9.5px">${c}</span>`
-  ).join('');
-
-  // Nav buttons
-  const idx=uniKeys.indexOf(key);
-  document.getElementById('uni-prev-btn').disabled=(idx===0);
-  document.getElementById('uni-next-btn').disabled=(idx===uniKeys.length-1);
-
-  // Criteria
-  renderUniCriteria(u);
-
-  // Courses
-  allCurrentCourses=u.courses.filter(c=>c.name&&!c.section&&c.level&&!['Level','Course Level','FEE STRUCTURE','SCHOLARSHIP','Intake'].includes(c.level));
-  document.getElementById('uni-course-count').textContent=allCurrentCourses.length;
-  populateCourseLevelFilter(allCurrentCourses);
-  renderCourseTable(allCurrentCourses);
-
-  // Default tab = criteria
-  showUniDetailTab('criteria');
-}
-
-function renderUniCriteria(u){
-  const grid=document.getElementById('uni-criteria-grid');
-  const c=u.criteria||{};
-  const keys=Object.keys(c);
-
-  // Color coding for criteria types
-  const criteriaColors={
-    'ACADEMIC CRITERIA':'var(--navy-600)',
-    'ENGLISH LANGUAGE CRITERIA':'var(--emerald-600)',
-    'ENGLISH WAIVER CRITERIA':'var(--violet-600)',
-    'FEE STRUCTURE':'var(--gold-700)',
-    'SCHOLARSHIP':'var(--emerald-700)',
-    'GAP':'var(--amber-700)',
-    'CAS Deposit':'var(--sky-700)',
-    'Enrollment Fee':'var(--text-secondary)',
-  };
-
-  if(!keys.length){grid.innerHTML='<div class="empty-state">No criteria data available.</div>';return;}
-
-  grid.innerHTML=keys.map(label=>{
-    const vals=c[label];
-    if(!vals||!vals.length||vals.every(v=>!v))return'';
-    const color=criteriaColors[label]||'var(--text-primary)';
-    const cats=u.categories;
-    // Pair vals with categories if multiple
-    const rows=vals.map((v,i)=>{
-      if(!v&&v!==0)return'';
-      const cat=cats[i]||'';
-      return `<div style="padding:10px 14px;border-bottom:1px solid var(--border-subtle)">
-        ${cat?`<div style="font-size:9px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">${cat}</div>`:''}
-        <div style="font-size:11.5px;color:var(--text-secondary);white-space:pre-wrap;line-height:1.55">${v.trim()}</div>
-      </div>`;
-    }).filter(Boolean).join('');
-    if(!rows)return'';
-    return `<div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:10px 14px;background:var(--surface-inset);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:7px">
-        <div style="width:3px;height:14px;background:${color};border-radius:2px;flex-shrink:0"></div>
-        <span style="font-size:10.5px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:.06em">${label}</span>
-      </div>
-      ${rows}
-    </div>`;
-  }).join('');
-}
-
-function populateCourseLevelFilter(courses){
-  const sel=document.getElementById('course-level-filter');
-  if(!sel)return;
-  const levels=[...new Set(courses.map(c=>c.level).filter(Boolean))].sort();
-  sel.innerHTML='<option value="">All levels</option>'+levels.map(l=>`<option value="${l}">${l}</option>`).join('');
-}
-
-function renderCourseTable(courses){
-  const body=document.getElementById('uni-courses-body');
-  if(!body)return;
-  if(!courses.length){body.innerHTML='<tr><td colspan="5" class="empty-state">No courses found.</td></tr>';return;}
-  body.innerHTML=courses.map(c=>`<tr>
-    <td style="font-weight:500;font-size:12px">${esc(c.name||'')}</td>
-    <td><span class="badge badge-slate" style="font-size:9.5px">${esc(c.level||'')}</span></td>
-    <td style="font-size:11.5px;color:var(--text-muted)">${esc(c.campus||'—')}</td>
-    <td style="font-size:11.5px;color:var(--text-muted)">${esc(c.intake||'')}</td>
-    <td style="font-size:11px;color:var(--amber-700)">${c.extra?esc(c.extra):'—'}</td>
-  </tr>`).join('');
-}
-
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-// ---- Public functions ----
-window.filterUniGrid=function(){renderUniGrid();};
-
-window.setUniFilter=function(f,btn){
-  uniFilter=f;
-  document.querySelectorAll('#view-universities .seg-btn').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  renderUniGrid();
-};
-
-window.showUniList=function(){
-  document.getElementById('uni-list-view').style.display='';
-  document.getElementById('uni-detail-view').style.display='none';
-  currentUniKey=null;
-  updateTopNavState();
-};
-
-window.openUniDetail=openUniDetail;
-
-window.uniNavStep=function(dir){
-  if(!currentUniKey)return;
-  const idx=uniKeys.indexOf(currentUniKey);
-  const next=uniKeys[idx+dir];
-  if(next)openUniDetail(next);
-};
-
-window.showUniDetailTab=function(tab){
-  ['criteria','courses'].forEach(t=>{
-    document.getElementById('uni-panel-'+t).style.display=(t===tab?'':'none');
-    const btn=document.getElementById('udctab-'+t);
-    if(btn){btn.classList.toggle('active',t===tab);}
-  });
-};
-
-window.filterCourses=function(){
-  const q=(document.getElementById('course-search-input')?.value||'').toLowerCase();
-  const lvl=(document.getElementById('course-level-filter')?.value||'');
-  const filtered=allCurrentCourses.filter(c=>{
-    const matchQ=!q||(c.name||'').toLowerCase().includes(q);
-    const matchL=!lvl||c.level===lvl;
-    return matchQ&&matchL;
-  });
-  renderCourseTable(filtered);
-};
-
-// Hook into switchView
-const _origSwitchView=window.switchView;
-window.switchView=function(view,el){
-  if(view==='universities'){
-    // Call original first to handle sidebar active state
-    if(_origSwitchView)_origSwitchView.call(this,view,el);
-    // Then init uni grid
-    showUniList();
-    renderUniGrid();
-    return;
-  }
-  if(_origSwitchView)_origSwitchView.call(this,view,el);
-};
-
-// Also init if already on universities view
-document.addEventListener('DOMContentLoaded',function(){
-  if(document.querySelector('.sb-link[data-view="universities"]')){
-    // Pre-load data
-    loadUniData();
-  }
-});
-
 })();
