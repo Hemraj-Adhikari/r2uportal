@@ -1,14 +1,77 @@
 /* ═══════════════════════════════════════════════════════
-   R2U CRM — CORE LOGIC ADDITIONS
-   Yo file ko sabai content `script.js` ko TALA (end ma) paste garnus
-   (firebase-auth.js, firebase-updates.js pahile load bhaisakeko huncha)
+   R2U CRM — CORE LOGIC ADDITIONS  (UPDATED)
+   Paste this whole file at the BOTTOM of your script.js
+   (firebase-auth.js, firebase-import.js, firebase-updates.js
+   must be loaded BEFORE this file, same as before)
+
+   THIS VERSION ADDS (previously missing):
+   1) Cloudinary upload config + functions (uploadAllAsFiles,
+      uploadFileToCloudinary) — required by firebase-updates.js
+      submitAddStudent(), which calls them but they didn't exist.
+   2) Partner Universities JSON loader — fetches universities.json
+      instead of relying on the inline <script id="uni-rawdata">
+      block in index.html (which has now been removed from the HTML).
 ═══════════════════════════════════════════════════════ */
 
-/* ═══════════ CLOUDINARY CONFIG ═══════════ */
+/* ═══════════════════════════════════════════════════════
+   1. CLOUDINARY CONFIG  (NEW — was missing before)
+═══════════════════════════════════════════════════════ */
 const CLOUDINARY_CLOUD_NAME = 'dv9emyzlg';
 const CLOUDINARY_UPLOAD_PRESET = 'fdtrmpus';
 
 let asSelectedFiles = []; // Add Student modal ma select bhayeko files
+
+async function uploadFileToCloudinary(file) {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', 'r2u-students');
+
+  const res = await fetch(url, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('Upload failed for ' + file.name);
+  const data = await res.json();
+  return { name: file.name, url: data.secure_url, type: file.type, uploadedAt: new Date().toISOString() };
+}
+
+async function uploadAllAsFiles() {
+  const uploaded = [];
+  for (const file of asSelectedFiles) {
+    const result = await uploadFileToCloudinary(file);
+    uploaded.push(result);
+  }
+  return uploaded;
+}
+
+function asHandleDrop(event) {
+  event.preventDefault();
+  event.currentTarget.style.borderColor = '';
+  event.currentTarget.style.background = '';
+  asHandleFiles(event.dataTransfer.files);
+}
+
+function asHandleFiles(fileList) {
+  asSelectedFiles = asSelectedFiles.concat(Array.from(fileList));
+  renderAsFileList();
+}
+
+function asRemoveFile(idx) {
+  asSelectedFiles.splice(idx, 1);
+  renderAsFileList();
+}
+
+function renderAsFileList() {
+  const wrap = document.getElementById('as-file-list');
+  const itemsEl = document.getElementById('as-file-items');
+  if (!wrap || !itemsEl) return;
+  if (!asSelectedFiles.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  itemsEl.innerHTML = asSelectedFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface-inset);border-radius:var(--r-sm);margin-bottom:5px;font-size:12px">
+      <span>${escapeHtml(f.name)} <span style="color:var(--text-muted)">(${Math.round(f.size/1024)} KB)</span></span>
+      <button onclick="asRemoveFile(${i})" style="background:none;border:none;color:var(--crimson-500);cursor:pointer;font-size:14px">✕</button>
+    </div>`).join('');
+}
 
 /* ═══════════════════════════════════════════════════════
    NAVIGATION / VIEW SWITCHING
@@ -48,6 +111,14 @@ function switchView(viewName, linkEl) {
     updateStats();
     updateFunnel();
     renderDashboardPartners();
+  }
+
+  if (viewName === 'universities') {
+    if (!UNI_DATA_LOADED) {
+      loadUniversitiesData();
+    } else if (typeof renderUniGrid === 'function') {
+      renderUniGrid();
+    }
   }
 }
 
@@ -113,7 +184,6 @@ function filterTableStudents() {
   const searchVal = (document.getElementById('students-search-input')?.value || '').toLowerCase();
   let list = window.students || [];
 
-  // Pill filter
   if (pillFilterField === 'visa') {
     list = list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase());
   } else if (pillFilterField === 'offer') {
@@ -122,7 +192,6 @@ function filterTableStudents() {
     list = list.filter(s => (s['CAS STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase());
   }
 
-  // Search filter
   if (searchVal) {
     list = list.filter(s => {
       const blob = [s['STUDENT ID'], s['STUDENT NAME'], s['COURSE'], s['AGENT'], s['UNIVERSITY']]
@@ -222,7 +291,7 @@ function setText(id, val) {
 function updateFunnel() {
   const list = window.students || [];
   const stages = {
-    applied: s => true, // everyone counted as applied
+    applied: s => true,
     cond: s => ['Received', 'Offer Received'].includes(s['OFFER STATUS']),
     mock: s => (s['MOCK PRE-CAS'] || '').toLowerCase() === 'done',
     cas: s => ['Pending', 'In Progress'].includes(s['CAS STATUS']),
@@ -245,7 +314,6 @@ function updateFunnel() {
   const labelEl = document.getElementById('pipeline-total-label');
   if (labelEl) labelEl.textContent = list.length + ' students';
 
-  // Pipeline funnel bars (simple horizontal bars)
   const funnelEl = document.getElementById('pipeline-funnel');
   if (funnelEl) {
     const max = Math.max(counts.applied, 1);
@@ -320,67 +388,11 @@ function openAddStudent() {
 
 function closeAddStudent() {
   document.getElementById('add-student-overlay').style.display = 'none';
-  // Clear form fields
   ['as-name','as-id','as-dob','as-nationality','as-mobile','as-email',
    'as-level','as-course','as-university','as-agent','as-submitted-by','as-notes']
    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   asSelectedFiles = [];
   renderAsFileList();
-}
-
-function asHandleDrop(event) {
-  event.preventDefault();
-  event.currentTarget.style.borderColor = '';
-  event.currentTarget.style.background = '';
-  asHandleFiles(event.dataTransfer.files);
-}
-
-function asHandleFiles(fileList) {
-  asSelectedFiles = asSelectedFiles.concat(Array.from(fileList));
-  renderAsFileList();
-}
-
-function asRemoveFile(idx) {
-  asSelectedFiles.splice(idx, 1);
-  renderAsFileList();
-}
-
-function renderAsFileList() {
-  const wrap = document.getElementById('as-file-list');
-  const itemsEl = document.getElementById('as-file-items');
-  if (!wrap || !itemsEl) return;
-  if (!asSelectedFiles.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'block';
-  itemsEl.innerHTML = asSelectedFiles.map((f, i) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface-inset);border-radius:var(--r-sm);margin-bottom:5px;font-size:12px">
-      <span>${escapeHtml(f.name)} <span style="color:var(--text-muted)">(${Math.round(f.size/1024)} KB)</span></span>
-      <button onclick="asRemoveFile(${i})" style="background:none;border:none;color:var(--crimson-500);cursor:pointer;font-size:14px">✕</button>
-    </div>`).join('');
-}
-
-/* ═══════════════════════════════════════════════════════
-   CLOUDINARY UPLOAD HELPER
-═══════════════════════════════════════════════════════ */
-async function uploadFileToCloudinary(file) {
-  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', 'r2u-students');
-
-  const res = await fetch(url, { method: 'POST', body: formData });
-  if (!res.ok) throw new Error('Upload failed for ' + file.name);
-  const data = await res.json();
-  return { name: file.name, url: data.secure_url, type: file.type, uploadedAt: new Date().toISOString() };
-}
-
-async function uploadAllAsFiles() {
-  const uploaded = [];
-  for (const file of asSelectedFiles) {
-    const result = await uploadFileToCloudinary(file);
-    uploaded.push(result);
-  }
-  return uploaded;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -393,9 +405,9 @@ function openDetail(studentId) {
   if (!s) { toast('Student not found', 'error'); return; }
   detailStudentId = studentId;
 
-  switchView('student-detail', null);
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-student-detail').classList.add('active');
+  currentView = 'student-detail';
 
   setText('detail-name', s['STUDENT NAME'] || '—');
   setText('detail-id', s['STUDENT ID'] || studentId);
@@ -455,9 +467,50 @@ function openStageDrawer(studentId) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   2. PARTNER UNIVERSITIES — JSON LOADER  (NEW — was missing)
+   Fetches universities.json instead of relying on the inline
+   <script id="uni-rawdata"> block (now removed from index.html).
+   Falls back to the inline block ONLY if present, for safety.
+═══════════════════════════════════════════════════════ */
+let UNI_DATA = {};
+let UNI_DATA_LOADED = false;
+
+async function loadUniversitiesData() {
+  try {
+    const res = await fetch('universities.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    UNI_DATA = await res.json();
+    UNI_DATA_LOADED = true;
+    console.log('[Universities] Loaded from universities.json:', Object.keys(UNI_DATA).length, 'universities');
+  } catch (e) {
+    console.error('[Universities] fetch failed, trying inline fallback:', e);
+    const inline = document.getElementById('uni-rawdata');
+    if (inline) {
+      try {
+        UNI_DATA = JSON.parse(inline.textContent);
+        UNI_DATA_LOADED = true;
+        console.log('[Universities] Loaded from inline fallback');
+      } catch (parseErr) {
+        console.error('[Universities] Inline fallback parse failed:', parseErr);
+        if (typeof toast === 'function') toast('Could not load university data', 'error');
+      }
+    } else {
+      if (typeof toast === 'function') toast('Could not load universities.json — check the file exists next to index.html', 'error');
+    }
+  }
+
+  setText('uni-total-count', Object.keys(UNI_DATA).length);
+
+  if (currentView === 'universities' && typeof renderUniGrid === 'function') {
+    renderUniGrid();
+  }
+}
+
+// Kick off load early so it's ready by the time the user clicks the tab
+document.addEventListener('DOMContentLoaded', loadUniversitiesData);
+
+/* ═══════════════════════════════════════════════════════
    SAFE TOAST FALLBACK
-   Yedi script.js ko original toast() function kunai reason le
-   missing/undefined cha vane, yo le error nadiyera console ma matra log garcha
 ═══════════════════════════════════════════════════════ */
 if (typeof toast !== 'function') {
   window.toast = function (msg, type = 'success') {
@@ -465,4 +518,4 @@ if (typeof toast !== 'function') {
   };
 }
 
-console.log('[script-additions.js] loaded ✅');
+console.log('[script-additions.js] loaded ✅ (Cloudinary + Universities loader included)');
