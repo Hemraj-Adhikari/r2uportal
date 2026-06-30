@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role;
+    }
+
+    function isStaff() {
+      return getUserRole() in ['Super Admin', 'Admin', 'Document Officer', 'Application User'];
+    }
+
+    match /students/{studentId} {
+      allow read: if isAuthenticated() && (isStaff() || resource.data.partnerId == request.auth.uid);
+      allow write: if isAuthenticated() && (isStaff());
+    }
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && getUserRole() in ['Super Admin', 'Admin'];
+    }
+  }
+}
