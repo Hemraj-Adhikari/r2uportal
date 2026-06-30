@@ -138,7 +138,7 @@ async function saveStages() {
 
   try {
     await fbUpdateStudent(activeStudentId, patch);
-    toast('Pipeline updated ✅', 'success');
+    toast('Pipeline updated ', 'success');
   } catch (e) {
     console.error('[saveStages] Firestore error:', e);
     toast('Saved locally — sync failed: ' + e.message, 'info');
@@ -318,7 +318,7 @@ async function submitAddStudent() {
     document.getElementById('as-drive-link-wrap').style.display = 'none';
     successEl.style.display = 'block';
     lblEl.textContent       = '✓ Added';
-    toast(`${name} added `, 'success');
+    toast(`${name} added ✅`, 'success');
 
     // Reset selected files for next entry
     if (typeof asSelectedFiles !== 'undefined') asSelectedFiles = [];
@@ -407,7 +407,7 @@ async function sendNotification() {
       sentAt     : firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    toast('Notification logged ✅', 'success');
+    toast('Notification logged ', 'success');
     closeDrawer('drw-notify');
   } catch (e) {
     console.error('[sendNotification] Error:', e);
@@ -457,6 +457,13 @@ window._studentsUnsubscribe = null;
 // Reactive real-time listener — replaces one-shot .get() fetch.
 // Any add/update/delete on the 'students' collection auto-refreshes
 // every dependent surface (KPIs, funnel, charts, tables, follow-up, CAS).
+window.showErrorBanner = function(msg) {
+  const banner = document.getElementById('data-error-banner');
+  const msgEl = document.getElementById('data-error-banner-msg');
+  if (msgEl) msgEl.textContent = msg;
+  if (banner) banner.style.display = 'flex';
+};
+
 window.loadStudentsFromFirebase = function() {
   if (typeof loading === 'function') loading('Connecting to live student stream…');
 
@@ -510,6 +517,7 @@ window.loadStudentsFromFirebase = function() {
       window.studentsDataReady = false;
       document.dispatchEvent(new CustomEvent('students-data-error', { detail: { error } }));
       if (typeof toast === 'function') toast('Real-time student stream disconnected: ' + error.message, 'error');
+      if (typeof window.showErrorBanner === 'function') window.showErrorBanner('Real-time student data disconnected: ' + error.message);
       if (typeof hideLoading === 'function') hideLoading();
       resolve();
     });
