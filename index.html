@@ -147,14 +147,6 @@
         <svg class="sb-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div class="sb-group-body" style="max-height:400px">
-        <div class="sb-link" data-view="email" onclick="switchView('email',this)">
-          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          <span>Email</span>
-        </div>
-        <div class="sb-link" data-view="whatsapp" onclick="switchView('whatsapp',this)">
-          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-          <span>WhatsApp</span>
-        </div>
         <div class="sb-link" data-view="chat" onclick="switchView('chat',this)">
           <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 01-2 2H6l-4 4V4a2 2 0 012-2h8a2 2 0 012 2z"/><path d="M18 9h2a2 2 0 012 2v11l-4-4h-6a2 2 0 01-2-2v-1"/></svg>
           <span>Internal Chat</span>
@@ -202,6 +194,10 @@
         <svg class="sb-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div class="sb-group-body" style="max-height:200px">
+        <div class="sb-link admin-only" data-view="users" onclick="switchView('users',this)" style="display:none">
+          <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          <span>User Management</span>
+        </div>
         <div class="sb-link admin-only" data-view="upload" onclick="switchView('upload',this)" style="display:none">
           <svg class="sb-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
           <span>Import CSV</span>
@@ -633,6 +629,161 @@
     </div>
 
     <!-- UPLOAD (Admin only) -->
+    <!-- USER MANAGEMENT -->
+    <style>
+      #view-users .um-kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+      @media (max-width:1200px){#view-users .um-kpi-grid{grid-template-columns:repeat(3,1fr)}}
+      @media (max-width:760px){#view-users .um-kpi-grid{grid-template-columns:repeat(2,1fr)}}
+      #view-users .um-kpi{border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.04)}
+      #view-users .um-kpi-top{display:flex;align-items:flex-start;justify-content:space-between}
+      #view-users .um-kpi-label{font-size:12.5px;font-weight:600;color:var(--text-secondary,#475569)}
+      #view-users .um-kpi-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+      #view-users .um-kpi-val{font-size:26px;font-weight:800;color:var(--text-primary,#0F172A);margin-top:10px;line-height:1}
+      #view-users .um-kpi-sub{font-size:11px;font-weight:500;margin-top:6px}
+      #view-users .um-kpi-superadmin{background:linear-gradient(135deg,#FCE7F3,#FDF2F8)}
+      #view-users .um-kpi-superadmin .um-kpi-icon{background:#EC4899;color:#fff}
+      #view-users .um-kpi-superadmin .um-kpi-sub{color:#DB2777}
+      #view-users .um-kpi-admin{background:linear-gradient(135deg,#DBEAFE,#EFF6FF)}
+      #view-users .um-kpi-admin .um-kpi-icon{background:#3B82F6;color:#fff}
+      #view-users .um-kpi-admin .um-kpi-sub{color:#2563EB}
+      #view-users .um-kpi-internal{background:linear-gradient(135deg,#EDE9FE,#F5F3FF)}
+      #view-users .um-kpi-internal .um-kpi-icon{background:#8B5CF6;color:#fff}
+      #view-users .um-kpi-internal .um-kpi-sub{color:#7C3AED}
+      #view-users .um-kpi-app{background:linear-gradient(135deg,#D1FAE5,#ECFDF5)}
+      #view-users .um-kpi-app .um-kpi-icon{background:#10B981;color:#fff}
+      #view-users .um-kpi-app .um-kpi-sub{color:#059669}
+      #view-users .um-kpi-partner{background:linear-gradient(135deg,#DBEAFE,#EFF6FF)}
+      #view-users .um-kpi-partner .um-kpi-icon{background:#6366F1;color:#fff}
+      #view-users .um-kpi-partner .um-kpi-sub{color:#4F46E5}
+
+      #view-users .um-actionbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+      #view-users .um-search-wrap{position:relative;flex:1;min-width:220px;max-width:340px}
+      #view-users .um-search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none}
+      #view-users .um-search-wrap input{width:100%;padding:9px 12px 9px 32px;border-radius:9px;border:1px solid #FDE68A;background:#FFFBEB;font-size:12.5px;font-family:inherit;outline:none}
+      #view-users .um-search-wrap input:focus{border-color:#F59E0B}
+      #view-users .um-role-select{padding:9px 14px;border-radius:9px;border:1px solid var(--border-subtle,#E2E8F0);background:#fff;font-size:12.5px;font-family:inherit;font-weight:600;color:var(--text-secondary,#475569);cursor:pointer;outline:none}
+      #view-users .um-add-btn{margin-left:auto;background:#F59E0B;color:#fff;border:none;padding:9px 16px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
+      #view-users .um-add-btn:hover{background:#D97706}
+
+      #view-users .um-tbl-card{background:#fff;border:1px solid var(--border-subtle,#E2E8F0);border-radius:14px;overflow:hidden}
+      #view-users table.um-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      #view-users table.um-table thead th{text-align:left;padding:11px 16px;font-size:11px;font-weight:700;color:var(--text-muted,#94A3B8);text-transform:none;border-bottom:1px solid var(--border-subtle,#E2E8F0);background:#FAFBFC}
+      #view-users table.um-table tbody td{padding:11px 16px;border-bottom:1px solid #F1F5F9;vertical-align:middle;color:var(--text-secondary,#475569)}
+      #view-users table.um-table tbody tr:last-child td{border-bottom:none}
+      #view-users .um-name-cell{display:flex;align-items:center;gap:9px}
+      #view-users .um-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0}
+      #view-users .um-name-text{font-weight:600;color:var(--text-primary,#0F172A)}
+      #view-users .um-role-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap}
+      #view-users .um-status-wrap{display:inline-flex;align-items:center;gap:3px;border:1px solid #A7F3D0;background:#ECFDF5;border-radius:7px;padding:4px 6px}
+      #view-users .um-status-wrap select{border:none;background:transparent;font-size:11.5px;font-weight:700;color:#059669;outline:none;cursor:pointer;font-family:inherit;padding-right:2px}
+      #view-users .um-status-wrap.inactive{border-color:#FCA5A5;background:#FEF2F2}
+      #view-users .um-status-wrap.inactive select{color:#DC2626}
+      #view-users .um-actions-btn{background:none;border:none;cursor:pointer;color:var(--text-muted,#94A3B8);padding:4px;border-radius:6px;position:relative}
+      #view-users .um-actions-btn:hover{background:#F1F5F9}
+      #view-users .um-actions-menu{position:absolute;right:16px;top:36px;background:#fff;border:1px solid var(--border-subtle,#E2E8F0);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:140px;z-index:20;overflow:hidden;display:none}
+      #view-users .um-actions-menu.open{display:block}
+      #view-users .um-actions-menu div{padding:9px 14px;font-size:12px;font-weight:600;color:var(--text-secondary,#475569);cursor:pointer}
+      #view-users .um-actions-menu div:hover{background:#F8FAFC}
+      #view-users .um-actions-menu div.danger{color:#DC2626}
+
+      #view-users .um-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:12px;color:var(--text-muted,#94A3B8);flex-wrap:wrap;gap:10px}
+      #view-users .um-footer-left{display:flex;align-items:center;gap:8px}
+      #view-users .um-footer-left select{border:1px solid var(--border-subtle,#E2E8F0);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit}
+      #view-users .um-pager{display:flex;align-items:center;gap:4px}
+      #view-users .um-pager button{border:1px solid var(--border-subtle,#E2E8F0);background:#fff;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-secondary,#475569)}
+      #view-users .um-pager button.active{background:#F59E0B;border-color:#F59E0B;color:#fff}
+      #view-users .um-pager button:disabled{opacity:.4;cursor:not-allowed}
+    </style>
+    <div class="view" id="view-users">
+
+      <div class="um-kpi-grid">
+        <div class="um-kpi um-kpi-superadmin">
+          <div class="um-kpi-top">
+            <span class="um-kpi-label">Super Admin</span>
+            <span class="um-kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          </div>
+          <div class="um-kpi-val" id="um-count-superadmin">0</div>
+          <div class="um-kpi-sub">Full system access</div>
+        </div>
+        <div class="um-kpi um-kpi-admin">
+          <div class="um-kpi-top">
+            <span class="um-kpi-label">Admin</span>
+            <span class="um-kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5.5-3.8 9-8 11-4.2-2-8-5.5-8-11V7l8-4z"/></svg></span>
+          </div>
+          <div class="um-kpi-val" id="um-count-admin">0</div>
+          <div class="um-kpi-sub">Manage users &amp; data</div>
+        </div>
+        <div class="um-kpi um-kpi-internal">
+          <div class="um-kpi-top">
+            <span class="um-kpi-label">Internal User</span>
+            <span class="um-kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
+          </div>
+          <div class="um-kpi-val" id="um-count-internal">0</div>
+          <div class="um-kpi-sub">Manage student documents</div>
+        </div>
+        <div class="um-kpi um-kpi-app">
+          <div class="um-kpi-top">
+            <span class="um-kpi-label">Application User</span>
+            <span class="um-kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+          </div>
+          <div class="um-kpi-val" id="um-count-app">0</div>
+          <div class="um-kpi-sub">View &amp; add notes</div>
+        </div>
+        <div class="um-kpi um-kpi-partner">
+          <div class="um-kpi-top">
+            <span class="um-kpi-label">Channel Partner</span>
+            <span class="um-kpi-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></span>
+          </div>
+          <div class="um-kpi-val" id="um-count-partner">0</div>
+          <div class="um-kpi-sub">Manage own students</div>
+        </div>
+      </div>
+
+      <div class="um-actionbar">
+        <div class="um-search-wrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="um-search-input" type="text" placeholder="Search users…" oninput="renderUsersTable()">
+        </div>
+        <select id="um-role-filter" class="um-role-select" onchange="renderUsersTable()">
+          <option value="">All Roles</option>
+          <option value="Super Admin">Super Admin</option>
+          <option value="Admin">Admin</option>
+          <option value="Internal User">Internal User</option>
+          <option value="Application User">Application User</option>
+          <option value="Channel Partner">Channel Partner</option>
+        </select>
+        <button class="um-add-btn" onclick="openAddUserModal()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add User
+        </button>
+      </div>
+
+      <div class="um-tbl-card">
+        <div class="tbl-scroll" style="max-height:55vh;overflow:auto">
+          <table class="um-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created Date</th><th>Last Login</th><th style="text-align:center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="um-table-body"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="um-footer">
+          <div class="um-footer-left">
+            <span id="um-range-label">—</span>
+            <span>Rows per page</span>
+            <select id="um-rows-per-page" onchange="umChangeRowsPerPage()">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+          <div class="um-pager" id="um-pager"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="view" id="view-upload">
       <div class="page-header">
         <div class="page-header-left"><h2>Import CSV</h2><p>Upload and sync student records from spreadsheet</p></div>
