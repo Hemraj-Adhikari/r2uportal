@@ -119,9 +119,9 @@ function closeBulkWaModal() {
 // Option B: leave serviceId as-is and implement a Firebase Cloud Function
 // named "sendBulkEmail" — sendOneBulkEmail() below falls back to it.
 const BULK_EMAIL_CONFIG = {
-  serviceId: 'YOUR_EMAILJS_SERVICE_ID',     // ← from EmailJS dashboard > Email Services
-  templateId: 'YOUR_EMAILJS_TEMPLATE_ID',   // ← from EmailJS dashboard > Email Templates
-  publicKey: 'YOUR_EMAILJS_PUBLIC_KEY'      // ← from EmailJS dashboard > Account > General
+  serviceId: 'service_guocxjx',     // Gmail service (default)
+  templateId: 'template_s6mtidm',   // "Contact Us" template
+  publicKey: 'C0w8RYMOKE0nGod4y'    // EmailJS public key
 };
 
 if (window.emailjs && BULK_EMAIL_CONFIG.publicKey !== 'YOUR_EMAILJS_PUBLIC_KEY') {
