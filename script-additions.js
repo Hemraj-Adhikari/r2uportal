@@ -1345,16 +1345,20 @@ function renderReports() {
 }
 
 /* ═══════════════════════════════════════════════════════
+  /* ═══════════════════════════════════════════════════════
    INTERNAL CHAT
-   Collection: 'chatMessages'
-   Fields: { group, senderName, senderRole, text, createdAt }
 ═══════════════════════════════════════════════════════ */
+
 let currentChatGroup = 'global';
 
 function switchChatGroup(group, btnEl) {
   currentChatGroup = group;
-  document.querySelectorAll('#chat-group-tabs .seg-btn').forEach(b => b.classList.remove('active'));
+
+  document.querySelectorAll('#chat-group-tabs .seg-btn')
+    .forEach(btn => btn.classList.remove('active'));
+
   if (btnEl) btnEl.classList.add('active');
+
   initChatListener(group);
 }
 
@@ -1362,62 +1366,151 @@ function initChatListener(group) {
   if (!db) return;
 
   const container = document.getElementById('chat-messages');
-  if (container) container.innerHTML = '<div class="empty-state">Loading messages…</div>';
 
-  window.ListenerManager.register('chat', () => db.collection('chatMessages')
-    .where('group', '==', group)
-    .orderBy('createdAt', 'asc')
-    .limitToLast(200)
-    .onSnapshot(snap => {
-      renderChatMessages(snap.docs.map(d => d.data()));
-    }, err => {
-      console.error('[initChatListener] snapshot error:', err);
-      if (container) container.innerHTML = '<div class="empty-state">Could not load chat. Check Firestore index/rules for chatMessages.</div>';
-    }));
+  if (container) {
+    container.innerHTML =
+      '<div class="empty-state">Loading messages...</div>';
+  }
+
+  window.ListenerManager.register(
+    'chat',
+    () => db.collection('chatMessages')
+      .where('group', '==', group)
+      .orderBy('createdAt', 'asc')
+      .limitToLast(200)
+      .onSnapshot(snapshot => {
+        renderChatMessages(snapshot.docs.map(doc => doc.data()));
+      }, error => {
+        console.error(error);
+
+        if (container) {
+          container.innerHTML =
+            '<div class="empty-state">Could not load chat.</div>';
+        }
+      })
+  );
 }
 
-function renderChatMessages(msgs) {
+function renderChatMessages(messages) {
+
   const container = document.getElementById('chat-messages');
+
   if (!container) return;
-  if (!msgs.length) { container.innerHTML = '<div class="empty-state">No messages yet — say hello 👋</div>'; return; }
+
+  if (!messages.length) {
+    container.innerHTML =
+      '<div class="empty-state">No messages yet 👋</div>';
+    return;
+  }
+
   const myName = (window.staff && window.staff.name) || '';
-  container.innerHTML = msgs.map(m => {
-    const mine = m.senderName === myName;
-    const time = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    return `<div class="chat-bubble${mine ? ' mine' : ''}">
-      ${!mine ? `<div class="chat-meta">${escapeHtml(m.senderName || 'Unknown')}${m.senderRole ? ' · ' + escapeHtml(m.senderRole) : ''}</div>` : ''}
-      <div>${escapeHtml(m.text || '')}</div>
-      <span class="chat-time">${time}</span>
-    </div>`;
+
+  container.innerHTML = messages.map(msg => {
+
+    const mine = msg.senderName === myName;
+
+    const time =
+      msg.createdAt && msg.createdAt.toDate
+        ? msg.createdAt.toDate().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : '';
+
+    return `
+      <div class="chat-bubble ${mine ? 'mine' : ''}">
+        ${
+          !mine
+            ? `<div class="chat-meta">
+                ${escapeHtml(msg.senderName || 'Unknown')}
+                ${msg.senderRole ? ' · ' + escapeHtml(msg.senderRole) : ''}
+               </div>`
+            : ''
+        }
+
+        <div>${escapeHtml(msg.text || '')}</div>
+
+        <span class="chat-time">${time}</span>
+      </div>
+    `;
+
   }).join('');
+
   container.scrollTop = container.scrollHeight;
 }
 
-await db.collection('chatMessages').add({
-    group: currentChatGroup,
-    senderName: (window.staff && window.staff.name) || 'Unknown',
-    senderEmail: firebase.auth().currentUser.email.toLowerCase(),
-    senderRole: (window.staff && window.staff.role) || '',
-    text,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-});
-    if (typeof logActivity === 'function') logActivity('Send', 'Chat Message', null, { group: currentChatGroup });
-    if (input) { input.value = ''; input.style.height = ''; }
+async function sendChatMessage() {
+
+  const input = document.getElementById('chat-input');
+  const btn = document.getElementById('chat-send-btn');
+
+  if (!input) return;
+
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  try {
+
+    if (btn) btn.disabled = true;
+
+    await db.collection('chatMessages').add({
+
+      group: currentChatGroup,
+
+      senderName:
+        (window.staff && window.staff.name) || 'Unknown',
+
+      senderEmail:
+        firebase.auth().currentUser.email.toLowerCase(),
+
+      senderRole:
+        (window.staff && window.staff.role) || '',
+
+      text: text,
+
+      createdAt:
+        firebase.firestore.FieldValue.serverTimestamp()
+
+    });
+
+    if (typeof logActivity === 'function') {
+      logActivity(
+        'Send',
+        'Chat Message',
+        null,
+        { group: currentChatGroup }
+      );
+    }
+
+    input.value = '';
+    input.style.height = '';
+
   } catch (e) {
+
     console.error('[sendChatMessage]', e);
+
     toast('Could not send message', 'error');
+
   } finally {
+
     if (btn) btn.disabled = false;
+
   }
+
 }
 
 function chatInputKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendChatMessage();
-  }
-}
 
+  if (e.key === 'Enter' && !e.shiftKey) {
+
+    e.preventDefault();
+
+    sendChatMessage();
+
+  }
+
+}
 /* ═══════════════════════════════════════════════════════
    DRAWER HELPERS (generic open/close used across views)
 ═══════════════════════════════════════════════════════ */
