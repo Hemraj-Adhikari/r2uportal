@@ -1393,20 +1393,13 @@ function renderChatMessages(msgs) {
   container.scrollTop = container.scrollHeight;
 }
 
-async function sendChatMessage() {
-  const input = document.getElementById('chat-input');
-  const text = (input?.value || '').trim();
-  if (!text) return;
-  const btn = document.getElementById('chat-send-btn');
-  if (btn) btn.disabled = true;
-  try {
-    await db.collection('chatMessages').add({
-      group: currentChatGroup,
-      senderName: (window.staff && window.staff.name) || 'Unknown',
-      senderRole: (window.staff && window.staff.role) || '',
-      text,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+await db.collection('chatMessages').add({
+    group: currentChatGroup,
+    senderName: (window.staff && window.staff.name) || 'Unknown',
+    senderRole: (window.staff && window.staff.role) || '',
+    text,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
     if (typeof logActivity === 'function') logActivity('Send', 'Chat Message', null, { group: currentChatGroup });
     if (input) { input.value = ''; input.style.height = ''; }
   } catch (e) {
