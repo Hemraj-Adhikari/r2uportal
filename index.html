@@ -439,32 +439,36 @@
       <div class="detail-layout">
         <div class="detail-sidebar">
           <div class="detail-section">
-            <div class="detail-section-head"><div class="detail-section-title">Documents</div><span class="badge badge-slate" style="font-size:9.5px">From Drive</span></div>
-            <div class="detail-section-body" style="padding:12px 16px">
-              <div id="dp-docs-section" style="font-size:11.5px;color:var(--text-muted)">Loading…</div>
-            </div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-head"><div class="detail-section-title">Record</div><span class="badge badge-slate" style="font-size:9.5px">Read-only</span></div>
-            <div class="detail-section-body" style="padding:0">
-              <div style="padding:12px 16px">
-                <div class="detail-field-row"><span class="detail-field-label">Student ID</span><span class="detail-field-val" id="dp-sid"></span></div>
-                <div class="detail-field-row"><span class="detail-field-label">Level</span><span class="detail-field-val" id="dp-level"></span></div>
-                <div class="detail-field-row"><span class="detail-field-label">Full Name</span><span class="detail-field-val" id="dp-sname"></span></div>
-                <div class="detail-field-row"><span class="detail-field-label">Course</span><span class="detail-field-val" id="dp-course"></span></div>
-                <div class="detail-field-row"><span class="detail-field-label">Date of Birth</span><span class="detail-field-val" id="dp-dob"></span></div>
-                <div class="detail-field-row"><span class="detail-field-label">Channel Partner</span><span class="detail-field-val" id="dp-agent"></span></div>
-                <div class="detail-field-row"><span class="detail-field-label">Mobile</span><span class="detail-field-val" id="dp-mobile-ro"></span></div>
-                <div class="detail-field-row"><span class="detail-field-label">Email</span><span class="detail-field-val" id="dp-email-ro"></span></div>
-              </div>
-            </div>
-          </div>
-          <div class="detail-section">
             <div class="detail-section-head"><div class="detail-section-title">Pipeline progress</div><span id="dp-pipeline-score" style="font-size:11px;font-weight:600;color:var(--text-muted)">0/9</span></div>
-            <div class="detail-section-body" style="padding:8px 16px" id="dp-pipeline-list"></div>
+            <div class="detail-section-body" style="padding:14px 16px 16px">
+              <div class="pipeline-timeline" id="dp-pipeline-list"></div>
+            </div>
           </div>
         </div>
         <div class="detail-main">
+          <div class="detail-info-grid">
+            <div class="detail-section">
+              <div class="detail-section-head"><div class="detail-section-title">Personal Info</div><span class="badge badge-slate" style="font-size:9.5px">Read-only</span></div>
+              <div class="detail-section-body" style="padding:4px 16px">
+                <div class="info-grid">
+                  <div class="info-cell"><span class="info-label">Student ID</span><span class="info-val" id="dp-sid"></span></div>
+                  <div class="info-cell"><span class="info-label">Level</span><span class="info-val" id="dp-level"></span></div>
+                  <div class="info-cell" style="grid-column:1/-1"><span class="info-label">Full Name</span><span class="info-val" id="dp-sname"></span></div>
+                  <div class="info-cell" style="grid-column:1/-1"><span class="info-label">Course</span><span class="info-val" id="dp-course"></span></div>
+                  <div class="info-cell"><span class="info-label">Date of Birth</span><span class="info-val" id="dp-dob"></span></div>
+                  <div class="info-cell"><span class="info-label">Channel Partner</span><span class="info-val" id="dp-agent"></span></div>
+                  <div class="info-cell"><span class="info-label">Mobile</span><span class="info-val" id="dp-mobile-ro"></span></div>
+                  <div class="info-cell"><span class="info-label">Email</span><span class="info-val" id="dp-email-ro"></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-section-head"><div class="detail-section-title">Documents</div><span class="badge badge-slate" style="font-size:9.5px">From Drive</span></div>
+              <div class="detail-section-body" style="padding:12px 16px">
+                <div id="dp-docs-section" style="font-size:11.5px;color:var(--text-muted)">Loading…</div>
+              </div>
+            </div>
+          </div>
           <div class="detail-section">
             <div class="detail-section-head"><div class="detail-section-title">Stage details</div><button class="btn btn-primary btn-sm" onclick="openStageDrawer(detailStudentId)">Update stages</button></div>
             <div class="detail-section-body">
@@ -1036,8 +1040,8 @@
   <div class="drw-foot">
     <button class="btn btn-ghost btn-sm" onclick="closeDrawer('drw-stage')">Close</button>
     <button class="btn btn-gold btn-sm" onclick="saveStages()">
-      <span id="stage-save-txt">Save changes</span>
-      <span class="spinner-sm" id="stage-save-spin" style="display:none"></span>
+      <span class="btn-label" id="stage-save-txt">Save changes</span>
+      <span class="spinner-sm btn-busy-spin" id="stage-save-spin" style="display:none"></span>
     </button>
   </div>
 </aside>
@@ -1132,6 +1136,19 @@
   " onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.45)'">✕</button>
 </div>
 <script>
+// ── Generic button-busy helper ───────────────────────────────
+// Wrap any button's label text in <span class="btn-label">…</span> and add
+// an empty <span class="spinner-sm btn-busy-spin"></span> inside it, then call
+// setBtnBusy(btnEl, true) before an async action and setBtnBusy(btnEl, false)
+// when it resolves. This swaps the label for a small inline spinner instead
+// of changing the button text to "Processing…".
+function setBtnBusy(btn, busy) {
+  if (!btn) return;
+  btn.classList.toggle('btn-busy', !!busy);
+  btn.disabled = !!busy;
+}
+window.setBtnBusy = setBtnBusy;
+
 // Load university data from external JSON file
 (async function() {
   try {
