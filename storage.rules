@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.token.email)).data;
+    }
+
+    function isStaff() {
+      return userDoc().role in ['Super Admin', 'Admin', 'Document Officer', 'Application User'];
+    }
+
+    function isOwningPartner(studentId) {
+      return firestore.get(/databases/(default)/documents/students/$(studentId)).data.partnerId == request.auth.uid;
+    }
+
+    match /students/{studentId}/{docType}/{fileName} {
+      allow read: if isAuthenticated() && (isStaff() || isOwningPartner(studentId));
+      allow write: if isAuthenticated() && isStaff()
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('application/pdf|image/.*');
+      allow delete: if isAuthenticated() && isStaff();
+    }
+  }
+}
