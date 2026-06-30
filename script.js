@@ -454,4 +454,15 @@ function openStageDrawer(studentId) {
   openDrawerEl('drw-stage');
 }
 
+/* ═══════════════════════════════════════════════════════
+   SAFE TOAST FALLBACK
+   Yedi script.js ko original toast() function kunai reason le
+   missing/undefined cha vane, yo le error nadiyera console ma matra log garcha
+═══════════════════════════════════════════════════════ */
+if (typeof toast !== 'function') {
+  window.toast = function (msg, type = 'success') {
+    console.log('[toast:' + type + ']', msg);
+  };
+}
+
 console.log('[script-additions.js] loaded ✅');
