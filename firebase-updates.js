@@ -447,35 +447,102 @@ function today() {
    firebase-auth.js's bootSession() calls and awaits this.)
 ═══════════════════════════════════════════════════════ */
 window.studentsDataReady = false;
+window._studentsUnsubscribe = null;
 
-window.loadStudentsFromFirebase = async function() {
-  if (typeof loading === 'function') loading('Fetching students from Firebase…');
-  try {
-    const snapshot = await db.collection('students').orderBy('createdAt', 'desc').get();
-    const fetched = [];
-    snapshot.forEach(doc => {
-      fetched.push({ id: doc.id, ...doc.data() });
-    });
+// Reactive real-time listener — replaces one-shot .get() fetch.
+// Any add/update/delete on the 'students' collection auto-refreshes
+// every dependent surface (KPIs, funnel, charts, tables, follow-up, CAS).
+window.loadStudentsFromFirebase = function() {
+  if (typeof loading === 'function') loading('Connecting to live student stream…');
 
-    window.students = fetched;
-    window.totalRecords = fetched.length;
-    window.studentsDataReady = true;
-
-    document.dispatchEvent(new CustomEvent('students-data-ready', { detail: { count: fetched.length } }));
-
-    if (typeof toast === 'function') toast('Loaded ' + fetched.length + ' students', 'success');
-  } catch (e) {
-    console.error('[loadStudentsFromFirebase] Firestore error:', e);
-    window.studentsDataReady = false;
-    document.dispatchEvent(new CustomEvent('students-data-error', { detail: { error: e } }));
-    if (typeof toast === 'function') toast('Failed to load students: ' + e.message, 'error');
-  } finally {
-    if (typeof hideLoading === 'function') hideLoading();
+  if (typeof window._studentsUnsubscribe === 'function') {
+    window._studentsUnsubscribe();
+    window._studentsUnsubscribe = null;
   }
+
+  let query = db.collection('students');
+  if (window.staff && window.staff.role === 'Channel Partner' && window.staff.partnerId) {
+    query = query.where('partnerId', '==', window.staff.partnerId);
+  } else {
+    query = query.orderBy('createdAt', 'desc');
+  }
+
+  return new Promise((resolve) => {
+    let firstLoad = true;
+
+    window._studentsUnsubscribe = query.onSnapshot(snapshot => {
+      const fetched = [];
+      snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
+
+      window.students = fetched;
+      window.totalRecords = fetched.length;
+      window.studentsDataReady = true;
+
+      document.dispatchEvent(new CustomEvent('students-data-ready', { detail: { count: fetched.length } }));
+
+      // Auto-refresh every active surface in real time
+      if (typeof filterTableStudents === 'function') filterTableStudents();
+      if (typeof updateStats === 'function') updateStats();
+      if (typeof updateFunnel === 'function') updateFunnel();
+      if (typeof renderDashboard === 'function') renderDashboard();
+      if (typeof renderFollowUp === 'function') renderFollowUp();
+      if (typeof renderReports === 'function') renderReports();
+      if (typeof renderCASTable === 'function' && Array.isArray(window.casRows)) {
+        window.casRows = fetched;
+        renderCASTable(fetched);
+      }
+
+      if (firstLoad) {
+        if (typeof toast === 'function') toast('Live: ' + fetched.length + ' students synced', 'success');
+        if (typeof hideLoading === 'function') hideLoading();
+        firstLoad = false;
+        resolve();
+      }
+
+      console.log('[Reactive Firestore Stream] students synced:', fetched.length);
+    }, error => {
+      console.error('[loadStudentsFromFirebase] onSnapshot error:', error);
+      window.studentsDataReady = false;
+      document.dispatchEvent(new CustomEvent('students-data-error', { detail: { error } }));
+      if (typeof toast === 'function') toast('Real-time student stream disconnected: ' + error.message, 'error');
+      if (typeof hideLoading === 'function') hideLoading();
+      resolve();
+    });
+  });
 };
 
-// Override the default loadStudents to use Firebase
+// Override the default loadStudents to use the reactive Firebase stream
 window.loadStudents = window.loadStudentsFromFirebase;
+
+/* ═══════════════════════════════════════════════════════
+   7b. CHANNEL PARTNERS — Real-time count for dashboard KPI
+═══════════════════════════════════════════════════════ */
+window.channelPartners = [];
+window._partnersUnsubscribe = null;
+
+window.loadChannelPartnersFromFirebase = function() {
+  if (typeof window._partnersUnsubscribe === 'function') {
+    window._partnersUnsubscribe();
+    window._partnersUnsubscribe = null;
+  }
+  window._partnersUnsubscribe = db.collection('channelPartners').onSnapshot(snapshot => {
+    const fetched = [];
+    snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
+    window.channelPartners = fetched;
+    window.totalPartners = fetched.length;
+    if (typeof renderDashboard === 'function') renderDashboard();
+    if (typeof setText === 'function') setText('kpi-partners', fetched.length);
+    console.log('[Reactive Firestore Stream] channelPartners synced:', fetched.length);
+  }, error => {
+    console.error('[loadChannelPartnersFromFirebase] onSnapshot error:', error);
+  });
+};
+
+document.addEventListener('students-data-ready', function onceInit() {
+  if (typeof window.loadChannelPartnersFromFirebase === 'function' && !window._partnersUnsubscribe) {
+    window.loadChannelPartnersFromFirebase();
+  }
+});
 
 /* ═══════════════════════════════════════════════════════
    8. CAS SHIELD — Load from Firestore
