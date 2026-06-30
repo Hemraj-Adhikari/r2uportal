@@ -9,6 +9,47 @@
 ═══════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════
+   HELPER — Automatic system notifications
+   Writes a doc into the existing 'notifications' collection
+   so the real-time listener (initNotificationsListener, below)
+   picks it up the same way manual "Send Notification" entries
+   do. event is one of:
+     student_added | student_updated | student_deleted |
+     user_added | user_deleted | document_uploaded
+═══════════════════════════════════════════════════════ */
+async function createSystemNotification(event, opts = {}) {
+  if (!window.db) return;
+  const LABELS = {
+    student_added     : 'Student Added',
+    student_updated   : 'Student Updated',
+    student_deleted   : 'Student Deleted',
+    user_added        : 'User Added',
+    user_deleted      : 'User Deleted',
+    document_uploaded : 'Document Uploaded'
+  };
+  const subject = opts.subject || LABELS[event] || 'System update';
+  try {
+    await db.collection('notifications').add({
+      studentId : opts.studentId || null,
+      partnerId : opts.partnerId || null,
+      role      : opts.role || 'Staff',
+      type      : 'System',
+      event,
+      subject,
+      message   : opts.message || subject,
+      system    : true,
+      sentBy    : window.staff?.name || 'System',
+      sentAt    : firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {
+    // Never block the primary action (add/update/delete) on a
+    // notification write failing — just log it.
+    console.error('[createSystemNotification] failed for event "' + event + '":', e);
+  }
+}
+window.createSystemNotification = createSystemNotification;
+
+/* ═══════════════════════════════════════════════════════
    HELPER — Student patch update
 ═══════════════════════════════════════════════════════ */
 async function fbUpdateStudent(studentId, patch) {
@@ -23,6 +64,12 @@ async function fbUpdateStudent(studentId, patch) {
   // Local cache update
   const s = (window.students || []).find(s => s['STUDENT ID'] === studentId);
   if (s) Object.assign(s, patch);
+
+  createSystemNotification('student_updated', {
+    studentId,
+    partnerId: s?.partnerId || null,
+    message: `${s?.['STUDENT NAME'] || studentId} was updated by ${window.staff?.name || 'Staff'}.`
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -168,7 +215,14 @@ window.queueFieldEdit = function (studentId, field, value) {
     },
     { merge: true }
   )
-  .then(() => toast('✓ Saved', 'success'))
+  .then(() => {
+    toast('✓ Saved', 'success');
+    createSystemNotification('student_updated', {
+      studentId,
+      partnerId: s?.partnerId || null,
+      message: `${s?.['STUDENT NAME'] || studentId} was updated by ${window.staff?.name || 'Staff'}.`
+    });
+  })
   .catch(e => {
     console.error('[queueFieldEdit] Firestore error:', e);
     toast('Sync failed: ' + e.message, 'error');
@@ -191,7 +245,14 @@ window.queueBatchEdit = function (studentId, fieldsMap) {
     },
     { merge: true }
   )
-  .then(() => toast('✓ Saved', 'success'))
+  .then(() => {
+    toast('✓ Saved', 'success');
+    createSystemNotification('student_updated', {
+      studentId,
+      partnerId: s?.partnerId || null,
+      message: `${s?.['STUDENT NAME'] || studentId} was updated by ${window.staff?.name || 'Staff'}.`
+    });
+  })
   .catch(e => {
     console.error('[queueBatchEdit] Firestore error:', e);
     toast('Sync failed: ' + e.message, 'error');
@@ -302,6 +363,18 @@ async function submitAddStudent() {
 
     // Local cache prepend
     window.students = [{ id: sid, ...newStudent }, ...(window.students || [])];
+
+    // Auto-notifications: student added, plus a separate one if files came with it
+    createSystemNotification('student_added', {
+      studentId: sid,
+      message: `${name} (${sid}) was added by ${window.staff?.name || 'CRM'}.`
+    });
+    if (uploadedDocs.length) {
+      createSystemNotification('document_uploaded', {
+        studentId: sid,
+        message: `${uploadedDocs.length} document(s) uploaded for ${name} (${sid}).`
+      });
+    }
 
     // UI refresh
     if (typeof filterTableStudents    === 'function') filterTableStudents();
@@ -428,11 +501,17 @@ async function deleteStudent(studentId) {
   if (!confirm(`Delete student "${studentId}"? This cannot be undone.`)) return;
 
   try {
+    const s = (window.students || []).find(s => s['STUDENT ID'] === studentId);
     await db.collection('students').doc(studentId).delete();
     window.students = (window.students || []).filter(s => s['STUDENT ID'] !== studentId);
     if (typeof filterTableStudents === 'function') filterTableStudents();
     if (typeof updateStats         === 'function') updateStats();
     if (typeof updateFunnel        === 'function') updateFunnel();
+    createSystemNotification('student_deleted', {
+      studentId,
+      partnerId: s?.partnerId || null,
+      message: `${s?.['STUDENT NAME'] || studentId} was deleted by ${window.staff?.name || 'Staff'}.`
+    });
     toast('Student deleted', 'success');
     if (typeof backToDashboard === 'function') backToDashboard();
   } catch (e) {
@@ -627,6 +706,17 @@ window.loadCAS = function() {
    only newly-added docs trigger a toast.
 ═══════════════════════════════════════════════════════ */
 window.__notificationsFirstLoad = true;
+window.__unreadNotifCount = 0;
+
+function updateNotifBadge(count) {
+  window.__unreadNotifCount = count;
+  const dot = document.querySelector('.notif-dot');
+  if (!dot) return;
+  dot.style.display = count > 0 ? '' : 'none';
+  dot.style.background = count > 0 ? '#EF4444' : '';
+  dot.setAttribute('data-count', count);
+  dot.title = count > 0 ? `${count} new notification${count === 1 ? '' : 's'}` : '';
+}
 
 function initNotificationsListener() {
   if (!window.db || !window.staff) return;
@@ -645,19 +735,29 @@ function initNotificationsListener() {
       window.__notificationsFirstLoad = false;
       return;
     }
+    let newCount = 0;
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added') {
+        newCount++;
         const n = change.doc.data();
         if (typeof toast === 'function') toast(` ${n.subject || 'New notification'}`, 'info');
-        const dot = document.querySelector('.notif-dot');
-        if (dot) dot.style.background = '#EF4444';
       }
     });
+    if (newCount > 0) updateNotifBadge((window.__unreadNotifCount || 0) + newCount);
   }, err => {
     console.error('[initNotificationsListener] error:', err);
     if (typeof toast === 'function') toast('Notification stream disconnected: ' + err.message, 'error');
   }));
 }
+
+// Clears the unread badge when the user opens the notifications bell.
+window.clearNotifBadge = function () {
+  updateNotifBadge(0);
+};
+document.addEventListener('DOMContentLoaded', () => {
+  const bell = document.querySelector('.hdr-icon-btn[title="Notifications"]');
+  if (bell) bell.addEventListener('click', window.clearNotifBadge);
+});
 
 // Auto-start once the session is live (mirrors the channelPartners listener boot)
 document.addEventListener('students-data-ready', function onceNotificationsInit() {
