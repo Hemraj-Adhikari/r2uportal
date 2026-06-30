@@ -1396,6 +1396,7 @@ function renderChatMessages(msgs) {
 await db.collection('chatMessages').add({
     group: currentChatGroup,
     senderName: (window.staff && window.staff.name) || 'Unknown',
+    senderEmail: firebase.auth().currentUser.email.toLowerCase(),
     senderRole: (window.staff && window.staff.role) || '',
     text,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
