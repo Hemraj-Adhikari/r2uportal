@@ -157,7 +157,7 @@ const VIEW_PERMISSIONS = {
 
 function switchView(viewName, linkEl) {
   // Channel Partner — hard lock to students/universities only, regardless of how navigation was triggered
-  if (window.staff?.role === 'Channel Partner' && !['students', 'universities', 'student-detail'].includes(viewName)) {
+  if (window.staff?.role === 'Channel Partner' && !['dashboard', 'students', 'universities', 'student-detail'].includes(viewName)) {
     toast('Tapaisanga yo page herne permission chaina', 'error');
     return;
   }
@@ -176,6 +176,7 @@ function switchView(viewName, linkEl) {
   currentView = viewName;
 
   const titles = {
+    dashboard: ['Dashboard', 'Route2Uni complete live overview'],
     students: ['Students', 'All enrolled students across the pipeline'],
     partners: ['Channel Partners', 'Referral agents and partner agencies'],
     universities: ['Partner Universities', 'Sep 2026 intake — courses, entry criteria & fees'],
@@ -192,11 +193,14 @@ function switchView(viewName, linkEl) {
   setText('page-title', t[0]);
   setText('page-subtitle', t[1]);
 
+  if (viewName === 'dashboard') {
+    updateStats();
+    updateFunnel();
+    renderDashboard();
+  }
   if (viewName === 'students') {
     filterTableStudents();
     updateStats();
-    updateFunnel();
-    renderDashboardPartners();
   }
   if (viewName === 'partners') renderPartnersGrid();
   if (viewName === 'followup') renderFollowUp();
@@ -215,13 +219,13 @@ function switchView(viewName, linkEl) {
 }
 
 function goHome() {
-  const link = document.querySelector('.sb-link[data-view="students"]');
-  switchView('students', link);
+  const link = document.querySelector('.sb-link[data-view="dashboard"]');
+  switchView('dashboard', link);
 }
 
 function backToDashboard() {
-  const link = document.querySelector('.sb-link[data-view="students"]');
-  switchView('students', link);
+  const link = document.querySelector('.sb-link[data-view="dashboard"]');
+  switchView('dashboard', link);
 }
 
 function toggleGroup(groupId) {
@@ -256,48 +260,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ═══════════════════════════════════════════════════════
-   STUDENTS — LOAD FROM FIREBASE  (RBAC SCOPED)
+   STUDENTS — LOAD FROM FIREBASE
+   NOTE: Canonical reactive (onSnapshot) implementation lives in
+   firebase-updates.js. Do not redefine here — this used to be a
+   duplicate one-shot .get() that silently overwrote the live
+   listener on every script-additions.js load.
 ═══════════════════════════════════════════════════════ */
-async function loadStudentsFromFirebase() {
-  try {
-    let query = db.collection('students');
-
-    const role      = window.staff?.role;
-    const partnerId = window.staff?.partnerId;
-
-    if (role === 'Channel Partner') {
-      if (!partnerId) {
-        console.error('[loadStudentsFromFirebase] Channel Partner ko partnerId set xaina — unscoped data load garna mana garyo.');
-        window.students = [];
-        toast('Tapaiko account ma Partner ID xaina. Admin lai sampark garnu.', 'error');
-        filterTableStudents();
-        updateStats();
-        updateFunnel();
-        return;
-      }
-      query = query.where('partnerId', '==', partnerId);
-    }
-
-    const snap = await query.get();
-    window.students = snap.docs.map(d => {
-      const data = d.data();
-      if (!data['STUDENT ID']) data['STUDENT ID'] = d.id;
-      data.id = d.id;
-      return data;
-    });
-
-    console.log('[loadStudentsFromFirebase] Loaded', window.students.length, 'students for role:', role);
-
-    filterTableStudents();
-    updateStats();
-    updateFunnel();
-  } catch (e) {
-    console.error('[loadStudentsFromFirebase] Failed:', e);
-    toast('Could not load student data', 'error');
-    window.students = [];
-    filterTableStudents();
-  }
-}
 
 /* ═══════════════════════════════════════════════════════
    STUDENTS TABLE — FILTER, RENDER
@@ -350,15 +318,15 @@ function filterTableStudents() {
         : visa.toLowerCase() === 'refused' ? 'badge-red' : 'badge-amber';
       return `<tr>
         <td style="text-align:center"><input type="checkbox" ${checked} onchange="toggleSelectStudent('${id}', this.checked)"></td>
+        <td style="text-align:center">
+          <button class="btn btn-ghost btn-sm" onclick="openStageDrawer('${id}')" title="Edit" style="padding:3px 7px">✏️</button>
+        </td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${escapeHtml(id)}</td>
         <td><a onclick="openDetail('${id}')" style="cursor:pointer;font-weight:600;color:var(--text-primary)">${escapeHtml(s['STUDENT NAME'] || '—')}</a></td>
         <td>${escapeHtml(s['COURSE'] || '—')}</td>
         <td>${escapeHtml(s['AGENT'] || '—')}</td>
         <td>${escapeHtml(s['OFFER STATUS'] || s['PRE-SCREENING CALL STATUS'] || '—')}</td>
         <td><span class="badge ${visaClass}">${escapeHtml(visa)}</span></td>
-        <td style="text-align:right">
-          <button class="btn btn-ghost btn-sm" onclick="openDetail('${id}')">View</button>
-        </td>
       </tr>`;
     }).join('');
   }
@@ -521,30 +489,69 @@ function updateFunnel() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   CHANNEL PARTNERS
-   Collection: 'channelPartners'
-   Fields: { name, type, email, phone, studentsCount }
+   DASHBOARD — top-level real-time reactive overview
+   Pulls from window.students (onSnapshot) and
+   window.channelPartners (onSnapshot) — no extra reads.
 ═══════════════════════════════════════════════════════ */
-async function renderDashboardPartners() {
+function renderDashboard() {
+  const list = window.students || [];
+
+  setText('kpi-total', list.length);
+  setText('kpi-visa', list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'approved').length);
+  setText('kpi-cas', list.filter(s => ['Pending', 'In Progress'].includes(s['CAS STATUS'])).length);
+  setText('kpi-refused', list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'refused').length);
+  setText('kpi-offers', list.filter(s => ['Received', 'Offer Received'].includes(s['OFFER STATUS'])).length);
+  setText('kpi-partners', (window.channelPartners || []).length);
+
+  renderEnrollmentTrendChart(list);
+  renderDashboardPartners();
+}
+
+function renderEnrollmentTrendChart(list) {
+  const el = document.getElementById('dash-enrollment-chart');
+  if (!el) return;
+
+  const months = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ key: d.getFullYear() + '-' + d.getMonth(), label: d.toLocaleString('en', { month: 'short' }), count: 0 });
+  }
+  list.forEach(s => {
+    const raw = s['createdAt'];
+    let d = null;
+    if (raw && typeof raw.toDate === 'function') d = raw.toDate();
+    else if (raw) d = new Date(raw);
+    if (!d || isNaN(d)) return;
+    const key = d.getFullYear() + '-' + d.getMonth();
+    const m = months.find(m => m.key === key);
+    if (m) m.count++;
+  });
+
+  const max = Math.max(...months.map(m => m.count), 1);
+  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:10px;height:140px;padding:0 4px">
+    ${months.map(m => `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="font-size:10.5px;font-weight:700;color:var(--text-primary)">${m.count}</div>
+        <div style="width:100%;max-width:34px;background:linear-gradient(180deg,var(--navy-600),var(--navy-800));border-radius:5px 5px 2px 2px;height:${Math.max(6, Math.round((m.count / max) * 100))}px;transition:height .6s ease"></div>
+        <div style="font-size:10px;color:var(--text-muted)">${m.label}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+
+
+function renderDashboardPartners() {
   const grid = document.getElementById('dashboard-cp-grid');
   if (!grid) return;
-
-  // Channel Partner role le dashboard ko "all partners" preview dekhna pardaina
   if (window.staff?.role === 'Channel Partner') return;
 
-  try {
-    let query = db.collection('channelPartners').limit(6);
-
-    const snap = await query.get();
-    if (snap.empty) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No channel partners yet</div>';
-      return;
-    }
-    grid.innerHTML = snap.docs.map(d => partnerCardHTML(d.id, d.data())).join('');
-  } catch (e) {
-    console.error('[renderDashboardPartners]', e);
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Could not load partners</div>';
+  const partners = window.channelPartners || [];
+  if (!partners.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No channel partners yet</div>';
+    return;
   }
+  grid.innerHTML = partners.slice(0, 6).map(p => partnerCardHTML(p.id, p)).join('');
 }
 
 function partnerInitials(name) {
@@ -575,22 +582,15 @@ function partnerCardHTML(id, p) {
   </div>`;
 }
 
-async function renderPartnersGrid() {
+function renderPartnersGrid() {
   const grid = document.getElementById('full-cp-grid');
   if (!grid) return;
-  grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Loading…</div>';
-  try {
-    let query = db.collection('channelPartners');
-    const snap = await query.get();
-    if (snap.empty) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No channel partners yet — click "Add partner" to create one.</div>';
-      return;
-    }
-    grid.innerHTML = snap.docs.map(d => partnerCardHTML(d.id, d.data())).join('');
-  } catch (e) {
-    console.error('[renderPartnersGrid]', e);
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Could not load partners</div>';
+  const partners = window.channelPartners || [];
+  if (!partners.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No channel partners yet — click "Add partner" to create one.</div>';
+    return;
   }
+  grid.innerHTML = partners.map(p => partnerCardHTML(p.id, p)).join('');
 }
 
 function openAddPartner() {
@@ -1075,28 +1075,26 @@ async function submitFeedbackDrawer() {
 /* ═══════════════════════════════════════════════════════
    CAS SHIELD
 ═══════════════════════════════════════════════════════ */
-let casRows = [];
+window.casRows = window.casRows || [];
 
-async function loadCASShield() {
+function loadCASShield() {
   const tbody = document.getElementById('cas-table-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="empty-state">Loading…</td></tr>';
-  try {
-    const list = window.students && window.students.length ? window.students : (await (async () => {
-      const snap = await db.collection('students').get();
-      return snap.docs.map(d => ({ ...d.data(), id: d.id }));
-    })());
-    casRows = list;
-    renderCASTable(casRows);
-  } catch (e) {
-    console.error('[loadCASShield]', e);
-    if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="empty-state">Could not load CAS Shield data</td></tr>';
+  const list = window.students || [];
+  if (!list.length) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="empty-state">No student records yet</td></tr>';
+    window.casRows = [];
+    return;
   }
+  window.casRows = list;
+  renderCASTable(window.casRows);
 }
 
 function casYN(val) {
-  const v = (val || '').toLowerCase();
-  if (v === 'yes') return '<span class="cas-yn-yes">✓ Yes</span>';
-  if (v === 'no') return '<span class="cas-yn-no">— No</span>';
+  if (val === true) return '<span class="cas-yn-yes">✓ Yes</span>';
+  if (val === false) return '<span class="cas-yn-no">— No</span>';
+  const v = String(val ?? '').trim().toLowerCase();
+  if (['yes', 'y', 'true', '1', 'done', 'complete', 'completed'].includes(v)) return '<span class="cas-yn-yes">✓ Yes</span>';
+  if (['no', 'n', 'false', '0'].includes(v)) return '<span class="cas-yn-no">— No</span>';
   return '<span class="cas-yn-warn">⚠ —</span>';
 }
 
@@ -1128,7 +1126,7 @@ function filterCAS() {
   const q = (document.getElementById('cas-search')?.value || '').toLowerCase();
   const pci = document.getElementById('cas-filter-pci')?.value || '';
   const visa = document.getElementById('cas-filter-visa')?.value || '';
-  let list = casRows;
+  let list = window.casRows;
   if (q) list = list.filter(s => [s['STUDENT ID'] || s.id, s['STUDENT NAME'], s['AGENT']].join(' ').toLowerCase().includes(q));
   if (pci) list = list.filter(s => (s['READY FOR PCI'] || '').toLowerCase() === pci.toLowerCase());
   if (visa) list = list.filter(s => (s['VISA REFUSAL'] || '').toLowerCase() === visa.toLowerCase());
@@ -1137,7 +1135,7 @@ function filterCAS() {
 
 let casUpdateTarget = null;
 function openCASUpdate(id) {
-  const s = casRows.find(st => (st['STUDENT ID'] || st.id) === id);
+  const s = window.casRows.find(st => (st['STUDENT ID'] || st.id) === id);
   if (!s) return;
   casUpdateTarget = s;
   setText('drw-casupd-sub', (s['STUDENT NAME'] || '—') + ' · ' + id);
@@ -1228,6 +1226,7 @@ function renderFollowUp() {
       <div class="fu-group-header"><span class="fu-group-title">${escapeHtml(title)}</span><span class="badge badge-amber">${arr.length}</span></div>
       <table class="dt"><tbody>${arr.map(s => `
         <tr>
+          <td style="width:32px;text-align:center"><input type="checkbox" ${selectedStudentIds.has(s['STUDENT ID'] || s.id) ? 'checked' : ''} onchange="toggleSelectStudent('${s['STUDENT ID'] || s.id}', this.checked)"></td>
           <td style="font-family:'JetBrains Mono',monospace;font-size:10.5px">${escapeHtml(s['STUDENT ID'] || s.id)}</td>
           <td><a onclick="openDetail('${s['STUDENT ID'] || s.id}')" style="cursor:pointer;font-weight:600">${escapeHtml(s['STUDENT NAME'] || '—')}</a></td>
           <td>${escapeHtml(s['AGENT'] || '—')}</td>
@@ -1250,7 +1249,7 @@ function renderReports() {
   setText('rpt-visa-rate', rate);
   setText('rpt-avg-stage', avgStage);
 
-  db.collection('channelPartners').get().then(snap => setText('rpt-partners', snap.size)).catch(() => setText('rpt-partners', '—'));
+  setText('rpt-partners', (window.channelPartners || []).length);
 
   const byAgent = {};
   list.forEach(s => { const a = s['AGENT'] || 'Unassigned'; byAgent[a] = (byAgent[a] || 0) + 1; });
