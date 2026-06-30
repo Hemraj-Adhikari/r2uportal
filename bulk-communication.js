@@ -187,6 +187,8 @@ async function submitBulkEmail() {
   const btn = document.getElementById('bulk-email-send-btn');
   const progressEl = document.getElementById('bulk-email-progress');
   btn.disabled = true;
+  const originalBtnHTML = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-sm" style="display:inline-block;vertical-align:-2px;margin-right:6px"></span>Sending…';
 
   let sent = 0, failed = 0;
   for (const student of bulkEmailTargets) {
@@ -201,11 +203,21 @@ async function submitBulkEmail() {
     await new Promise(r => setTimeout(r, 250)); // light throttle
   }
 
-  btn.disabled = false;
   if (failed === 0) {
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Sent ✓';
+    btn.style.background = 'var(--emerald-600, #047857)';
+    btn.style.borderColor = 'var(--emerald-600, #047857)';
     toast('Bulk email sent to ' + sent + ' student(s)', 'success');
-    closeBulkEmailModal();
+    setTimeout(() => {
+      closeBulkEmailModal();
+      btn.innerHTML = originalBtnHTML;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.disabled = false;
+    }, 1100);
   } else {
+    btn.disabled = false;
+    btn.innerHTML = originalBtnHTML;
     toast(`Sent ${sent}, failed ${failed} — check console`, 'error');
   }
 }
