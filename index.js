@@ -96,8 +96,9 @@ exports.sendBulkEmail = onCall(
     // Reads the staff record from Firestore using the caller's uid so the
     // role can't be spoofed by sending a fake role in the request body.
     const uid = request.auth.uid;
-    const staffSnap = await admin.firestore().collection('staff').doc(uid).get();
-    const staffRole = staffSnap.exists ? staffSnap.data().role : null;
+    const userEmail = (request.auth.token.email || '').trim().toLowerCase();
+    const userSnap = await admin.firestore().collection('users').doc(userEmail).get();
+    const staffRole = userSnap.exists ? userSnap.data().role : null;
 
     if (!staffRole || !ALLOWED_ROLES.includes(staffRole)) {
       throw new HttpsError(
