@@ -347,13 +347,13 @@ function filterTableStudents() {
       const visa = s['VISA STATUS'] || '—';
       const visaClass = visa.toLowerCase() === 'approved' ? 'badge-green'
         : visa.toLowerCase() === 'refused' ? 'badge-red' : 'badge-amber';
-      return `<tr>
-        <td style="text-align:center"><input type="checkbox" ${checked} onchange="toggleSelectStudent('${id}', this.checked)"></td>
+      return `<tr data-student-id="${escapeHtml(id)}">
+        <td style="text-align:center"><input type="checkbox" ${checked} data-action="toggle-select"></td>
         <td style="text-align:center">
-          <button class="btn btn-ghost btn-sm" onclick="openStageDrawer('${id}')" title="Edit" style="padding:3px 7px">✏️</button>
+          <button class="btn btn-ghost btn-sm" data-action="open-stage" title="Edit" style="padding:3px 7px">✏️</button>
         </td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${escapeHtml(id)}</td>
-        <td><a onclick="openDetail('${id}')" style="cursor:pointer;font-weight:600;color:var(--text-primary)">${escapeHtml(s['STUDENT NAME'] || '—')}</a></td>
+        <td><a data-action="open-detail" style="cursor:pointer;font-weight:600;color:var(--text-primary)">${escapeHtml(s['STUDENT NAME'] || '—')}</a></td>
         <td>${escapeHtml(s['COURSE'] || '—')}</td>
         <td>${escapeHtml(s['AGENT'] || '—')}</td>
         <td>${escapeHtml(s['OFFER STATUS'] || s['PRE-SCREENING CALL STATUS'] || '—')}</td>
@@ -364,6 +364,42 @@ function filterTableStudents() {
 
   updateBulkBar();
 }
+
+/* ═══════════════════════════════════════════════════════
+   EVENT DELEGATION — addEventListener for the students table
+   Replaces inline onclick/onchange in the row markup above.
+   Attached once via DOMContentLoaded; works for every re-render
+   since clicks/changes bubble up to the tbody regardless of
+   how often filterTableStudents() rewrites its innerHTML.
+═══════════════════════════════════════════════════════ */
+function initStudentsTableEvents() {
+  const tbody = document.getElementById('students-page-table-body');
+  if (!tbody || tbody.dataset.eventsBound) return;
+  tbody.dataset.eventsBound = 'true';
+
+  tbody.addEventListener('click', (e) => {
+    const actionEl = e.target.closest('[data-action]');
+    if (!actionEl) return;
+    const row = actionEl.closest('tr[data-student-id]');
+    const id = row?.dataset.studentId;
+    if (!id) return;
+
+    switch (actionEl.dataset.action) {
+      case 'open-detail': openDetail(id); break;
+      case 'open-stage':  openStageDrawer(id); break;
+    }
+  });
+
+  tbody.addEventListener('change', (e) => {
+    const actionEl = e.target.closest('[data-action="toggle-select"]');
+    if (!actionEl) return;
+    const row = actionEl.closest('tr[data-student-id]');
+    const id = row?.dataset.studentId;
+    if (!id) return;
+    toggleSelectStudent(id, actionEl.checked);
+  });
+}
+document.addEventListener('DOMContentLoaded', initStudentsTableEvents);
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({
