@@ -1,12 +1,17 @@
 /* ═══════════════════════════════════════════════════════
-   FIREBASE AUTH  ·  Route2Uni CRM Portal
-   Handles: login, logout, session boot
+   FIREBASE AUTH  ·  Route2Uni CRM Portal  (RBAC UPDATED)
+   Handles: login, logout, session boot, role-based access
    Replaces: script.js ko doLogin(), bootSession(), signOut()
 
    NOTE: loadStudentsFromFirebase() is NOT defined here.
-   The canonical version lives in firebase-updates.js.
+   The canonical version lives in firebase-updates.js / script-additions.js.
    bootSession() calls it and awaits it so the UI stays
    gated behind a boot overlay until data is ready.
+
+   RBAC NOTE: Roles ani access control aba 'users' collection
+   bata aauxa (pahile 'staff' thiyo). Doc ID = user ko email
+   (lowercase). Each doc ma: { name, role, partnerId, active }
+   Roles: Super Admin | Admin | Document Officer | Application User | Channel Partner
 ═══════════════════════════════════════════════════════ */
 
 /* ─── Firebase init (ek palta matra garne) ─── */
@@ -30,21 +35,81 @@ const auth = firebase.auth();
 db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
 /* ═══════════════════════════════════════════════════════
+   RBAC — ROLE DEFINITIONS, RANK & ACCESS CHECK
+   (yo section maathi raakhya kina ki auth listener ले
+   tala यही functions use garcha)
+═══════════════════════════════════════════════════════ */
+
+// Hierarchy: thulo number bhayeko role le tala ka role ko access pani paucha.
+// Strict matching chahiye bhane ROLE_RANK fallback line haru comment garnu.
+const ROLE_RANK = {
+  'Super Admin'      : 5,
+  'Admin'            : 4,
+  'Document Officer' : 3,
+  'Application User' : 2,
+  'Channel Partner'  : 1
+};
+
+const ALL_ROLES = Object.keys(ROLE_RANK);
+
+/**
+ * checkAccess(requiredRoles)
+ * requiredRoles: string | string[] — kun role(s) le yo page/action access garna milxa
+ * Return: true/false. Login bhayeko chaina bhane sidai false.
+ */
+function checkAccess(requiredRoles) {
+  const role = window.staff?.role;
+  if (!role) return false;
+
+  const allowed = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+
+  // Exact match
+  if (allowed.includes(role)) return true;
+
+  // Hierarchy fallback — comment garnu parae strict matching matra chahiye
+  const myRank = ROLE_RANK[role] ?? 0;
+  return allowed.some(r => myRank >= (ROLE_RANK[r] ?? 999));
+}
+
+/**
+ * guardView(viewName, requiredRoles)
+ * switchView() bhitra call garne — permission nabhae toast dekhaucha ra false return garcha.
+ */
+function guardView(viewName, requiredRoles) {
+  if (checkAccess(requiredRoles)) return true;
+  if (typeof toast === 'function') {
+    toast(`Tapaisanga "${viewName}" herne permission chaina`, 'error');
+  }
+  return false;
+}
+
+/* ═══════════════════════════════════════════════════════
    AUTH STATE LISTENER
    Page load ma automatically check garcha
 ═══════════════════════════════════════════════════════ */
 auth.onAuthStateChanged(async (user) => {
   if (!user) return; // Login screen nai dekhaucha by default
 
+  const emailKey = (user.email || '').trim().toLowerCase();
+
   try {
-    const doc = await db.collection('staff').doc(user.email).get();
-    if (doc.exists) {
-      const { name, role } = doc.data();
-      bootSession(name, role, user.email);
+    const doc = await db.collection('users').doc(emailKey).get();
+
+    if (doc.exists && doc.data().active !== false) {
+      const { name, role, partnerId } = doc.data();
+
+      if (!ALL_ROLES.includes(role)) {
+        console.warn('[Auth] Unknown role on user doc:', role);
+        showLoginError('Your account role is not recognized. Contact admin.');
+        auth.signOut();
+        return;
+      }
+
+      bootSession(name || emailKey, role, emailKey, partnerId || null);
     } else {
-      // Firestore ma staff record chaina — sign out
-      console.warn('[Auth] No staff record found for:', user.email);
-      showLoginError('Your account is not set up. Contact admin.');
+      // Firestore ma users record chaina, ya active:false xa — sign out
+      console.warn('[Auth] No active user record found for:', emailKey);
+      showLoginError('Your account is not set up or has been disabled. Contact admin.');
       auth.signOut();
     }
   } catch (e) {
@@ -114,12 +179,15 @@ function showLoginError(msg) {
 /* ═══════════════════════════════════════════════════════
    BOOT SESSION  —  login success pachhi UI set up garcha
    Waits for loadStudentsFromFirebase() (defined in
-   firebase-updates.js) before releasing the boot overlay,
-   so stats/table/funnel never render against empty data.
+   firebase-updates.js / script-additions.js) before releasing
+   the boot overlay, so stats/table/funnel never render
+   against empty or unscoped data.
 ═══════════════════════════════════════════════════════ */
-function bootSession(name, role, email = '') {
+function bootSession(name, role, email = '', partnerId = null) {
   const ini = name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  window.staff = { name, initials: ini, role, email };
+
+  // window.staff aba RBAC ko source of truth ho — role + partnerId yahi bata aauxa
+  window.staff = { name, initials: ini, role, email, partnerId };
 
   // Sidebar + header
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -129,7 +197,7 @@ function bootSession(name, role, email = '') {
   set('hdr-avatar', ini.slice(0, 1));
   set('page-subtitle', 'Welcome back, ' + name.split(' ')[0] + '!');
 
-  // Role-based UI visibility
+  // Role-based UI visibility (RBAC)
   applyRoleUI(role);
 
   // Hide login screen
@@ -139,7 +207,7 @@ function bootSession(name, role, email = '') {
   showBootOverlay();
 
   if (typeof loadStudentsFromFirebase !== 'function') {
-    console.error('[bootSession] loadStudentsFromFirebase is not defined — check that firebase-updates.js loaded before this runs.');
+    console.error('[bootSession] loadStudentsFromFirebase is not defined — check that firebase-updates.js / script-additions.js loaded before this runs.');
     hideBootOverlay();
     return;
   }
@@ -164,18 +232,33 @@ function hideBootOverlay() {
   document.getElementById('boot-overlay')?.remove();
 }
 
-/* ─── Role-based UI ─── */
-function applyRoleUI(role) {
-  const isAdmin = role === 'Admin';
+/* ═══════════════════════════════════════════════════════
+   ROLE-BASED UI  (RBAC)
+   checkAccess() use garcha (maathi defined), purano hardcoded
+   'role === Admin' jasto check haru hatayeko.
 
-  // Admin-only elements (Import CSV menu etc.)
+   HTML ma class haru thapnu (already existing classes,
+   naya thapna man parae):
+     .admin-only        -> Super Admin, Admin
+     .staff-only        -> Super Admin, Admin, Document Officer, Application User
+     .docofficer-only   -> Super Admin, Admin, Document Officer
+     .partner-only      -> Channel Partner
+═══════════════════════════════════════════════════════ */
+function applyRoleUI(role) {
   document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = isAdmin ? '' : 'none';
+    el.style.display = checkAccess(['Super Admin', 'Admin']) ? '' : 'none';
   });
 
-  // Staff-only elements
   document.querySelectorAll('.staff-only').forEach(el => {
-    el.style.display = (role === 'Staff' || isAdmin) ? '' : 'none';
+    el.style.display = checkAccess(['Super Admin', 'Admin', 'Document Officer', 'Application User']) ? '' : 'none';
+  });
+
+  document.querySelectorAll('.docofficer-only').forEach(el => {
+    el.style.display = checkAccess(['Super Admin', 'Admin', 'Document Officer']) ? '' : 'none';
+  });
+
+  document.querySelectorAll('.partner-only').forEach(el => {
+    el.style.display = checkAccess('Channel Partner') ? '' : 'none';
   });
 }
 
@@ -208,4 +291,4 @@ function togglePwd() {
   }
 }
 
-console.log('[firebase-auth.js] loaded ✅');
+console.log('[firebase-auth.js] loaded  (RBAC enabled — users collection)');
