@@ -1062,6 +1062,11 @@
   </div>
 </div>
 
+<div id="data-error-banner" style="display:none;position:fixed;top:0;left:var(--sidebar-w,248px);right:0;z-index:9500;background:#DC2626;color:#fff;padding:9px 18px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:10px">
+  <span>⚠️</span><span id="data-error-banner-msg">Could not load live data.</span>
+  <button onclick="document.getElementById('data-error-banner').style.display='none'" style="margin-left:auto;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px">Dismiss</button>
+</div>
+
 <div id="drawer-overlay" onclick="closeAllDrawers()"></div>
 
 <!-- STAGE PIPELINE DRAWER -->
