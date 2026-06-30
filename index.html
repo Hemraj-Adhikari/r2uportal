@@ -6,6 +6,11 @@
 <title>Route2Uni CRM Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<!-- Other Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -48,8 +53,8 @@
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px">Staff credentials required</p>
     <div class="login-error" id="login-error"></div>
     <div style="margin-bottom:12px">
-      <label style="display:block;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Username</label>
-      <input class="login-input" id="login-username" type="text" autocomplete="username" placeholder="your.username" spellcheck="false">
+      <label style="display:block;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Email</label>
+      <input class="login-input" id="login-username" type="email" autocomplete="email" placeholder="your@email.com" spellcheck="false">
     </div>
     <div>
       <label style="display:block;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Password</label>
@@ -813,6 +818,7 @@
   <span style="font-size:12px;font-weight:500;color:var(--text-tertiary)" id="loading-msg">Processing…</span>
 </div>
 
+<script src="firebase-auth.js"></script>
 <script src="script.js"></script>
 
 <!-- ── BULK ACTION FLOATING BAR ── -->
