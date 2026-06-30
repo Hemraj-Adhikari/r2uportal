@@ -693,12 +693,19 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Course <span style="color:var(--crimson-500)">*</span></label>
-          <input class="form-control" id="as-course" type="text" placeholder="e.g. MSc Computer Science">
+          <label class="form-label">University</label>
+          <!-- Populated live from the `universities` Firestore collection
+               by populateUniversityDropdown() in script-additions.js -->
+          <select class="form-control" id="as-university" onchange="onUniversitySelected(this.value)">
+            <option value="">Loading universities…</option>
+          </select>
         </div>
         <div class="form-group">
-          <label class="form-label">University</label>
-          <input class="form-control" id="as-university" type="text" placeholder="e.g. University of East London">
+          <label class="form-label">Course <span style="color:var(--crimson-500)">*</span></label>
+          <!-- Populated once a university is selected above -->
+          <select class="form-control" id="as-course" disabled>
+            <option value="">Select a university first</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Channel Partner / Agent</label>
