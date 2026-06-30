@@ -2219,7 +2219,7 @@ function umFmtDate(val) {
 }
 
 function initUsersListener() {
-  if (!window.db) { toast('Firestore not ready', 'error'); return; }
+     if (!db) { toast('Firestore not ready', 'error'); return; }
   if (window.ListenerManager.has('users')) return; // already streaming — avoid duplicate listener
   document.getElementById('um-table-body').innerHTML = '<tr><td colspan="7" class="empty-state">Loading…</td></tr>';
 
