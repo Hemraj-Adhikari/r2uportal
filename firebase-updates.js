@@ -472,11 +472,6 @@ window.hideErrorBanner = function() {
 window.loadStudentsFromFirebase = function() {
   if (typeof loading === 'function') loading('Connecting to live student stream…');
 
-  if (typeof window._studentsUnsubscribe === 'function') {
-    window._studentsUnsubscribe();
-    window._studentsUnsubscribe = null;
-  }
-
   let query = db.collection('students');
   if (window.staff && window.staff.role === 'Channel Partner' && window.staff.partnerId) {
     query = query.where('partnerId', '==', window.staff.partnerId);
@@ -487,7 +482,7 @@ window.loadStudentsFromFirebase = function() {
   return new Promise((resolve) => {
     let firstLoad = true;
 
-    window._studentsUnsubscribe = query.onSnapshot(snapshot => {
+    window.ListenerManager.register('students', () => query.onSnapshot(snapshot => {
       const fetched = [];
       snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
 
@@ -526,7 +521,7 @@ window.loadStudentsFromFirebase = function() {
       if (typeof window.showErrorBanner === 'function') window.showErrorBanner('Real-time student data disconnected: ' + error.message);
       if (typeof hideLoading === 'function') hideLoading();
       resolve();
-    });
+    }));
   });
 };
 
@@ -537,14 +532,9 @@ window.loadStudents = window.loadStudentsFromFirebase;
    7b. CHANNEL PARTNERS — Real-time count for dashboard KPI
 ═══════════════════════════════════════════════════════ */
 window.channelPartners = [];
-window._partnersUnsubscribe = null;
 
 window.loadChannelPartnersFromFirebase = function() {
-  if (typeof window._partnersUnsubscribe === 'function') {
-    window._partnersUnsubscribe();
-    window._partnersUnsubscribe = null;
-  }
-  window._partnersUnsubscribe = db.collection('channelPartners').onSnapshot(snapshot => {
+  window.ListenerManager.register('channelPartners', () => db.collection('channelPartners').onSnapshot(snapshot => {
     const fetched = [];
     snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
     window.channelPartners = fetched;
@@ -559,11 +549,12 @@ window.loadChannelPartnersFromFirebase = function() {
     console.log('[Reactive Firestore Stream] channelPartners synced:', fetched.length);
   }, error => {
     console.error('[loadChannelPartnersFromFirebase] onSnapshot error:', error);
-  });
+    if (typeof toast === 'function') toast('Channel partner stream disconnected: ' + error.message, 'error');
+  }));
 };
 
 document.addEventListener('students-data-ready', function onceInit() {
-  if (typeof window.loadChannelPartnersFromFirebase === 'function' && !window._partnersUnsubscribe) {
+  if (typeof window.loadChannelPartnersFromFirebase === 'function' && !window.ListenerManager.has('channelPartners')) {
     window.loadChannelPartnersFromFirebase();
   }
 });
@@ -574,51 +565,57 @@ document.addEventListener('students-data-ready', function onceInit() {
 ═══════════════════════════════════════════════════════ */
 window.casDataReady = false;
 
-window.loadCAS = async function() {
-  if (typeof loading === 'function') loading('Fetching CAS Shield…');
+window.loadCAS = function() {
+  if (typeof loading === 'function') loading('Connecting to live CAS Shield stream…');
 
-  try {
-    const snapshot = await db.collection('cas_shield').get();
+  return new Promise((resolve) => {
+    let firstLoad = true;
 
-    const fetched = [];
-    snapshot.forEach(doc => {
-      fetched.push({ id: doc.id, ...doc.data() });
-    });
+    window.ListenerManager.register('cas_shield', () => db.collection('cas_shield').onSnapshot(snapshot => {
+      const fetched = [];
+      snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
 
-    window.casData = fetched;
-    window.casDataReady = true;
+      window.casData = fetched;
+      window.casDataReady = true;
 
-    if (typeof renderCAS === 'function') {
-      renderCAS(fetched);
-    } else {
-      console.warn('[loadCAS] renderCAS() is not defined — CAS data loaded but UI was not updated.');
-    }
+      if (typeof renderCAS === 'function') {
+        renderCAS(fetched);
+      } else {
+        console.warn('[loadCAS] renderCAS() is not defined — CAS data loaded but UI was not updated.');
+      }
 
-    document.dispatchEvent(new CustomEvent('cas-data-ready', { detail: { count: fetched.length } }));
+      document.dispatchEvent(new CustomEvent('cas-data-ready', { detail: { count: fetched.length } }));
 
-    if (typeof toast === 'function') {
-      toast(fetched.length ? `CAS Shield loaded — ${fetched.length} record(s)` : 'CAS Shield loaded — no records found', 'success');
-    }
+      if (firstLoad) {
+        if (typeof toast === 'function') {
+          toast(fetched.length ? `CAS Shield loaded — ${fetched.length} record(s)` : 'CAS Shield loaded — no records found', 'success');
+        }
+        if (typeof hideLoading === 'function') hideLoading();
+        firstLoad = false;
+        resolve();
+      }
 
-  } catch (e) {
-    console.error('[loadCAS] Firestore error:', e);
-    window.casDataReady = false;
-    window.casData = window.casData || [];
+      console.log('[Reactive Firestore Stream] cas_shield synced:', fetched.length);
+    }, error => {
+      console.error('[loadCAS] onSnapshot error:', error);
+      window.casDataReady = false;
+      window.casData = window.casData || [];
 
-    document.dispatchEvent(new CustomEvent('cas-data-error', { detail: { error: e } }));
+      document.dispatchEvent(new CustomEvent('cas-data-error', { detail: { error } }));
 
-    if (typeof toast === 'function') {
-      toast('Could not load CAS Shield: ' + e.message, 'error');
-    }
+      if (typeof toast === 'function') {
+        toast('CAS Shield stream disconnected: ' + error.message, 'error');
+      }
 
-    const tbody = document.getElementById('cas-table-body');
-    if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="13" class="empty-state">Could not load CAS Shield data. Try refreshing.</td></tr>';
-    }
+      const tbody = document.getElementById('cas-table-body');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="13" class="empty-state">Could not load CAS Shield data. Try refreshing.</td></tr>';
+      }
 
-  } finally {
-    if (typeof hideLoading === 'function') hideLoading();
-  }
+      if (typeof hideLoading === 'function') hideLoading();
+      resolve();
+    }));
+  });
 };
 
 /* ═══════════════════════════════════════════════════════
@@ -629,15 +626,10 @@ window.loadCAS = async function() {
    so existing history doesn't toast-storm on page load —
    only newly-added docs trigger a toast.
 ═══════════════════════════════════════════════════════ */
-window._notificationsUnsubscribe = null;
 window.__notificationsFirstLoad = true;
 
 function initNotificationsListener() {
   if (!window.db || !window.staff) return;
-  if (typeof window._notificationsUnsubscribe === 'function') {
-    window._notificationsUnsubscribe();
-    window._notificationsUnsubscribe = null;
-  }
 
   let query = db.collection('notifications').orderBy('sentAt', 'desc').limit(50);
   if (window.staff.role === 'Channel Partner' && window.staff.partnerId) {
@@ -648,7 +640,7 @@ function initNotificationsListener() {
   }
 
   window.__notificationsFirstLoad = true;
-  window._notificationsUnsubscribe = query.onSnapshot(snapshot => {
+  window.ListenerManager.register('notifications', () => query.onSnapshot(snapshot => {
     if (window.__notificationsFirstLoad) {
       window.__notificationsFirstLoad = false;
       return;
@@ -661,12 +653,15 @@ function initNotificationsListener() {
         if (dot) dot.style.background = '#EF4444';
       }
     });
-  }, err => console.error('[initNotificationsListener] error:', err));
+  }, err => {
+    console.error('[initNotificationsListener] error:', err);
+    if (typeof toast === 'function') toast('Notification stream disconnected: ' + err.message, 'error');
+  }));
 }
 
 // Auto-start once the session is live (mirrors the channelPartners listener boot)
 document.addEventListener('students-data-ready', function onceNotificationsInit() {
-  if (typeof initNotificationsListener === 'function' && !window._notificationsUnsubscribe) {
+  if (typeof initNotificationsListener === 'function' && !window.ListenerManager.has('notifications')) {
     initNotificationsListener();
   }
 });
