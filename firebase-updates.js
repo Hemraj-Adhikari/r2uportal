@@ -5,6 +5,7 @@
    · Inline field edit
    · Add new student
    · CAS Shield update
+   Plus: data loaders for students & CAS Shield
 ═══════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════
@@ -440,9 +441,13 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-console.log('[firebase-updates.js] loaded ✅');
+/* ═══════════════════════════════════════════════════════
+   7. STUDENTS — Load from Firestore
+   (Canonical definition — do NOT duplicate elsewhere.
+   firebase-auth.js's bootSession() calls and awaits this.)
+═══════════════════════════════════════════════════════ */
+window.studentsDataReady = false;
 
-// Add this to the bottom of firebase-updates.js
 window.loadStudentsFromFirebase = async function() {
   if (typeof loading === 'function') loading('Fetching students from Firebase…');
   try {
@@ -451,19 +456,18 @@ window.loadStudentsFromFirebase = async function() {
     snapshot.forEach(doc => {
       fetched.push({ id: doc.id, ...doc.data() });
     });
-    
+
     window.students = fetched;
     window.totalRecords = fetched.length;
-    
-    // Update the UI
-    if (typeof filterTableStudents === 'function') filterTableStudents();
-    if (typeof updateStats === 'function') updateStats();
-    if (typeof updateFunnel === 'function') updateFunnel();
-    if (typeof renderDashboardPartners === 'function') renderDashboardPartners();
-    
+    window.studentsDataReady = true;
+
+    document.dispatchEvent(new CustomEvent('students-data-ready', { detail: { count: fetched.length } }));
+
     if (typeof toast === 'function') toast('Loaded ' + fetched.length + ' students', 'success');
   } catch (e) {
-    console.error("Firebase read error:", e);
+    console.error('[loadStudentsFromFirebase] Firestore error:', e);
+    window.studentsDataReady = false;
+    document.dispatchEvent(new CustomEvent('students-data-error', { detail: { error: e } }));
     if (typeof toast === 'function') toast('Failed to load students: ' + e.message, 'error');
   } finally {
     if (typeof hideLoading === 'function') hideLoading();
@@ -473,21 +477,57 @@ window.loadStudentsFromFirebase = async function() {
 // Override the default loadStudents to use Firebase
 window.loadStudents = window.loadStudentsFromFirebase;
 
-// Override CAS Shield read to use Firebase
+/* ═══════════════════════════════════════════════════════
+   8. CAS SHIELD — Load from Firestore
+   (Canonical definition — do NOT duplicate elsewhere.)
+═══════════════════════════════════════════════════════ */
+window.casDataReady = false;
+
 window.loadCAS = async function() {
   if (typeof loading === 'function') loading('Fetching CAS Shield…');
+
   try {
     const snapshot = await db.collection('cas_shield').get();
+
     const fetched = [];
-    snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
-    
+    snapshot.forEach(doc => {
+      fetched.push({ id: doc.id, ...doc.data() });
+    });
+
     window.casData = fetched;
-    if (typeof renderCAS === 'function') renderCAS(fetched);
-    if (typeof toast === 'function') toast('CAS Shield loaded', 'success');
+    window.casDataReady = true;
+
+    if (typeof renderCAS === 'function') {
+      renderCAS(fetched);
+    } else {
+      console.warn('[loadCAS] renderCAS() is not defined — CAS data loaded but UI was not updated.');
+    }
+
+    document.dispatchEvent(new CustomEvent('cas-data-ready', { detail: { count: fetched.length } }));
+
+    if (typeof toast === 'function') {
+      toast(fetched.length ? `CAS Shield loaded — ${fetched.length} record(s)` : 'CAS Shield loaded — no records found', 'success');
+    }
+
   } catch (e) {
-    console.error("CAS load error:", e);
-    if (typeof toast === 'function') toast('Failed: ' + e.message, 'error');
+    console.error('[loadCAS] Firestore error:', e);
+    window.casDataReady = false;
+    window.casData = window.casData || [];
+
+    document.dispatchEvent(new CustomEvent('cas-data-error', { detail: { error: e } }));
+
+    if (typeof toast === 'function') {
+      toast('Could not load CAS Shield: ' + e.message, 'error');
+    }
+
+    const tbody = document.getElementById('cas-table-body');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="13" class="empty-state">Could not load CAS Shield data. Try refreshing.</td></tr>';
+    }
+
   } finally {
     if (typeof hideLoading === 'function') hideLoading();
   }
 };
+
+console.log('[firebase-updates.js] loaded ✅');
