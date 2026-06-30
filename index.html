@@ -248,53 +248,99 @@
   <div id="app-content">
 
     <!-- STUDENTS -->
-    <div class="view active" id="view-students">
-      <div class="page-header">
-        <div class="page-header-left">
-          <h2>Students</h2>
-          <p>All enrolled students across the pipeline</p>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div style="display:flex;gap:6px;margin-right:8px">
-            <div style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:5px 10px;box-shadow:var(--shadow-xs);display:flex;align-items:center;gap:6px">
-              <span style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Total</span>
-              <span style="font-size:14px;font-weight:700;color:var(--text-primary)" id="stat-total">—</span>
-            </div>
-            <div style="background:var(--emerald-50);border:1px solid var(--emerald-100);border-radius:var(--r-md);padding:5px 10px;display:flex;align-items:center;gap:6px">
-              <span style="font-size:10px;font-weight:600;color:var(--emerald-700);text-transform:uppercase;letter-spacing:.06em">Visa ✓</span>
-              <span style="font-size:14px;font-weight:700;color:var(--emerald-700)" id="stat-visa">—</span>
-            </div>
-            <div style="background:var(--amber-50);border:1px solid var(--amber-100);border-radius:var(--r-md);padding:5px 10px;display:flex;align-items:center;gap:6px">
-              <span style="font-size:10px;font-weight:600;color:var(--amber-700);text-transform:uppercase;letter-spacing:.06em">CAS</span>
-              <span style="font-size:14px;font-weight:700;color:var(--amber-700)" id="stat-cas">—</span>
-            </div>
-            <div style="background:var(--crimson-50);border:1px solid var(--crimson-100);border-radius:var(--r-md);padding:5px 10px;display:flex;align-items:center;gap:6px">
-              <span style="font-size:10px;font-weight:600;color:var(--crimson-700);text-transform:uppercase;letter-spacing:.06em">Refused</span>
-              <span style="font-size:14px;font-weight:700;color:var(--crimson-700)" id="stat-refused">—</span>
-            </div>
-          </div>
-          <!-- Channel Partner only — hidden by default, shown via applyChannelPartnerRestrictions() in script-additions.js -->
-          <button class="btn btn-secondary btn-sm" id="cp-download-template-btn" style="display:none" onclick="downloadStudentTemplate()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download Template
-          </button>
-          <button class="btn btn-primary btn-sm" id="cp-upload-btn" style="display:none" onclick="document.getElementById('cp-upload-file').click()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
-            Upload Students
-          </button>
-          <input type="file" id="cp-upload-file" accept=".csv" style="display:none" onchange="handleChannelPartnerUpload(event)">
-          <!-- /Channel Partner only -->
-          <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="openAddStudent()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add student
-          </button>
-        </div>
-      </div>
+ <div class="view active" id="view-students">
 
+  <!-- Quick Stats gradient header -->
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <div class="dash-header-eyebrow">Route2Uni · Live Overview</div>
+      <div class="dash-header-title">Student Pipeline Dashboard</div>
+      <div class="dash-header-sub">Real-time snapshot of every application stage</div>
+    </div>
+    <div class="dash-header-right">
+      <div class="dash-header-pill">
+        <span class="dash-header-pill-dot" style="background:var(--gold-300)"></span>
+        <span class="dash-header-pill-label">Total</span>
+        <span class="dash-header-pill-val" id="stat-total">—</span>
+      </div>
+      <div class="dash-header-pill">
+        <span class="dash-header-pill-dot" style="background:var(--emerald-500)"></span>
+        <span class="dash-header-pill-label">Visa ✓</span>
+        <span class="dash-header-pill-val" id="stat-visa">—</span>
+      </div>
+      <div class="dash-header-pill">
+        <span class="dash-header-pill-dot" style="background:var(--amber-500)"></span>
+        <span class="dash-header-pill-label">CAS</span>
+        <span class="dash-header-pill-val" id="stat-cas">—</span>
+      </div>
+      <div class="dash-header-pill">
+        <span class="dash-header-pill-dot" style="background:var(--crimson-500)"></span>
+        <span class="dash-header-pill-label">Refused</span>
+        <span class="dash-header-pill-val" id="stat-refused">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-navy">
+      <div class="kpi-label">Total Students</div>
+      <div class="kpi-val" id="kpi-total">—</div>
+      <div class="kpi-sub">All pipeline stages</div>
+    </div>
+    <div class="kpi-card kpi-green">
+      <div class="kpi-label">Visa Approved</div>
+      <div class="kpi-val" id="kpi-visa">—</div>
+      <div class="kpi-sub">Successful outcomes</div>
+    </div>
+    <div class="kpi-card kpi-gold">
+      <div class="kpi-label">CAS In Progress</div>
+      <div class="kpi-val" id="kpi-cas">—</div>
+      <div class="kpi-sub">Active applications</div>
+    </div>
+    <div class="kpi-card kpi-red">
+      <div class="kpi-label">Visa Refused</div>
+      <div class="kpi-val" id="kpi-refused">—</div>
+      <div class="kpi-sub">Needs review</div>
+    </div>
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-label">Offers Received</div>
+      <div class="kpi-val" id="kpi-offers">—</div>
+      <div class="kpi-sub">Conditional + unconditional</div>
+    </div>
+    <div class="kpi-card kpi-violet">
+      <div class="kpi-label">Channel Partners</div>
+      <div class="kpi-val" id="kpi-partners">—</div>
+      <div class="kpi-sub">Active agencies</div>
+    </div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2>Students</h2>
+      <p>All enrolled students across the pipeline</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-secondary btn-sm" id="cp-download-template-btn" style="display:none" onclick="downloadStudentTemplate()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Template
+      </button>
+      <button class="btn btn-primary btn-sm" id="cp-upload-btn" style="display:none" onclick="document.getElementById('cp-upload-file').click()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4.5 4.5 0 010-9 5.5 5.5 0 0110.4-1.7A5 5 0 0117 16"/><path d="M12 11v8"/><path d="M9 14l3-3 3 3"/></svg>
+        Upload Students
+      </button>
+      <input type="file" id="cp-upload-file" accept=".csv" style="display:none" onchange="handleChannelPartnerUpload(event)">
+      <button class="btn btn-secondary btn-sm" onclick="exportStudentsCSV()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openAddStudent()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add student
+      </button>
+    </div>
+  </div>
+  <!-- pipeline-row (Pipeline Funnel + Distribution), table, channel partners section — sabai purano jasari nai tala continue garnu, change garnu pardaina -->
       <div class="pipeline-row" style="margin-bottom:20px">
         <div class="card">
           <div class="card-header"><div><div class="card-title">Pipeline Funnel</div><div class="card-subtitle" id="pipeline-total-label">— students</div></div></div>
