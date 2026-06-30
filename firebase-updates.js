@@ -391,3 +391,21 @@ window.loadStudentsFromFirebase = async function() {
 
 // Override the default loadStudents to use Firebase
 window.loadStudents = window.loadStudentsFromFirebase;
+// Override CAS Shield read to use Firebase
+window.loadCAS = async function() {
+  if (typeof loading === 'function') loading('Fetching CAS Shield…');
+  try {
+    const snapshot = await db.collection('cas_shield').get();
+    const fetched = [];
+    snapshot.forEach(doc => fetched.push({ id: doc.id, ...doc.data() }));
+    
+    window.casData = fetched;
+    if (typeof renderCAS === 'function') renderCAS(fetched);
+    if (typeof toast === 'function') toast('CAS Shield loaded', 'success');
+  } catch (e) {
+    console.error("CAS load error:", e);
+    if (typeof toast === 'function') toast('Failed: ' + e.message, 'error');
+  } finally {
+    if (typeof hideLoading === 'function') hideLoading();
+  }
+};
