@@ -222,7 +222,7 @@ function switchView(viewName, linkEl, _skipHistory) {
   if (viewName === 'reports') renderReports();
   if (viewName === 'chat') initChatListener(currentChatGroup);
   if (viewName === 'users') {
-    if (!window.__usersListenerStarted) {
+    if (!window.ListenerManager.has('users')) {
       initUsersListener();
     } else {
       renderUsersTable();
@@ -816,6 +816,7 @@ async function sendNotification() {
   if (btn) btn.disabled = true;
   try {
     await sendViaEmailJS({ to_email: toEmail, to_name: notifyTargetStudent['STUDENT NAME'] || '', subject, message });
+    if (typeof logActivity === 'function') logActivity('Send', 'Notification', notifyTargetStudent['STUDENT ID'] || notifyTargetStudent.id || null);
     toast('Notification sent', 'success');
     closeDrawer('drw-notify');
   } catch (e) {
@@ -1233,6 +1234,7 @@ async function submitCASUpdate() {
   showLoading('Saving…');
   try {
     await db.collection('students').doc(docId).update(payload);
+    if (typeof logActivity === 'function') logActivity('Update', 'Follow-up', docId);
     hideLoading();
     toast('CAS Shield record updated', 'success');
     closeDrawer('drw-cas-update');
@@ -1261,6 +1263,7 @@ async function saveStages() {
 
   try {
     await db.collection('students').doc(activeStudentId).update(payload);
+    if (typeof logActivity === 'function') logActivity('Update', 'Follow-up', activeStudentId);
     toast('Pipeline updated', 'success');
     closeDrawer('drw-stage');
     loadStudentsFromFirebase();
@@ -1347,7 +1350,6 @@ function renderReports() {
    Fields: { group, senderName, senderRole, text, createdAt }
 ═══════════════════════════════════════════════════════ */
 let currentChatGroup = 'global';
-let chatUnsubscribe = null;
 
 function switchChatGroup(group, btnEl) {
   currentChatGroup = group;
@@ -1358,25 +1360,20 @@ function switchChatGroup(group, btnEl) {
 
 function initChatListener(group) {
   if (!db) return;
-  if (typeof chatUnsubscribe === 'function') { chatUnsubscribe(); chatUnsubscribe = null; }
 
   const container = document.getElementById('chat-messages');
   if (container) container.innerHTML = '<div class="empty-state">Loading messages…</div>';
 
-  try {
-    chatUnsubscribe = db.collection('chatMessages')
-      .where('group', '==', group)
-      .orderBy('createdAt', 'asc')
-      .limitToLast(200)
-      .onSnapshot(snap => {
-        renderChatMessages(snap.docs.map(d => d.data()));
-      }, err => {
-        console.error('[initChatListener] snapshot error:', err);
-        if (container) container.innerHTML = '<div class="empty-state">Could not load chat. Check Firestore index/rules for chatMessages.</div>';
-      });
-  } catch (e) {
-    console.error('[initChatListener]', e);
-  }
+  window.ListenerManager.register('chat', () => db.collection('chatMessages')
+    .where('group', '==', group)
+    .orderBy('createdAt', 'asc')
+    .limitToLast(200)
+    .onSnapshot(snap => {
+      renderChatMessages(snap.docs.map(d => d.data()));
+    }, err => {
+      console.error('[initChatListener] snapshot error:', err);
+      if (container) container.innerHTML = '<div class="empty-state">Could not load chat. Check Firestore index/rules for chatMessages.</div>';
+    }));
 }
 
 function renderChatMessages(msgs) {
@@ -1410,6 +1407,7 @@ async function sendChatMessage() {
       text,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    if (typeof logActivity === 'function') logActivity('Send', 'Chat Message', null, { group: currentChatGroup });
     if (input) { input.value = ''; input.style.height = ''; }
   } catch (e) {
     console.error('[sendChatMessage]', e);
@@ -2222,10 +2220,10 @@ function umFmtDate(val) {
 
 function initUsersListener() {
   if (!window.db) { toast('Firestore not ready', 'error'); return; }
-  window.__usersListenerStarted = true;
+  if (window.ListenerManager.has('users')) return; // already streaming — avoid duplicate listener
   document.getElementById('um-table-body').innerHTML = '<tr><td colspan="7" class="empty-state">Loading…</td></tr>';
 
-  db.collection('users').onSnapshot(
+  window.ListenerManager.register('users', () => db.collection('users').onSnapshot(
     (snap) => {
       window.__allUsers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       umUpdateKpiCards();
@@ -2238,7 +2236,7 @@ function initUsersListener() {
         '<tr><td colspan="7" class="empty-state">Failed to load users — check Firestore rules/connection.</td></tr>';
       toast('Could not load users', 'error');
     }
-  );
+  ));
 }
 
 function umUpdateKpiCards() {
@@ -2434,6 +2432,7 @@ async function submitUserForm() {
 
     if (__editingUserId) {
       await db.collection('users').doc(__editingUserId).set(payload, { merge: true });
+      if (typeof logActivity === 'function') logActivity('Edit', 'User', __editingUserId);
       toast('User updated ✅', 'success');
     } else {
       // Duplicate-email guard
@@ -2443,12 +2442,13 @@ async function submitUserForm() {
         errEl.style.display = 'block';
         return;
       }
-      await db.collection('users').add({
+      const newUserRef = await db.collection('users').add({
         ...payload,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         createdBy: window.staff?.name || 'CRM',
         lastLogin: null
       });
+      if (typeof logActivity === 'function') logActivity('Add', 'User', newUserRef.id);
       toast('User created ✅', 'success');
     }
     // No manual re-render needed — the users onSnapshot listener in
@@ -2482,6 +2482,7 @@ async function deleteUser(userId) {
   if (!confirm(`Delete user "${u?.name || u?.email || userId}"? This cannot be undone.`)) return;
   try {
     await db.collection('users').doc(userId).delete();
+    if (typeof logActivity === 'function') logActivity('Delete', 'User', userId);
     toast('User deleted', 'success');
   } catch (err) {
     console.error('deleteUser error:', err);
