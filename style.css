@@ -605,3 +605,18 @@ textarea.form-control{resize:vertical;min-height:72px;line-height:1.55}
 }
 .btn-edit-large:hover { background: var(--navy-600); transform: translateY(-1px); }
 .btn-edit-large svg { color: var(--gold-400); }
+
+/* ============================================================
+   INTERNAL CHAT
+   ============================================================ */
+.chat-bubble{
+  max-width:72%;padding:8px 12px;border-radius:var(--r-md);
+  font-size:12.5px;line-height:1.45;word-wrap:break-word;
+  align-self:flex-start;background:var(--surface-inset);color:var(--text-primary);
+}
+.chat-bubble.mine{
+  align-self:flex-end;background:var(--navy-800);color:#fff;
+}
+.chat-meta{font-size:9.5px;color:var(--text-muted);margin-bottom:3px;font-weight:600}
+.chat-bubble.mine .chat-meta{color:rgba(255,255,255,.55)}
+.chat-time{font-size:9px;opacity:.6;margin-top:3px;display:block}
