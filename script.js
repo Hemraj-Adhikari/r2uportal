@@ -870,3 +870,187 @@ window.onboardToUniversity = function(key) {
   openAddStudent(u.title);
   toast('Onboarding for ' + u.title, 'info');
 };
+
+/* ═══════════════════════════════════════════════════════
+   ADD STUDENT — Firestore-driven University/Course dropdowns
+   Reads from the `universities` collection in Firestore.
+   Expected doc shape:
+     { name: "University of East London", courses: ["MSc X","BA Y", ...] }
+   (also tolerates `title` instead of `name`, and courses as
+   either plain strings or objects like { name: "MSc X" })
+═══════════════════════════════════════════════════════ */
+let UNIV_FIRESTORE_DATA = {}; // { docId: { name, courses: [...] } }
+
+async function populateUniversityDropdown() {
+  const sel = document.getElementById('as-university');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Loading universities…</option>';
+  sel.disabled = true;
+
+  try {
+    const snap = await db.collection('universities').orderBy('name').get();
+    UNIV_FIRESTORE_DATA = {};
+
+    if (snap.empty) {
+      sel.innerHTML = '<option value="">No universities found — add some in Firestore</option>';
+      sel.disabled = false;
+      return;
+    }
+
+    snap.docs.forEach(doc => {
+      const data = doc.data();
+      const name = data.name || data.title || doc.id;
+      const rawCourses = data.courses || [];
+      const courses = rawCourses
+        .map(c => (typeof c === 'string' ? c : (c && c.name)))
+        .filter(Boolean);
+      UNIV_FIRESTORE_DATA[doc.id] = { name, courses };
+    });
+
+    sel.innerHTML = '<option value="">Select university</option>' +
+      Object.entries(UNIV_FIRESTORE_DATA)
+        .map(([id, u]) => `<option value="${escapeHtml(id)}">${escapeHtml(u.name)}</option>`)
+        .join('');
+    sel.disabled = false;
+  } catch (e) {
+    console.error('[populateUniversityDropdown] failed:', e);
+    sel.innerHTML = '<option value="">Could not load universities</option>';
+    sel.disabled = false;
+    if (typeof toast === 'function') toast('Could not load universities from Firestore', 'error');
+  }
+}
+
+function onUniversitySelected(uniId) {
+  const courseSel = document.getElementById('as-course');
+  if (!courseSel) return;
+
+  const uni = UNIV_FIRESTORE_DATA[uniId];
+  if (!uni || !uni.courses.length) {
+    courseSel.innerHTML = '<option value="">No courses listed for this university</option>';
+    courseSel.disabled = true;
+    return;
+  }
+
+  courseSel.disabled = false;
+  courseSel.innerHTML = '<option value="">Select course</option>' +
+    uni.courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+}
+
+// Wrap whatever openAddStudent() already does (it lives in firebase-updates.js)
+// so the dropdowns refresh every time the modal opens, without touching that file.
+(function wrapOpenAddStudent() {
+  const tryWrap = () => {
+    if (typeof window.openAddStudent !== 'function' || window.__openAddStudentWrapped) return;
+    const original = window.openAddStudent;
+    window.openAddStudent = function (...args) {
+      const result = original.apply(this, args);
+      populateUniversityDropdown();
+      const courseSel = document.getElementById('as-course');
+      if (courseSel) {
+        courseSel.innerHTML = '<option value="">Select a university first</option>';
+        courseSel.disabled = true;
+      }
+      return result;
+    };
+    window.__openAddStudentWrapped = true;
+  };
+  // openAddStudent may load after this file, so try now and also on DOM ready
+  tryWrap();
+  document.addEventListener('DOMContentLoaded', tryWrap);
+})();
+
+/* ═══════════════════════════════════════════════════════
+   MOCK PRE-CAS — real-time Firestore autocomplete
+   Replaces any local-array-based fbSearch()/fbClear() with
+   a live `students` collection query as the user types.
+═══════════════════════════════════════════════════════ */
+let fbSearchDebounce = null;
+let fbSelectedStudent = null;
+
+function fbSearch(value) {
+  clearTimeout(fbSearchDebounce);
+  const box = document.getElementById('fb-lookup');
+  if (!box) return;
+
+  const q = (value || '').trim();
+  if (!q) { box.innerHTML = ''; box.style.display = 'none'; return; }
+
+  fbSearchDebounce = setTimeout(() => fbSearchFirestore(q), 250);
+}
+
+async function fbSearchFirestore(q) {
+  const box = document.getElementById('fb-lookup');
+  if (!box) return;
+  box.innerHTML = '<div class="lookup-item" style="opacity:.6">Searching…</div>';
+  box.style.display = 'block';
+
+  try {
+    // Prefix search on STUDENT NAME. Case-sensitive — if you need
+    // case-insensitive search, store a lowercase mirror field
+    // (e.g. 'STUDENT NAME_lower') and query against that instead.
+    const snap = await db.collection('students')
+      .orderBy('STUDENT NAME')
+      .startAt(q)
+      .endAt(q + '\uf8ff')
+      .limit(8)
+      .get();
+
+    if (snap.empty) {
+      box.innerHTML = '<div class="lookup-item" style="opacity:.6">No matches</div>';
+      return;
+    }
+
+    box.innerHTML = '';
+    snap.docs.forEach(d => {
+      const s = d.data();
+      const id = s['STUDENT ID'] || d.id;
+      const item = document.createElement('div');
+      item.className = 'lookup-item';
+      item.innerHTML = `
+        <div style="font-weight:600;font-size:12.5px">${escapeHtml(s['STUDENT NAME'] || '—')}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(id)} · ${escapeHtml(s['COURSE'] || '')}</div>`;
+      item.addEventListener('click', () => fbSelectFromLookup({ ...s, id }));
+      box.appendChild(item);
+    });
+  } catch (e) {
+    console.error('[fbSearchFirestore] failed:', e);
+    box.innerHTML = '<div class="lookup-item" style="opacity:.6">Search failed</div>';
+  }
+}
+
+function fbSelectFromLookup(s) {
+  fbSelectedStudent = s;
+
+  const box = document.getElementById('fb-lookup');
+  if (box) box.style.display = 'none';
+
+  const input = document.getElementById('fb-search');
+  if (input) input.value = s['STUDENT NAME'] || '';
+
+  const pill = document.getElementById('fb-sel');
+  if (pill) pill.style.display = 'flex';
+  setText('fb-sel-name', s['STUDENT NAME'] || '—');
+  setText('fb-sel-sub', (s['STUDENT ID'] || s.id) + ' · ' + (s['COURSE'] || '—'));
+
+  if (typeof fbPreview === 'function') fbPreview();
+}
+
+function fbClear() {
+  fbSelectedStudent = null;
+  const pill = document.getElementById('fb-sel');
+  if (pill) pill.style.display = 'none';
+  const input = document.getElementById('fb-search');
+  if (input) input.value = '';
+  if (typeof fbPreview === 'function') fbPreview();
+}
+
+// Close the lookup dropdown on outside click
+document.addEventListener('click', (e) => {
+  const box = document.getElementById('fb-lookup');
+  const input = document.getElementById('fb-search');
+  if (box && input && box.style.display !== 'none' && !box.contains(e.target) && e.target !== input) {
+    box.style.display = 'none';
+  }
+});
+
+console.log('[script-additions.js] Firestore-driven university dropdown + student autocomplete loaded');
