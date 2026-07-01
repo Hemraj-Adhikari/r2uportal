@@ -22,6 +22,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && getUserRole() in ['Super Admin', 'Admin'];
+      // Lets a signed-in user update ONLY their own online/lastSeen presence
+      // fields (used for the chat "who's online" indicator), without needing
+      // Super Admin / Admin rights, and without opening up any other field.
+      allow update: if isAuthenticated() &&
+        request.auth.token.email == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['online', 'lastSeen']);
     }
 
     match /chatMessages/{messageId} {
