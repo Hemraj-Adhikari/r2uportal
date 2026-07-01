@@ -162,6 +162,15 @@ function nowStr() {
 // ==============================================================================
 
 let currentView = 'students';
+
+// Hoisted to the top (not declared where first used) so that bootSession's
+// early hooks (dashboard partners, universities, chat) can never hit a
+// "Cannot access before initialization" race if Firebase Auth resolves
+// a cached session before the rest of this file finishes executing.
+let UNI_DATA = {};
+let UNI_DATA_LOADED = false;
+let currentChatGroup = 'global';
+let currentChatRecipient = null; // { email, name, role } when currentChatGroup === 'direct'
 window.viewHistory = [];
 
 const VIEW_PERMISSIONS = {
@@ -2076,9 +2085,6 @@ function renderReports() {
 }
 
 
-let currentChatGroup = 'global';
-let currentChatRecipient = null; // { email, name, role } when currentChatGroup === 'direct'
-
 function switchChatGroup(group, btnEl) {
   currentChatGroup = group;
 
@@ -2383,8 +2389,6 @@ function openStageDrawer(studentId) {
   stageEdits = {};
   openDrawerEl('drw-stage');
 }
-let UNI_DATA = {};
-let UNI_DATA_LOADED = false;
 
 async function loadUniversitiesData() {
   try {
