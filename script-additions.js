@@ -3243,8 +3243,18 @@ function umFmtDate(val) {
   } catch { return '—'; }
 }
 
-function initUsersListener() {
-  if (!window.db) { toast('Firestore not ready', 'error'); return; }
+function initUsersListener(retryCount = 0) {
+  if (!window.db) {
+    // db not set up yet (auth/firebase still initializing) — retry a few
+    // times before giving up, instead of failing on the very first check.
+    const MAX_RETRIES = 10; // ~5s total at 500ms intervals
+    if (retryCount < MAX_RETRIES) {
+      setTimeout(() => initUsersListener(retryCount + 1), 500);
+      return;
+    }
+    toast('Firestore not ready', 'error');
+    return;
+  }
   if (window.ListenerManager.has('users')) return; // already streaming — avoid duplicate listener
   document.getElementById('um-table-body').innerHTML = '<tr><td colspan="7" class="empty-state">Loading…</td></tr>';
 
