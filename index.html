@@ -574,7 +574,7 @@
           </div></div>
           <div class="card"><div class="card-header"><div class="card-title">Session</div></div><div class="card-body"><div class="form-row-2"><div class="form-group"><label class="form-label">Date</label><input class="form-control" id="fb-date" type="date"></div><div class="form-group"><label class="form-label">Type</label><select class="form-control" id="fb-stype" onchange="fbPreview()"><option>Mock Pre-CAS Interview</option><option>CAS Shield Review</option><option>Pre-CAS Prep Session</option><option>PCI Practice</option></select></div></div><div class="form-row-2" style="margin-top:10px"><div class="form-group"><label class="form-label">University</label><input class="form-control" id="fb-university" type="text" placeholder="e.g. University of East London" oninput="fbPreview()"></div><div class="form-group"><label class="form-label">No. of mock interview</label><select class="form-control" id="fb-mockno" onchange="fbPreview()"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div></div></div></div>
           <div class="card"><div class="card-header"><div class="card-title">Questionnaire</div></div><div class="card-body" style="padding:0"><div id="fb-qa-rows"></div></div></div>
-          <div class="card"><div class="card-header"><div class="card-title">Overall performance</div></div><div class="card-body"><div class="perf-grid"><div class="perf-opt sel" data-val="Excellent" onclick="pickPerf(this)"><div class="perf-icon">🟢</div><div class="perf-lbl">Excellent</div></div><div class="perf-opt" data-val="Good" onclick="pickPerf(this)"><div class="perf-icon">🔵</div><div class="perf-lbl">Good</div></div><div class="perf-opt" data-val="Satisfactory" onclick="pickPerf(this)"><div class="perf-icon">🟡</div><div class="perf-lbl">Satisfactory</div></div><div class="perf-opt" data-val="Needs Improvement" onclick="pickPerf(this)"><div class="perf-icon">🔴</div><div class="perf-lbl">Needs impr.</div></div></div></div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Overall performance</div></div><div class="card-body"><div class="perf-grid"><div class="perf-opt sel" data-val="Excellent" onclick="pickPerf(this)"><div class="perf-icon"></div><div class="perf-lbl">Excellent</div></div><div class="perf-opt" data-val="Good" onclick="pickPerf(this)"><div class="perf-icon"></div><div class="perf-lbl">Good</div></div><div class="perf-opt" data-val="Satisfactory" onclick="pickPerf(this)"><div class="perf-icon"></div><div class="perf-lbl">Satisfactory</div></div><div class="perf-opt" data-val="Needs Improvement" onclick="pickPerf(this)"><div class="perf-icon"></div><div class="perf-lbl">Needs impr.</div></div></div></div></div>
           <div class="card"><div class="card-header"><div class="card-title">Feedback</div></div><div class="card-body"><div class="form-group"><label class="form-label">Overall feedback &amp; improvements</label><textarea class="form-control" id="fb-text" placeholder="Describe the student's performance…" oninput="fbPreview()" style="min-height:90px"></textarea></div><div class="form-group" style="margin-bottom:0"><label class="form-label">Recommendations</label><textarea class="form-control" id="fb-recs" placeholder="Key areas to improve…" oninput="fbPreview()" style="min-height:60px"></textarea></div></div></div>
           <div style="display:flex;gap:7px;justify-content:flex-end"><button class="btn btn-secondary btn-sm" onclick="fbDownloadPDF()">Download PDF</button><button class="btn btn-primary btn-sm" onclick="fbSave()">Save to Drive</button></div>
         </div>
@@ -609,7 +609,13 @@
         <div class="seg-tabs" id="chat-group-tabs">
           <button class="seg-btn active" onclick="switchChatGroup('global',this)">Global</button>
           <button class="seg-btn" onclick="switchChatGroup('staff-only',this)">Staff Only</button>
+          <button class="seg-btn" onclick="switchChatGroup('direct',this)">Direct Message</button>
         </div>
+      </div>
+      <div id="chat-recipient-bar" style="display:none;padding:0 0 10px">
+        <select id="chat-recipient-select" class="form-control" style="max-width:340px" onchange="onChatRecipientChange(this.value)">
+          <option value="">Select recipient…</option>
+        </select>
       </div>
       <div class="card" style="display:flex;flex-direction:column;height:68vh;overflow:hidden">
         <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
@@ -825,7 +831,7 @@
       </div>
     </div>
 
-    <!-- PARTNER UNIVERSITIES -->
+    <!--  UNIVERSITIES -->
     <div class="view" id="view-universities">
       <!-- GRID VIEW -->
       <div id="uni-list-view">
@@ -1188,12 +1194,7 @@
   " onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.45)'">✕</button>
 </div>
 <script>
-// ── Generic button-busy helper ───────────────────────────────
-// Wrap any button's label text in <span class="btn-label">…</span> and add
-// an empty <span class="spinner-sm btn-busy-spin"></span> inside it, then call
-// setBtnBusy(btnEl, true) before an async action and setBtnBusy(btnEl, false)
-// when it resolves. This swaps the label for a small inline spinner instead
-// of changing the button text to "Processing…".
+// ── Generic button//
 function setBtnBusy(btn, busy) {
   if (!btn) return;
   btn.classList.toggle('btn-busy', !!busy);
