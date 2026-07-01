@@ -247,10 +247,18 @@ button{cursor:pointer}
   background:var(--kpi-accent,var(--navy-400));
   border-radius:var(--r-lg) var(--r-lg) 0 0;
 }
-.kpi-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);border-color:var(--border-default)}
+.kpi-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);border-color:var(--border-default);cursor:pointer}
+.kpi-card:active{transform:translateY(0);box-shadow:var(--shadow-sm)}
+.kpi-card-hint{position:absolute;top:14px;right:14px;opacity:0;transition:opacity .18s ease;color:var(--text-muted)}
+.kpi-card:hover .kpi-card-hint{opacity:1}
 .kpi-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
 .kpi-val{font-size:28px;font-weight:700;line-height:1;letter-spacing:-.04em;color:var(--text-primary)}
 .kpi-sub{font-size:10.5px;font-weight:500;margin-top:6px;color:var(--text-muted)}
+
+.funnel-row{cursor:pointer;padding:4px 6px;margin:0 -6px 8px;border-radius:8px;transition:background .15s ease}
+.funnel-row:hover{background:var(--surface-inset)}
+.legend-row{cursor:pointer;padding:3px 5px;margin:0 -5px;border-radius:6px;transition:background .15s ease}
+.legend-row:hover{background:var(--surface-inset)}
 
 /* Accent color variants — apply alongside .kpi-card, e.g. class="kpi-card kpi-navy" */
 .kpi-navy{--kpi-accent:var(--navy-600)}
@@ -350,7 +358,8 @@ tr:hover .row-actions{opacity:1}
 /* ── CHANNEL PARTNERS ── */
 .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:16px}
 .cp-card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-xs);transition:box-shadow .15s,transform .15s}
-.cp-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.cp-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);cursor:pointer;border-color:var(--navy-300)}
+.cp-card:active{transform:translateY(0)}
 .cp-card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .cp-avatar{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#FFF;flex-shrink:0}
 .cp-name{font-weight:600;font-size:13px;color:var(--text-primary);line-height:1.25}
