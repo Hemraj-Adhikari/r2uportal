@@ -1,167 +1,207 @@
-/* ═══════════════════════════════════════════════════════
-   R2U CRM — CORE LOGIC ADDITIONS  (RBAC UPDATED)
-   Paste this whole file at the BOTTOM of your script.js
-   (firebase-auth.js MUST be loaded BEFORE this file —
-   checkAccess(), guardView(), window.staff aaunu firebase-auth.js bata)
+/**
+ * CRM Application Core Utilities & Message System
+ * 
+ * Provides UI feedback (toasts, loading states), email integration, and
+ * core navigation/view management functions.
+ */
 
-   NOTE: Cloudinary config, asSelectedFiles, upload functions,
-   file drop/list handlers, and openAddStudent()/closeAddStudent()
-   have been moved to firebase-updates.js — they are NOT here
-   anymore to avoid duplicate declarations.
+// ==============================================================================
+// EMAIL CONFIGURATION & INITIALIZATION
+// ==============================================================================
 
-   RBAC NOTE: loadStudentsFromFirebase() yahaan define vayeko xa.
-   Tapaiko firebase-updates.js maa yo function ALREADY DEFINED
-   bhayeko xa bhane, tyo file bata HATAUNU PARXA (delete garnu),
-   nabhae duplicate function le purano (unscoped) version le
-   override garera RBAC kaam nagarna sakxa.
+const EMAILJS_CONFIG = {
+  publicKey: 'YOUR_EMAILJS_PUBLIC_KEY',
+  serviceId: 'YOUR_EMAILJS_SERVICE_ID',
+  templateId: 'YOUR_EMAILJS_TEMPLATE_ID'
+};
 
-   THIS REVISION ADDS:
-     - toast() + today() real implementations
-     - Login: doLogin / togglePwd / signOut / checkAccess /
-       guardView / bootSession are NOT redefined here — they
-       live in firebase-auth.js (real Firebase Auth + 'users'
-       collection RBAC) and that file loads first. We only
-       wrap bootSession() to bolt on our own post-login setup
-       (partners grid, universities, chat listener).
-     - Channel Partners: full grid + Add Partner modal-ish flow
-       (collection 'channelPartners', fields: name, type, email,
-       phone, studentsCount)
-     - Notify drawer (Send Notification) — uses EmailJS
-     - Email page (Direct Email) — uses EmailJS
-     - Mock Pre-CAS / Feedback builder (drawer + full page)
-     - CAS Shield table + update drawer
-     - Internal Chat — collection 'chatMessages' with fields
-       {group, senderName, senderRole, text, createdAt}
-     - Reports page
-     - Channel Partner restricted view (Universities + own
-       students only) + Download Template / Bulk Upload with
-       auto partnerId attachment
-   EmailJS: replace EMAILJS_SERVICE_ID / EMAILJS_TEMPLATE_ID /
-   EMAILJS_PUBLIC_KEY below with your real EmailJS values.
-   Until then, sends will fail gracefully with a toast.
-═══════════════════════════════════════════════════════ */
+const isEmailJsConfigured = () => !EMAILJS_CONFIG.publicKey.startsWith('YOUR_');
 
-/* ═══════════════════════════════════════════════════════
-   CONFIG — EmailJS
-═══════════════════════════════════════════════════════ */
-const EMAILJS_PUBLIC_KEY  = 'YOUR_EMAILJS_PUBLIC_KEY';
-const EMAILJS_SERVICE_ID  = 'YOUR_EMAILJS_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';
-
-(function initEmailJS() {
+(function initializeEmailJS() {
   try {
-    if (window.emailjs && EMAILJS_PUBLIC_KEY && EMAILJS_PUBLIC_KEY.indexOf('YOUR_') !== 0) {
-      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-    }
-  } catch (e) { console.warn('[EmailJS] init failed', e); }
+    if (!window.emailjs || !isEmailJsConfigured()) return;
+    emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+  } catch (error) {
+    console.warn('[EmailJS] Initialization failed:', error);
+  }
 })();
 
+/**
+ * Sends email via EmailJS service
+ * @param {Object} params - {to_email, to_name, subject, message}
+ * @returns {Promise}
+ */
 async function sendViaEmailJS({ to_email, to_name, subject, message }) {
-  if (!window.emailjs) throw new Error('EmailJS SDK not loaded');
-  if (EMAILJS_PUBLIC_KEY.indexOf('YOUR_') === 0) {
-    throw new Error('EmailJS not configured — set EMAILJS_SERVICE_ID / TEMPLATE_ID / PUBLIC_KEY in script-additions.js');
+  if (!window.emailjs) {
+    throw new Error('EmailJS SDK not available');
   }
-  return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-    to_email, to_name, subject, message,
-    from_name: (window.staff && window.staff.name) || 'Route2Uni CRM'
+
+  if (!isEmailJsConfigured()) {
+    throw new Error(
+      'EmailJS not configured. Update EMAILJS_CONFIG in script-additions.js with your credentials.'
+    );
+  }
+
+  return emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+    to_email,
+    to_name,
+    subject,
+    message,
+    from_name: window.staff?.name || 'Route2Uni CRM'
   });
 }
 
-/* ═══════════════════════════════════════════════════════
-   TOAST / LOADING / MISC HELPERS  (real implementations)
-═══════════════════════════════════════════════════════ */
-function toast(msg, type) {
-  type = type || 'success';
-  const wrap = document.getElementById('toast-wrap');
-  if (!wrap) { console.log('[toast:' + type + ']', msg); return; }
-  const el = document.createElement('div');
-  el.className = 'toast ' + type;
-  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
-  el.innerHTML = `<span>${icon}</span><span>${escapeHtml(msg)}</span>`;
-  wrap.appendChild(el);
+// ==============================================================================
+// USER FEEDBACK & NOTIFICATIONS
+// ==============================================================================
+
+const TOAST_ICONS = {
+  success: '✓',
+  error: '✕',
+  info: 'ℹ'
+};
+
+const TOAST_DURATION = 3200;
+const TOAST_FADE_DURATION = 220;
+
+/**
+ * Display a toast notification
+ * @param {string} message - Toast message text
+ * @param {string} type - 'success', 'error', or 'info'
+ */
+function toast(message, type = 'success') {
+  const container = document.getElementById('toast-wrap');
+  if (!container) {
+    console.log(`[Toast:${type}]`, message);
+    return;
+  }
+
+  const toastElement = document.createElement('div');
+  toastElement.className = `toast ${type}`;
+  toastElement.innerHTML = `<span>${TOAST_ICONS[type] || 'ℹ'}</span><span>${escapeHtml(message)}</span>`;
+
+  container.appendChild(toastElement);
+
   setTimeout(() => {
-    el.style.transition = 'opacity .2s';
-    el.style.opacity = '0';
-    setTimeout(() => el.remove(), 220);
-  }, 3200);
+    toastElement.style.transition = 'opacity 0.2s';
+    toastElement.style.opacity = '0';
+    setTimeout(() => toastElement.remove(), TOAST_FADE_DURATION);
+  }, TOAST_DURATION);
 }
+
 window.toast = toast;
 
-function showLoading(msg) {
-  const el = document.getElementById('global-loading');
-  const m = document.getElementById('loading-msg');
-  if (m) m.textContent = msg || 'Processing…';
-  if (el) el.classList.add('show');
+/**
+ * Show global loading overlay
+ */
+function showLoading(message = 'Processing...') {
+  const overlay = document.getElementById('global-loading');
+  const messageEl = document.getElementById('loading-msg');
+
+  if (messageEl) messageEl.textContent = message;
+  if (overlay) overlay.classList.add('show');
 }
+
+/**
+ * Hide global loading overlay
+ */
 function hideLoading() {
   document.getElementById('global-loading')?.classList.remove('show');
 }
 
+/**
+ * Get current date in YYYY-MM-DD format
+ */
 function today() {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Get current date and time as localized string
+ */
 function nowStr() {
   return new Date().toLocaleString();
 }
 
-/* ═══════════════════════════════════════════════════════
-   LOGIN
-   doLogin / togglePwd / signOut / checkAccess / guardView /
-   bootSession all live in firebase-auth.js (real Firebase
-   Auth + 'users' collection RBAC) and that file loads BEFORE
-   this one — so they are intentionally NOT redefined here to
-   avoid silently overriding the real implementations.
+// ==============================================================================
+// SESSION INITIALIZATION HOOKS
+// ==============================================================================
 
-   To hook our own post-login setup (loading partners,
-   universities, and the chat listener) without touching
-   firebase-auth.js, we wrap its bootSession() below.
-═══════════════════════════════════════════════════════ */
-(function wrapBootSession() {
+(function enhanceBootSession() {
   const tryWrap = () => {
     if (typeof window.bootSession !== 'function' || window.__bootSessionWrapped) return;
-    const original = window.bootSession;
+
+    const originalBootSession = window.bootSession;
+
     window.bootSession = function (...args) {
-      const result = original.apply(this, args);
-      // original already calls loadStudentsFromFirebase() itself —
-      // we only add the extra views it doesn't know about.
+      const result = originalBootSession.apply(this, args);
+
       renderDashboardPartners();
       loadUniversitiesData();
-      if (typeof initChatListener === 'function') initChatListener(currentChatGroup || 'global');
-      applyChannelPartnerRestrictions();
+
+      if (typeof refreshChatView === 'function') {
+        refreshChatView();
+      }
+
+      if (typeof applyChannelPartnerRestrictions === 'function') {
+        applyChannelPartnerRestrictions();
+      }
+
       return result;
     };
+
     window.__bootSessionWrapped = true;
   };
+
   tryWrap();
   document.addEventListener('DOMContentLoaded', tryWrap);
 })();
 
-/* ═══════════════════════════════════════════════════════
-   NAVIGATION / VIEW SWITCHING  (RBAC GUARDED)
-═══════════════════════════════════════════════════════ */
+// ==============================================================================
+// VIEW MANAGEMENT & NAVIGATION
+// ==============================================================================
+
 let currentView = 'students';
-
-const VIEW_PERMISSIONS = {
-  upload       : ['Super Admin', 'Admin'],
-  users        : ['Super Admin', 'Admin'],
-  reports      : ['Super Admin', 'Admin', 'Document Officer'],
-  partners     : ['Super Admin', 'Admin', 'Document Officer'],
-  casshield    : ['Super Admin', 'Admin', 'Document Officer'],
-  feedback     : ['Super Admin', 'Admin', 'Document Officer'],
-  email        : ['Super Admin', 'Admin', 'Document Officer', 'Application User'],
-  whatsapp     : ['Super Admin', 'Admin', 'Document Officer', 'Application User'],
-  followup     : ['Super Admin', 'Admin', 'Document Officer', 'Application User'],
-  chat         : ['Super Admin', 'Admin', 'Document Officer', 'Application User']
-};
-
 window.viewHistory = [];
 
-function switchView(viewName, linkEl, _skipHistory) {
-  // Channel Partner — hard lock to students/universities only, regardless of how navigation was triggered
-  if (window.staff?.role === 'Channel Partner' && !['dashboard', 'students', 'universities', 'student-detail'].includes(viewName)) {
-    toast('Tapaisanga yo page herne permission chaina', 'error');
+const VIEW_PERMISSIONS = {
+  upload: ['Super Admin', 'Admin'],
+  users: ['Super Admin', 'Admin'],
+  reports: ['Super Admin', 'Admin', 'Document Officer'],
+  partners: ['Super Admin', 'Admin', 'Document Officer'],
+  casshield: ['Super Admin', 'Admin', 'Document Officer'],
+  feedback: ['Super Admin', 'Admin', 'Document Officer'],
+  email: ['Super Admin', 'Admin', 'Document Officer', 'Application User'],
+  whatsapp: ['Super Admin', 'Admin', 'Document Officer', 'Application User'],
+  followup: ['Super Admin', 'Admin', 'Document Officer', 'Application User'],
+  chat: ['Super Admin', 'Admin', 'Document Officer', 'Application User']
+};
+
+const VIEW_TITLES = {
+  dashboard: ['Dashboard', 'Route2Uni complete live overview'],
+  students: ['Students', 'All enrolled students across the pipeline'],
+  partners: ['Channel Partners', 'Referral agents and partner agencies'],
+  universities: ['Partner Universities', 'Sep 2026 intake — courses, entry criteria & fees'],
+  followup: ['Daily Follow-Up', 'Students requiring calls and actions today'],
+  casshield: ['CAS Shield', 'Pre-CAS readiness checks for all applicants'],
+  feedback: ['Mock Pre-CAS', 'Interview feedback builder'],
+  email: ['Direct Email', 'Send messages to students, agents, or staff'],
+  reports: ['Reports', 'Pipeline breakdowns and conversion insights'],
+  upload: ['Import CSV', 'Upload and sync student records'],
+  whatsapp: ['WhatsApp', 'Send WhatsApp messages'],
+  chat: ['Internal Chat', 'Team-wide messaging, real-time'],
+  users: ['User Management', 'Manage staff accounts, roles & access']
+};
+
+/**
+ * Switch active view with permission checks and navigation tracking
+ */
+function switchView(viewName, linkEl, skipHistory = false) {
+  const CHANNEL_PARTNER_ALLOWED_VIEWS = ['dashboard', 'students', 'universities', 'student-detail'];
+  const isChannelPartner = window.staff?.role === 'Channel Partner';
+
+  if (isChannelPartner && !CHANNEL_PARTNER_ALLOWED_VIEWS.includes(viewName)) {
+    toast('You do not have access to this page', 'error');
     return;
   }
 
@@ -169,242 +209,335 @@ function switchView(viewName, linkEl, _skipHistory) {
     return;
   }
 
-  // Push the current view onto history before navigating away from it
-  if (!_skipHistory && currentView && currentView !== viewName) {
+  if (!skipHistory && currentView && currentView !== viewName) {
     window.viewHistory.push({
       view: currentView,
       linkEl: document.querySelector('.sb-link.active')
     });
   }
 
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const target = document.getElementById('view-' + viewName);
-  if (target) target.classList.add('active');
+  document.querySelectorAll('.view').forEach((el) => el.classList.remove('active'));
+  const viewElement = document.getElementById(`view-${viewName}`);
+  if (viewElement) viewElement.classList.add('active');
 
-  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('.sb-link').forEach((el) => el.classList.remove('active'));
   if (linkEl) linkEl.classList.add('active');
 
   currentView = viewName;
   updateBackButton();
 
-  const titles = {
-    dashboard: ['Dashboard', 'Route2Uni complete live overview'],
-    students: ['Students', 'All enrolled students across the pipeline'],
-    partners: ['Channel Partners', 'Referral agents and partner agencies'],
-    universities: ['Partner Universities', 'Sep 2026 intake — courses, entry criteria & fees'],
-    followup: ['Daily Follow-Up', 'Students requiring calls and actions today'],
-    casshield: ['CAS Shield', 'Pre-CAS readiness checks for all applicants'],
-    feedback: ['Mock Pre-CAS', 'Interview feedback builder'],
-    email: ['Direct Email', 'Send messages to students, agents, or staff'],
-    reports: ['Reports', 'Pipeline breakdowns and conversion insights'],
-    upload: ['Import CSV', 'Upload and sync student records'],
-    whatsapp: ['WhatsApp', 'Send WhatsApp messages'],
-    chat: ['Internal Chat', 'Team-wide messaging, real-time'],
-    users: ['User Management', 'Manage staff accounts, roles & access']
+  const [title, subtitle] = VIEW_TITLES[viewName] || [viewName, ''];
+  setText('page-title', title);
+  setText('page-subtitle', subtitle);
+
+  const viewInitializers = {
+    dashboard: () => {
+      updateStats();
+      updateFunnel();
+      renderDashboard();
+    },
+    students: () => {
+      filterTableStudents();
+      updateStats();
+    },
+    partners: () => renderPartnersGrid?.(),
+    followup: () => renderFollowUp?.(),
+    casshield: () => loadCASShield?.(),
+    feedback: () => initFeedbackPage?.(),
+    reports: () => renderReports?.(),
+    chat: () => refreshChatView?.(),
+    users: () => {
+      if (!window.ListenerManager?.has?.('users')) {
+        initUsersListener?.();
+      } else {
+        renderUsersTable?.();
+      }
+    },
+    universities: () => {
+      if (!window.UNI_DATA_LOADED && loadUniversitiesData) {
+        loadUniversitiesData();
+      } else if (typeof renderUniGrid === 'function') {
+        renderUniGrid();
+      }
+    }
   };
-  const t = titles[viewName] || [viewName, ''];
-  setText('page-title', t[0]);
-  setText('page-subtitle', t[1]);
 
-  if (viewName === 'dashboard') {
-    updateStats();
-    updateFunnel();
-    renderDashboard();
-  }
-  if (viewName === 'students') {
-    filterTableStudents();
-    updateStats();
-  }
-  if (viewName === 'partners') renderPartnersGrid();
-  if (viewName === 'followup') renderFollowUp();
-  if (viewName === 'casshield') loadCASShield();
-  if (viewName === 'feedback') initFeedbackPage();
-  if (viewName === 'reports') renderReports();
-  if (viewName === 'chat') initChatListener(currentChatGroup);
-  if (viewName === 'users') {
-    if (!window.ListenerManager.has('users')) {
-      initUsersListener();
-    } else {
-      renderUsersTable();
-    }
-  }
-
-  if (viewName === 'universities') {
-    if (!UNI_DATA_LOADED) {
-      loadUniversitiesData();
-    } else if (typeof renderUniGrid === 'function') {
-      renderUniGrid();
-    }
-  }
+  viewInitializers[viewName]?.();
 }
 
+/**
+ * Navigate back in view history
+ */
 function goBack() {
-  const prev = window.viewHistory.pop();
-  if (!prev) { updateBackButton(); return; }
-  switchView(prev.view, prev.linkEl, true); // true = don't re-push this hop into history
+  const previousState = window.viewHistory.pop();
+  if (!previousState) {
+    updateBackButton();
+    return;
+  }
+  switchView(previousState.view, previousState.linkEl, true);
 }
 
+/**
+ * Update back button visibility
+ */
 function updateBackButton() {
-  const btn = document.getElementById('hdr-back-btn');
-  if (btn) btn.style.display = window.viewHistory.length ? 'flex' : 'none';
+  const button = document.getElementById('hdr-back-btn');
+  if (button) {
+    button.style.display = window.viewHistory.length ? 'flex' : 'none';
+  }
 }
 
+/**
+ * Navigate to dashboard
+ */
 function goHome() {
-  const link = document.querySelector('.sb-link[data-view="dashboard"]');
-  switchView('dashboard', link);
+  const dashboardLink = document.querySelector('.sb-link[data-view="dashboard"]');
+  switchView('dashboard', dashboardLink);
 }
 
+/**
+ * Return to dashboard from current view
+ */
 function backToDashboard() {
-  const link = document.querySelector('.sb-link[data-view="dashboard"]');
-  switchView('dashboard', link);
+  const dashboardLink = document.querySelector('.sb-link[data-view="dashboard"]');
+  switchView('dashboard', dashboardLink);
 }
 
+/**
+ * Toggle sidebar group collapse state
+ */
 function toggleGroup(groupId) {
-  const grp = document.getElementById(groupId);
-  if (grp) grp.classList.toggle('collapsed');
+  const group = document.getElementById(groupId);
+  if (group) group.classList.toggle('collapsed');
 }
 
+/**
+ * Refresh current view data
+ */
 function refreshView() {
-  loadStudentsFromFirebase();
-  toast('Refreshing…', 'info');
+  if (typeof loadStudentsFromFirebase === 'function') {
+    loadStudentsFromFirebase();
+  }
+  toast('Refreshing...', 'info');
 }
 
-/* ═══════════════════════════════════════════════════════
-   COMMAND PALETTE (basic, optional)
-═══════════════════════════════════════════════════════ */
+/**
+ * Open command palette
+ */
 function openCmd() {
-  const el = document.getElementById('cmd-overlay');
-  if (el) { el.classList.add('open'); document.getElementById('cmd-input')?.focus(); }
+  const overlay = document.getElementById('cmd-overlay');
+  if (overlay) {
+    overlay.classList.add('open');
+    document.getElementById('cmd-input')?.focus();
+  }
 }
+
+/**
+ * Close command palette
+ */
 function closeCmd() {
   document.getElementById('cmd-overlay')?.classList.remove('open');
 }
-function cmdNav(view) {
+
+/**
+ * Navigate via command palette
+ */
+function cmdNav(viewName) {
   closeCmd();
-  const link = document.querySelector('.sb-link[data-view="' + view + '"]');
-  switchView(view, link);
+  const link = document.querySelector(`.sb-link[data-view="${viewName}"]`);
+  switchView(viewName, link);
 }
-function cmdSearch(val) { /* optional: implement later */ }
-document.addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCmd(); }
-  if (e.key === 'Escape') { closeCmd(); closeAllDrawers(); }
+
+/**
+ * Search via command palette (extensible stub)
+ */
+function cmdSearch() {
+  // Placeholder for future search implementation
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+    event.preventDefault();
+    openCmd();
+  }
+  if (event.key === 'Escape') {
+    closeCmd();
+    if (typeof closeAllDrawers === 'function') {
+      closeAllDrawers();
+    }
+  }
 });
 
-/* ═══════════════════════════════════════════════════════
-   STUDENTS — LOAD FROM FIREBASE
-   NOTE: Canonical reactive (onSnapshot) implementation lives in
-   firebase-updates.js. Do not redefine here — this used to be a
-   duplicate one-shot .get() that silently overwrote the live
-   listener on every script-additions.js load.
-═══════════════════════════════════════════════════════ */
+// ==============================================================================
+// STUDENT TABLE MANAGEMENT
+// ==============================================================================
 
-/* ═══════════════════════════════════════════════════════
-   STUDENTS TABLE — FILTER, RENDER
-═══════════════════════════════════════════════════════ */
-let pillFilterField = '', pillFilterValue = '';
+let pillFilterField = '';
+let pillFilterValue = '';
 let selectedStudentIds = new Set();
 
-function setPillFilterStudents(field, value, btnEl) {
+/**
+ * Set pill filter for student table
+ */
+function setPillFilterStudents(field, value, buttonElement) {
   pillFilterField = field;
   pillFilterValue = value;
-  document.querySelectorAll('#view-students .seg-btn').forEach(b => b.classList.remove('active'));
-  if (btnEl) btnEl.classList.add('active');
+
+  document.querySelectorAll('#view-students .seg-btn').forEach((btn) => {
+    btn.classList.remove('active');
+  });
+
+  if (buttonElement) {
+    buttonElement.classList.add('active');
+  }
+
   filterTableStudents();
 }
 
+/**
+ * Filter and render student table based on search and pill filters
+ */
 function filterTableStudents() {
   const tbody = document.getElementById('students-page-table-body');
   if (!tbody) return;
 
-  const searchVal = (document.getElementById('students-search-input')?.value || '').toLowerCase();
-  let list = window.students || [];
+  const searchQuery = (document.getElementById('students-search-input')?.value || '').toLowerCase();
+  let filteredList = window.students || [];
 
   if (pillFilterField === 'visa') {
-    list = list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase());
+    filteredList = filteredList.filter(
+      (s) => (s['VISA STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase()
+    );
   } else if (pillFilterField === 'offer') {
-    list = list.filter(s => (s['OFFER STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase());
+    filteredList = filteredList.filter(
+      (s) => (s['OFFER STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase()
+    );
   } else if (pillFilterField === 'cas') {
-    list = list.filter(s => (s['CAS STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase());
+    filteredList = filteredList.filter(
+      (s) => (s['CAS STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase()
+    );
   }
 
-  if (searchVal) {
-    list = list.filter(s => {
-      const blob = [s['STUDENT ID'], s['STUDENT NAME'], s['COURSE'], s['AGENT'], s['UNIVERSITY']]
-        .join(' ').toLowerCase();
-      return blob.includes(searchVal);
+  if (searchQuery) {
+    filteredList = filteredList.filter((student) => {
+      const searchableText = [
+        student['STUDENT ID'],
+        student['STUDENT NAME'],
+        student['COURSE'],
+        student['AGENT'],
+        student['UNIVERSITY']
+      ]
+        .join(' ')
+        .toLowerCase();
+      return searchableText.includes(searchQuery);
     });
   }
 
-  const countEl = document.getElementById('students-tbl-count');
-  if (countEl) countEl.textContent = list.length + ' records';
+  const countElement = document.getElementById('students-tbl-count');
+  if (countElement) {
+    countElement.textContent = `${filteredList.length} records`;
+  }
 
-  if (!list.length) {
+  if (!filteredList.length) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No students found</td></tr>';
   } else {
-    tbody.innerHTML = list.map(s => {
-      const id = s['STUDENT ID'] || s.id;
-      const checked = selectedStudentIds.has(id) ? 'checked' : '';
-      const visa = s['VISA STATUS'] || '—';
-      const visaClass = visa.toLowerCase() === 'approved' ? 'badge-green'
-        : visa.toLowerCase() === 'refused' ? 'badge-red' : 'badge-amber';
-      return `<tr data-student-id="${escapeHtml(id)}">
-        <td style="text-align:center"><input type="checkbox" ${checked} data-action="toggle-select"></td>
-        <td style="text-align:center">
-          <button class="btn btn-ghost btn-sm" data-action="open-stage" title="Edit" style="padding:3px 7px">✏️</button>
-        </td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${escapeHtml(id)}</td>
-        <td><a data-action="open-detail" style="cursor:pointer;font-weight:600;color:var(--text-primary)">${escapeHtml(s['STUDENT NAME'] || '—')}</a></td>
-        <td>${escapeHtml(s['COURSE'] || '—')}</td>
-        <td>${escapeHtml(s['AGENT'] || '—')}</td>
-        <td>${escapeHtml(s['OFFER STATUS'] || s['PRE-SCREENING CALL STATUS'] || '—')}</td>
-        <td><span class="badge ${visaClass}">${escapeHtml(visa)}</span></td>
-      </tr>`;
-    }).join('');
+    tbody.innerHTML = filteredList
+      .map((student) => renderStudentTableRow(student))
+      .join('');
   }
 
   updateBulkBar();
 }
 
-/* ═══════════════════════════════════════════════════════
-   EVENT DELEGATION — addEventListener for the students table
-   Replaces inline onclick/onchange in the row markup above.
-   Attached once via DOMContentLoaded; works for every re-render
-   since clicks/changes bubble up to the tbody regardless of
-   how often filterTableStudents() rewrites its innerHTML.
-═══════════════════════════════════════════════════════ */
+/**
+ * Render a single student table row
+ */
+function renderStudentTableRow(student) {
+  const id = student['STUDENT ID'] || student.id;
+  const isSelected = selectedStudentIds.has(id) ? 'checked' : '';
+  const visaStatus = student['VISA STATUS'] || '—';
+  const visaClassMap = {
+    approved: 'badge-green',
+    refused: 'badge-red',
+    default: 'badge-amber'
+  };
+  const visaClass =
+    visaClassMap[visaStatus.toLowerCase()] || visaClassMap.default;
+
+  return `<tr data-student-id="${escapeHtml(id)}">
+    <td style="text-align:center">
+      <input type="checkbox" ${isSelected} data-action="toggle-select" />
+    </td>
+    <td style="text-align:center">
+      <button class="btn btn-ghost btn-sm" data-action="open-stage" title="Edit" style="padding:3px 7px">✏️</button>
+    </td>
+    <td style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px">${escapeHtml(id)}</td>
+    <td>
+      <a data-action="open-detail" style="cursor: pointer; font-weight: 600; color: var(--text-primary)">
+        ${escapeHtml(student['STUDENT NAME'] || '—')}
+      </a>
+    </td>
+    <td>${escapeHtml(student['COURSE'] || '—')}</td>
+    <td>${escapeHtml(student['AGENT'] || '—')}</td>
+    <td>${escapeHtml(student['OFFER STATUS'] || student['PRE-SCREENING CALL STATUS'] || '—')}</td>
+    <td><span class="badge ${visaClass}">${escapeHtml(visaStatus)}</span></td>
+  </tr>`;
+}
+
+/**
+ * Initialize event handlers for student table
+ */
 function initStudentsTableEvents() {
   const tbody = document.getElementById('students-page-table-body');
   if (!tbody || tbody.dataset.eventsBound) return;
+
   tbody.dataset.eventsBound = 'true';
 
-  tbody.addEventListener('click', (e) => {
-    const actionEl = e.target.closest('[data-action]');
-    if (!actionEl) return;
-    const row = actionEl.closest('tr[data-student-id]');
-    const id = row?.dataset.studentId;
-    if (!id) return;
+  tbody.addEventListener('click', (event) => {
+    const actionElement = event.target.closest('[data-action]');
+    if (!actionElement) return;
 
-    switch (actionEl.dataset.action) {
-      case 'open-detail': openDetail(id); break;
-      case 'open-stage':  openStageDrawer(id); break;
+    const row = actionElement.closest('tr[data-student-id]');
+    const studentId = row?.dataset.studentId;
+    if (!studentId) return;
+
+    switch (actionElement.dataset.action) {
+      case 'open-detail':
+        if (typeof openDetail === 'function') openDetail(studentId);
+        break;
+      case 'open-stage':
+        if (typeof openStageDrawer === 'function') openStageDrawer(studentId);
+        break;
     }
   });
 
-  tbody.addEventListener('change', (e) => {
-    const actionEl = e.target.closest('[data-action="toggle-select"]');
-    if (!actionEl) return;
-    const row = actionEl.closest('tr[data-student-id]');
-    const id = row?.dataset.studentId;
-    if (!id) return;
-    toggleSelectStudent(id, actionEl.checked);
+  tbody.addEventListener('change', (event) => {
+    const checkbox = event.target.closest('[data-action="toggle-select"]');
+    if (!checkbox) return;
+
+    const row = checkbox.closest('tr[data-student-id]');
+    const studentId = row?.dataset.studentId;
+    if (!studentId) return;
+
+    toggleSelectStudent(studentId, checkbox.checked);
   });
 }
+
 document.addEventListener('DOMContentLoaded', initStudentsTableEvents);
 
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+/**
+ * Escape HTML special characters to prevent XSS
+ */
+function escapeHtml(text) {
+  const htmlMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return String(text ?? '').replace(/[&<>"']/g, (char) => htmlMap[char]);
 }
 
 function toggleSelectStudent(id, checked) {
@@ -440,497 +573,929 @@ function selectedStudentsList() {
   return list.filter(s => selectedStudentIds.has(s['STUDENT ID'] || s.id));
 }
 
+// ==============================================================================
+// BULK ACTIONS
+// ==============================================================================
+
+/**
+ * Send bulk email to selected students
+ */
 async function bulkEmail() {
   if (!checkAccess(['Super Admin', 'Admin', 'Document Officer', 'Application User'])) {
-    toast('Tapaisanga bulk email garne permission chaina', 'error');
+    toast('You do not have permission to send bulk emails', 'error');
     return;
   }
-  const list = selectedStudentsList();
-  if (!list.length) { toast('No students selected', 'error'); return; }
-  const withEmail = list.filter(s => s['EMAIL']);
-  if (!withEmail.length) { toast('Selected students have no email on file', 'error'); return; }
 
-  showLoading('Sending ' + withEmail.length + ' emails…');
-  let ok = 0, fail = 0;
-  for (const s of withEmail) {
+  const selectedList = selectedStudentsList();
+  if (!selectedList.length) {
+    toast('No students selected', 'error');
+    return;
+  }
+
+  const withEmail = selectedList.filter((s) => s['EMAIL']);
+  if (!withEmail.length) {
+    toast('Selected students have no email on file', 'error');
+    return;
+  }
+
+  showLoading(`Sending ${withEmail.length} emails...`);
+
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (const student of withEmail) {
     try {
       await sendViaEmailJS({
-        to_email: s['EMAIL'],
-        to_name: s['STUDENT NAME'] || '',
+        to_email: student['EMAIL'],
+        to_name: student['STUDENT NAME'] || '',
         subject: 'Update from Route2Uni',
-        message: 'Hi ' + (s['STUDENT NAME'] || '') + ', this is a bulk update from your Route2Uni team.'
+        message: `Hi ${student['STUDENT NAME'] || ''}, this is a bulk update from your Route2Uni team.`
       });
-      ok++;
-    } catch (e) { fail++; }
+      successCount++;
+    } catch (error) {
+      console.error('[bulkEmail] Failed for student:', student['STUDENT ID'], error);
+      failureCount++;
+    }
   }
+
   hideLoading();
-  toast(`Sent ${ok}, failed ${fail}`, fail ? 'error' : 'success');
+  const message = failureCount > 0
+    ? `Sent ${successCount}, failed ${failureCount}`
+    : `Sent ${successCount} emails`;
+  toast(message, failureCount > 0 ? 'error' : 'success');
   clearStudentSelection();
 }
 
+/**
+ * Placeholder for bulk WhatsApp functionality
+ */
 function bulkWhatsApp() {
-  const list = selectedStudentsList();
-  if (!list.length) { toast('No students selected', 'error'); return; }
-  toast('Bulk WhatsApp — opening WhatsApp Web for ' + list.length + ' students is not yet wired to an API. Use individual WhatsApp links from student detail for now.', 'info');
-}
-
-function bulkStatusUpdate() {
-  if (!checkAccess(['Super Admin', 'Admin', 'Document Officer'])) {
-    toast('Tapaisanga status update garne permission chaina', 'error');
+  const selectedList = selectedStudentsList();
+  if (!selectedList.length) {
+    toast('No students selected', 'error');
     return;
   }
-  const list = selectedStudentsList();
-  if (!list.length) { toast('No students selected', 'error'); return; }
-  toast('Bulk status update for ' + list.length + ' students — open each record and use "Update pipeline" for now.', 'info');
+
+  toast(
+    `Bulk WhatsApp for ${selectedList.length} students is not yet integrated. ` +
+      'Use individual WhatsApp links from student detail for now.',
+    'info'
+  );
 }
 
-/* ═══════════════════════════════════════════════════════
-   DASHBOARD STATS / FUNNEL / DISTRIBUTION
-═══════════════════════════════════════════════════════ */
+/**
+ * Placeholder for bulk status update functionality
+ */
+function bulkStatusUpdate() {
+  if (!checkAccess(['Super Admin', 'Admin', 'Document Officer'])) {
+    toast('You do not have permission to update statuses', 'error');
+    return;
+  }
+
+  const selectedList = selectedStudentsList();
+  if (!selectedList.length) {
+    toast('No students selected', 'error');
+    return;
+  }
+
+  toast(
+    `Bulk status update for ${selectedList.length} students. ` +
+      'Open each record and use "Update pipeline" for now.',
+    'info'
+  );
+}
+
+// ==============================================================================
+// STATISTICS & KPI CALCULATIONS
+// ==============================================================================
+
+const VISA_STATUSES = {
+  approved: 'Approved',
+  refused: 'Refused'
+};
+
+const CAS_STATUSES = {
+  pending: 'Pending',
+  inProgress: 'In Progress'
+};
+
+/**
+ * Update key statistics
+ */
 function updateStats() {
-  const list = window.students || [];
-  const total = list.length;
-  const visa = list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'approved').length;
-  const cas = list.filter(s => (s['CAS STATUS'] || '').toLowerCase() === 'pending' || (s['CAS STATUS'] || '').toLowerCase() === 'in progress').length;
-  const refused = list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'refused').length;
+  const studentList = window.students || [];
+  const total = studentList.length;
+  const visaApproved = studentList.filter(
+    (s) => (s['VISA STATUS'] || '').toLowerCase() === 'approved'
+  ).length;
+  const casActive = studentList.filter(
+    (s) =>
+      (s['CAS STATUS'] || '').toLowerCase() === 'pending' ||
+      (s['CAS STATUS'] || '').toLowerCase() === 'in progress'
+  ).length;
+  const visaRefused = studentList.filter(
+    (s) => (s['VISA STATUS'] || '').toLowerCase() === 'refused'
+  ).length;
 
   setText('stat-total', total);
-  setText('stat-visa', visa);
-  setText('stat-cas', cas);
-  setText('stat-refused', refused);
+  setText('stat-visa', visaApproved);
+  setText('stat-cas', casActive);
+  setText('stat-refused', visaRefused);
 }
 
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
-
-function updateFunnel() {
-  const list = window.students || [];
-  const stages = {
-    applied: s => true,
-    cond: s => ['Received', 'Offer Received'].includes(s['OFFER STATUS']),
-    mock: s => (s['MOCK PRE-CAS'] || '').toLowerCase() === 'done',
-    cas: s => ['Pending', 'In Progress'].includes(s['CAS STATUS']),
-    visa: s => (s['VISA STATUS'] || '').toLowerCase() === 'approved'
-  };
-  const counts = {
-    applied: list.length,
-    cond: list.filter(stages.cond).length,
-    mock: list.filter(stages.mock).length,
-    cas: list.filter(stages.cas).length,
-    visa: list.filter(stages.visa).length
-  };
-
-  setText('l-applied', counts.applied);
-  setText('l-cond', counts.cond);
-  setText('l-mock', counts.mock);
-  setText('l-cas', counts.cas);
-  setText('l-visa', counts.visa);
-  setText('d-center', list.length);
-  const labelEl = document.getElementById('pipeline-total-label');
-  if (labelEl) labelEl.textContent = list.length + ' students';
-
-  const funnelEl = document.getElementById('pipeline-funnel');
-  if (funnelEl) {
-    const max = Math.max(counts.applied, 1);
-    const rows = [
-      ['Applied & called', counts.applied, 'var(--navy-600)'],
-      ['Conditional offer', counts.cond, 'var(--gold-500)'],
-      ['Mock / Pre-CAS', counts.mock, 'var(--violet-500)'],
-      ['CAS in progress', counts.cas, '#0EA5E9'],
-      ['Visa received', counts.visa, 'var(--emerald-500)']
-    ];
-    funnelEl.innerHTML = rows.map(([label, val, color]) => {
-      const pct = Math.round((val / max) * 100);
-      return `<div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-          <span style="color:var(--text-secondary)">${label}</span><span style="font-weight:700">${val}</span>
-        </div>
-        <div style="background:var(--surface-inset);border-radius:6px;height:8px;overflow:hidden">
-          <div style="background:${color};height:100%;width:${pct}%;border-radius:6px"></div>
-        </div>
-      </div>`;
-    }).join('');
+/**
+ * Set element text content safely
+ */
+function setText(elementId, value) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.textContent = value;
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   DASHBOARD — top-level real-time reactive overview
-   Pulls from window.students (onSnapshot) and
-   window.channelPartners (onSnapshot) — no extra reads.
-═══════════════════════════════════════════════════════ */
-function renderDashboard() {
-  const list = window.students || [];
+/**
+ * Update conversion funnel visualization
+ */
+function updateFunnel() {
+  const studentList = window.students || [];
 
-  setText('kpi-total', list.length);
-  setText('kpi-visa', list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'approved').length);
-  setText('kpi-cas', list.filter(s => ['Pending', 'In Progress'].includes(s['CAS STATUS'])).length);
-  setText('kpi-refused', list.filter(s => (s['VISA STATUS'] || '').toLowerCase() === 'refused').length);
-  setText('kpi-offers', list.filter(s => ['Received', 'Offer Received'].includes(s['OFFER STATUS'])).length);
+  const stageDefinitions = {
+    applied: (s) => true,
+    conditional: (s) => ['Received', 'Offer Received'].includes(s['OFFER STATUS']),
+    mock: (s) => (s['MOCK PRE-CAS'] || '').toLowerCase() === 'done',
+    cas: (s) => ['Pending', 'In Progress'].includes(s['CAS STATUS']),
+    visa: (s) => (s['VISA STATUS'] || '').toLowerCase() === 'approved'
+  };
+
+  const stageCounts = {
+    applied: studentList.length,
+    conditional: studentList.filter(stageDefinitions.conditional).length,
+    mock: studentList.filter(stageDefinitions.mock).length,
+    cas: studentList.filter(stageDefinitions.cas).length,
+    visa: studentList.filter(stageDefinitions.visa).length
+  };
+
+  setText('l-applied', stageCounts.applied);
+  setText('l-cond', stageCounts.conditional);
+  setText('l-mock', stageCounts.mock);
+  setText('l-cas', stageCounts.cas);
+  setText('l-visa', stageCounts.visa);
+  setText('d-center', studentList.length);
+
+  const labelElement = document.getElementById('pipeline-total-label');
+  if (labelElement) {
+    labelElement.textContent = `${studentList.length} students`;
+  }
+
+  renderFunnelChart(stageCounts);
+}
+
+/**
+ * Render funnel chart visualization
+ */
+function renderFunnelChart(stageCounts) {
+  const funnelElement = document.getElementById('pipeline-funnel');
+  if (!funnelElement) return;
+
+  const maxCount = Math.max(stageCounts.applied, 1);
+
+  const stageRows = [
+    ['Applied & called', stageCounts.applied, 'var(--navy-600)'],
+    ['Conditional offer', stageCounts.conditional, 'var(--gold-500)'],
+    ['Mock / Pre-CAS', stageCounts.mock, 'var(--violet-500)'],
+    ['CAS in progress', stageCounts.cas, '#0EA5E9'],
+    ['Visa received', stageCounts.visa, 'var(--emerald-500)']
+  ];
+
+  funnelElement.innerHTML = stageRows
+    .map(([label, count, color]) => {
+      const percentage = Math.round((count / maxCount) * 100);
+      return `
+        <div style="margin-bottom: 10px">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px">
+            <span style="color: var(--text-secondary)">${label}</span>
+            <span style="font-weight: 700">${count}</span>
+          </div>
+          <div style="background: var(--surface-inset); border-radius: 6px; height: 8px; overflow: hidden">
+            <div style="background: ${color}; height: 100%; width: ${percentage}%; border-radius: 6px"></div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+// ==============================================================================
+// DASHBOARD RENDERING
+// ==============================================================================
+
+/**
+ * Render main dashboard with KPI cards and charts
+ */
+function renderDashboard() {
+  const studentList = window.students || [];
+
+  setText('kpi-total', studentList.length);
+  setText('kpi-visa', studentList.filter((s) => (s['VISA STATUS'] || '').toLowerCase() === 'approved').length);
+  setText('kpi-cas', studentList.filter((s) => ['Pending', 'In Progress'].includes(s['CAS STATUS'])).length);
+  setText('kpi-refused', studentList.filter((s) => (s['VISA STATUS'] || '').toLowerCase() === 'refused').length);
+  setText('kpi-offers', studentList.filter((s) => ['Received', 'Offer Received'].includes(s['OFFER STATUS'])).length);
   setText('kpi-partners', (window.channelPartners || []).length);
 
-  renderEnrollmentTrendChart(list);
+  renderEnrollmentTrendChart(studentList);
   renderDashboardPartners();
 }
 
-function renderEnrollmentTrendChart(list) {
-  const el = document.getElementById('dash-enrollment-chart');
-  if (!el) return;
+/**
+ * Render enrollment trend chart (6-month view)
+ */
+function renderEnrollmentTrendChart(studentList) {
+  const chartElement = document.getElementById('dash-enrollment-chart');
+  if (!chartElement) return;
 
   const months = [];
   const now = new Date();
+
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ key: d.getFullYear() + '-' + d.getMonth(), label: d.toLocaleString('en', { month: 'short' }), count: 0 });
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+    const label = monthDate.toLocaleString('en', { month: 'short' });
+    months.push({ key, label, count: 0 });
   }
-  list.forEach(s => {
-    const raw = s['createdAt'];
-    let d = null;
-    if (raw && typeof raw.toDate === 'function') d = raw.toDate();
-    else if (raw) d = new Date(raw);
-    if (!d || isNaN(d)) return;
-    const key = d.getFullYear() + '-' + d.getMonth();
-    const m = months.find(m => m.key === key);
-    if (m) m.count++;
+
+  studentList.forEach((student) => {
+    const createdAtRaw = student['createdAt'];
+    let createdAtDate = null;
+
+    if (createdAtRaw && typeof createdAtRaw.toDate === 'function') {
+      createdAtDate = createdAtRaw.toDate();
+    } else if (createdAtRaw) {
+      createdAtDate = new Date(createdAtRaw);
+    }
+
+    if (!createdAtDate || isNaN(createdAtDate)) return;
+
+    const monthKey = `${createdAtDate.getFullYear()}-${createdAtDate.getMonth()}`;
+    const monthBucket = months.find((m) => m.key === monthKey);
+
+    if (monthBucket) monthBucket.count++;
   });
 
-  const max = Math.max(...months.map(m => m.count), 1);
-  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:10px;height:140px;padding:0 4px">
-    ${months.map(m => `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="font-size:10.5px;font-weight:700;color:var(--text-primary)">${m.count}</div>
-        <div style="width:100%;max-width:34px;background:linear-gradient(180deg,var(--navy-600),var(--navy-800));border-radius:5px 5px 2px 2px;height:${Math.max(6, Math.round((m.count / max) * 100))}px;transition:height .6s ease"></div>
-        <div style="font-size:10px;color:var(--text-muted)">${m.label}</div>
-      </div>`).join('')}
-  </div>`;
+  const maxCount = Math.max(...months.map((m) => m.count), 1);
+
+  chartElement.innerHTML = `
+    <div style="display: flex; align-items: flex-end; gap: 10px; height: 140px; padding: 0 4px">
+      ${months
+        .map((monthData) => {
+          const barHeight = Math.max(6, Math.round((monthData.count / maxCount) * 100));
+          return `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px">
+              <div style="font-size: 10.5px; font-weight: 700; color: var(--text-primary)">${monthData.count}</div>
+              <div style="width: 100%; max-width: 34px; background: linear-gradient(180deg, var(--navy-600), var(--navy-800)); border-radius: 5px 5px 2px 2px; height: ${barHeight}px; transition: height 0.6s ease"></div>
+              <div style="font-size: 10px; color: var(--text-muted)">${monthData.label}</div>
+            </div>
+          `;
+        })
+        .join('')}
+    </div>
+  `;
 }
 
-
-
+/**
+ * Render dashboard partner cards (preview of first 6)
+ */
 function renderDashboardPartners() {
   const grid = document.getElementById('dashboard-cp-grid');
   if (!grid) return;
+
   if (window.staff?.role === 'Channel Partner') return;
 
   const partners = window.channelPartners || [];
+
   if (!partners.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No channel partners yet</div>';
+    grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1">No channel partners yet</div>';
     return;
   }
-  grid.innerHTML = partners.slice(0, 6).map(p => partnerCardHTML(p.id, p)).join('');
+
+  grid.innerHTML = partners.slice(0, 6).map((partner) => partnerCardHTML(partner.id, partner)).join('');
 }
 
+// ==============================================================================
+// CHANNEL PARTNER MANAGEMENT
+// ==============================================================================
+
+const PARTNER_COLORS = [
+  '#1E3A5F', '#6B3FA0', '#1A5C38', '#7C2D12', '#0C4A6E', '#4C1D95', '#134E4A', '#713F12'
+];
+
+/**
+ * Extract initials from partner name
+ */
 function partnerInitials(name) {
-  return (name || '?').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-}
-const PARTNER_COLORS = ['#1E3A5F', '#6B3FA0', '#1A5C38', '#7C2D12', '#0C4A6E', '#4C1D95', '#134E4A', '#713F12'];
-function partnerColor(seedStr) {
-  let h = 0;
-  for (let i = 0; i < (seedStr || '').length; i++) h = (h * 31 + seedStr.charCodeAt(i)) >>> 0;
-  return PARTNER_COLORS[h % PARTNER_COLORS.length];
+  return (name || '?')
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
-function partnerCardHTML(id, p) {
-  const color = partnerColor(p.name || id);
-  return `<div class="cp-card">
-    <div class="cp-card-head">
-      <div class="cp-avatar" style="background:${color}">${partnerInitials(p.name)}</div>
-      <div>
-        <div class="cp-name">${escapeHtml(p.name || id)}</div>
-        <div class="cp-type">${escapeHtml(p.type || 'Agent')}</div>
+/**
+ * Get consistent color for partner based on name hash
+ */
+function partnerColor(seedString) {
+  let hash = 0;
+  for (let i = 0; i < (seedString || '').length; i++) {
+    hash = (hash * 31 + seedString.charCodeAt(i)) >>> 0;
+  }
+  return PARTNER_COLORS[hash % PARTNER_COLORS.length];
+}
+
+/**
+ * Generate HTML for partner card
+ */
+function partnerCardHTML(partnerId, partnerData) {
+  const color = partnerColor(partnerData.name || partnerId);
+  return `
+    <div class="cp-card">
+      <div class="cp-card-head">
+        <div class="cp-avatar" style="background: ${color}">${partnerInitials(partnerData.name)}</div>
+        <div>
+          <div class="cp-name">${escapeHtml(partnerData.name || partnerId)}</div>
+          <div class="cp-type">${escapeHtml(partnerData.type || 'Agent')}</div>
+        </div>
+      </div>
+      <div class="cp-stats">
+        <div>
+          <div class="cp-stat-val">${partnerData.studentsCount ?? 0}</div>
+          <div class="cp-stat-label">Students</div>
+        </div>
+        <div>
+          <div class="cp-stat-val" style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+            ${escapeHtml(partnerData.email || '—')}
+          </div>
+          <div class="cp-stat-label">Email</div>
+        </div>
+        <div>
+          <div class="cp-stat-val" style="font-size: 12px">${escapeHtml(partnerData.phone || '—')}</div>
+          <div class="cp-stat-label">Phone</div>
+        </div>
       </div>
     </div>
-    <div class="cp-stats">
-      <div><div class="cp-stat-val">${p.studentsCount ?? 0}</div><div class="cp-stat-label">Students</div></div>
-      <div><div class="cp-stat-val" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(p.email || '—')}</div><div class="cp-stat-label">Email</div></div>
-      <div><div class="cp-stat-val" style="font-size:12px">${escapeHtml(p.phone || '—')}</div><div class="cp-stat-label">Phone</div></div>
-    </div>
-  </div>`;
+  `;
 }
 
+/**
+ * Render full partner grid (all partners)
+ */
 function renderPartnersGrid() {
   const grid = document.getElementById('full-cp-grid');
   if (!grid) return;
+
   const partners = window.channelPartners || [];
+
   if (!partners.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No channel partners yet — click "Add partner" to create one.</div>';
+    grid.innerHTML =
+      '<div class="empty-state" style="grid-column: 1 / -1">No channel partners yet — click "Add partner" to create one.</div>';
     return;
   }
-  grid.innerHTML = partners.map(p => partnerCardHTML(p.id, p)).join('');
+
+  grid.innerHTML = partners.map((partner) => partnerCardHTML(partner.id, partner)).join('');
 }
 
+/**
+ * Open dialog to add new partner
+ */
 function openAddPartner() {
   if (!checkAccess(['Super Admin', 'Admin', 'Document Officer'])) {
-    toast('Tapaisanga partner add garne permission chaina', 'error');
+    toast('You do not have permission to add partners', 'error');
     return;
   }
-  const name = prompt('Partner / agency name:');
-  if (!name) return;
-  const type = prompt('Type (e.g. Sub-agent, Direct, Education Consultancy):', 'Sub-agent') || 'Sub-agent';
-  const email = prompt('Contact email (optional):', '') || '';
-  const phone = prompt('Contact phone (optional):', '') || '';
 
-  showLoading('Adding partner…');
-  db.collection('channelPartners').add({
-    name, type, email, phone, studentsCount: 0,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(() => {
-    hideLoading();
-    toast('Partner added', 'success');
-    renderPartnersGrid();
-    renderDashboardPartners();
-  }).catch(e => {
-    hideLoading();
-    console.error('[openAddPartner]', e);
-    toast('Could not add partner', 'error');
-  });
+  const partnerName = prompt('Partner / agency name:');
+  if (!partnerName) return;
+
+  const partnerType =
+    prompt('Type (e.g. Sub-agent, Direct, Education Consultancy):', 'Sub-agent') || 'Sub-agent';
+  const partnerEmail = prompt('Contact email (optional):', '') || '';
+  const partnerPhone = prompt('Contact phone (optional):', '') || '';
+
+  showLoading('Adding partner...');
+
+  db.collection('channelPartners')
+    .add({
+      name: partnerName,
+      type: partnerType,
+      email: partnerEmail,
+      phone: partnerPhone,
+      studentsCount: 0,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+      hideLoading();
+      toast('Partner added', 'success');
+      renderPartnersGrid();
+      renderDashboardPartners();
+    })
+    .catch((error) => {
+      hideLoading();
+      console.error('[openAddPartner]', error);
+      toast('Could not add partner', 'error');
+    });
 }
 
-/* ═══════════════════════════════════════════════════════
-   EXPORT CSV  (RBAC — Channel Partner lai export band)
-═══════════════════════════════════════════════════════ */
+/**
+ * Export student records as CSV
+ */
 function exportStudentsCSV() {
   if (!checkAccess(['Super Admin', 'Admin', 'Document Officer', 'Application User'])) {
-    toast('Tapaisanga export garne permission chaina', 'error');
+    toast('You do not have permission to export', 'error');
     return;
   }
-  const list = window.students || [];
-  if (!list.length) { toast('No students to export', 'error'); return; }
-  const csv = Papa.unparse(list);
+
+  const studentList = window.students || [];
+  if (!studentList.length) {
+    toast('No students to export', 'error');
+    return;
+  }
+
+  const csv = Papa.unparse(studentList);
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'students_export_' + today() + '.csv';
-  a.click();
+
+  const downloadLink = document.createElement('a');
+  downloadLink.href = url;
+  downloadLink.download = `students_export_${today()}.csv`;
+  downloadLink.click();
+
   URL.revokeObjectURL(url);
 }
 
-/* ═══════════════════════════════════════════════════════
-   STUDENT DETAIL VIEW (basic)
-═══════════════════════════════════════════════════════ */
+// ==============================================================================
+// STUDENT DETAIL VIEW
+// ==============================================================================
+
 let detailStudentId = null;
 
+/**
+ * Open student detail view
+ */
 function openDetail(studentId) {
-  const s = (window.students || []).find(st => (st['STUDENT ID'] || st.id) === studentId);
-  if (!s) { toast('Student not found', 'error'); return; }
+  const student = (window.students || []).find(
+    (s) => (s['STUDENT ID'] || s.id) === studentId
+  );
+
+  if (!student) {
+    toast('Student not found', 'error');
+    return;
+  }
+
   detailStudentId = studentId;
 
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
   document.getElementById('view-student-detail').classList.add('active');
   currentView = 'student-detail';
 
-  setText('detail-name', s['STUDENT NAME'] || '—');
-  setText('detail-id', s['STUDENT ID'] || studentId);
-  setText('detail-level', s['LEVEL'] || '—');
-  setText('detail-course', s['COURSE'] || '—');
-  setText('detail-breadcrumb-name', s['STUDENT NAME'] || '—');
-  setText('dp-sid', s['STUDENT ID'] || studentId);
-  setText('dp-level', s['LEVEL'] || '—');
-  setText('dp-sname', s['STUDENT NAME'] || '—');
-  setText('dp-course', s['COURSE'] || '—');
-  setText('dp-dob', s['DOB'] || '—');
-  setText('dp-agent', s['AGENT'] || '—');
-  setText('dp-mobile-ro', s['MOBILE'] || '—');
-  setText('dp-email-ro', s['EMAIL'] || '—');
+  renderStudentDetailPanel(student);
+}
 
-  const avatarEl = document.getElementById('detail-avatar');
-  if (avatarEl) avatarEl.textContent = partnerInitials(s['STUDENT NAME']);
+/**
+ * Render student detail panel with all information
+ */
+function renderStudentDetailPanel(student) {
+  setText('detail-name', student['STUDENT NAME'] || '—');
+  setText('detail-id', student['STUDENT ID'] || student.id);
+  setText('detail-level', student['LEVEL'] || '—');
+  setText('detail-course', student['COURSE'] || '—');
+  setText('detail-breadcrumb-name', student['STUDENT NAME'] || '—');
+  setText('dp-sid', student['STUDENT ID'] || student.id);
+  setText('dp-level', student['LEVEL'] || '—');
+  setText('dp-sname', student['STUDENT NAME'] || '—');
+  setText('dp-course', student['COURSE'] || '—');
+  setText('dp-dob', student['DOB'] || '—');
+  setText('dp-agent', student['AGENT'] || '—');
+  setText('dp-mobile-ro', student['MOBILE'] || '—');
+  setText('dp-email-ro', student['EMAIL'] || '—');
 
+  const avatarElement = document.getElementById('detail-avatar');
+  if (avatarElement) {
+    avatarElement.textContent = partnerInitials(student['STUDENT NAME']);
+  }
+
+  renderStudentDocuments(student);
+  renderStudentPipeline(student);
+}
+
+/**
+ * Render student documents section
+ */
+function renderStudentDocuments(student) {
   const docsSection = document.getElementById('dp-docs-section');
-  if (docsSection) {
-    const docs = s.documents || [];
-    docsSection.innerHTML = !docs.length ? 'No documents uploaded yet.' :
-      docs.map(d => `<a href="${d.url}" target="_blank" style="display:block;margin-bottom:6px;color:var(--navy-600)">${escapeHtml(d.name)}</a>`).join('');
-  }
+  if (!docsSection) return;
 
-  setText('dp-pipeline-score', stageDoneCount(s) + '/' + STAGE_DEFS.length);
-  const pipelineList = document.getElementById('dp-pipeline-list');
-  if (pipelineList) {
-    pipelineList.innerHTML = stageList(s).map((st, i) => `
-      <div class="stage-row${!st.done && stageCurrent(s) < i ? ' locked-row' : ''}">
-        <div class="stage-left">
-          <span class="stage-num">${i + 1}</span>
-          <span class="stage-check${st.done ? ' done' : ''}">${st.done ? '✓' : ''}</span>
-          <span class="stage-name">${escapeHtml(st.label)}</span>
-        </div>
-      </div>`).join('');
-  }
-  const summary = document.getElementById('dp-stage-summary');
-  if (summary) {
-    summary.innerHTML = STAGE_DEFS.map(sd => {
-      const val = s[sd.key] || '—';
-      return `<div class="detail-field-row" style="grid-template-columns:1fr"><span class="detail-field-label">${escapeHtml(sd.label)}</span><span class="detail-field-val">${escapeHtml(val)}</span></div>`;
-    }).join('');
+  const documents = student.documents || [];
+
+  if (!documents.length) {
+    docsSection.innerHTML = 'No documents uploaded yet.';
+  } else {
+    docsSection.innerHTML = documents
+      .map(
+        (doc) =>
+          `<a href="${doc.url}" target="_blank" style="display: block; margin-bottom: 6px; color: var(--navy-600)">
+        ${escapeHtml(doc.name)}
+      </a>`
+      )
+      .join('');
   }
 }
 
+/**
+ * Render student pipeline/stages progress
+ */
+function renderStudentPipeline(student) {
+  const scoreElement = document.getElementById('dp-pipeline-score');
+  if (scoreElement && typeof stageDoneCount === 'function' && typeof STAGE_DEFS !== 'undefined') {
+    scoreElement.textContent = `${stageDoneCount(student)} / ${STAGE_DEFS.length}`;
+  }
+
+  const pipelineList = document.getElementById('dp-pipeline-list');
+  if (pipelineList && typeof stageList === 'function' && typeof stageCurrent === 'function') {
+    pipelineList.innerHTML = stageList(student)
+      .map(
+        (stage, index) =>`
+        <div class="stage-row${!stage.done && stageCurrent(student) < index ? ' locked-row' : ''}">
+          <div class="stage-left">
+            <span class="stage-num">${index + 1}</span>
+            <span class="stage-check${stage.done ? ' done' : ''}">${stage.done ? '✓' : ''}</span>
+            <span class="stage-name">${escapeHtml(stage.label)}</span>
+          </div>
+        </div>
+      `
+      )
+      .join('');
+  }
+
+  const summarySection = document.getElementById('dp-stage-summary');
+  if (summarySection && typeof STAGE_DEFS !== 'undefined') {
+    summarySection.innerHTML = STAGE_DEFS.map(
+      (stageDef) => {
+        const value = student[stageDef.key] || '—';
+        return `
+          <div class="detail-field-row" style="grid-template-columns: 1fr">
+            <span class="detail-field-label">${escapeHtml(stageDef.label)}</span>
+            <span class="detail-field-val">${escapeHtml(value)}</span>
+          </div>
+        `;
+      }
+    ).join('');
+  }
+}
+
+/**
+ * Open notify drawer from detail view
+ */
 function openNotifyFromDetail() {
   if (!detailStudentId) return;
-  const s = (window.students || []).find(st => (st['STUDENT ID'] || st.id) === detailStudentId);
-  if (!s) return;
-  notifyTargetStudent = s;
-  setText('drw-notify-sub', (s['STUDENT NAME'] || '—') + ' · ' + detailStudentId);
+
+  const student = (window.students || []).find(
+    (s) => (s['STUDENT ID'] || s.id) === detailStudentId
+  );
+
+  if (!student) return;
+
+  notifyTargetStudent = student;
+  setText('drw-notify-sub', `${student['STUDENT NAME'] || '—'} · ${detailStudentId}`);
   document.getElementById('notify-role').value = 'Student';
   notifyPreviewRecip();
-  openDrawerEl('drw-notify');
+  if (typeof openDrawerEl === 'function') {
+    openDrawerEl('drw-notify');
+  }
 }
 
+/**
+ * Open feedback drawer from detail view
+ */
 function openFeedbackFromDetail() {
   if (!detailStudentId) return;
-  const s = (window.students || []).find(st => (st['STUDENT ID'] || st.id) === detailStudentId);
-  if (!s) return;
-  setText('drw-fb-sub', (s['STUDENT NAME'] || '—') + ' · ' + detailStudentId);
+
+  const student = (window.students || []).find(
+    (s) => (s['STUDENT ID'] || s.id) === detailStudentId
+  );
+
+  if (!student) return;
+
+  setText('drw-fb-sub', `${student['STUDENT NAME'] || '—'} · ${detailStudentId}`);
   document.getElementById('drw-fb-date').value = today();
-  drwFeedbackTarget = s;
-  openDrawerEl('drw-feedback');
+  drwFeedbackTarget = student;
+
+  if (typeof openDrawerEl === 'function') {
+    openDrawerEl('drw-feedback');
+  }
 }
 
-/* ═══════════════════════════════════════════════════════
-   NOTIFY DRAWER (uses EmailJS)
-═══════════════════════════════════════════════════════ */
+// ==============================================================================
+// NOTIFICATION SYSTEM
+// ==============================================================================
+
 let notifyTargetStudent = null;
 
+/**
+ * Update notification recipient preview based on selected role
+ */
 function notifyPreviewRecip() {
   const role = document.getElementById('notify-role')?.value;
-  const txt = document.getElementById('notify-recip-text');
-  if (!txt) return;
-  if (!notifyTargetStudent) { txt.textContent = 'No student selected'; return; }
-  if (role === 'Student') txt.textContent = 'To: ' + (notifyTargetStudent['STUDENT NAME'] || '') + ' (' + (notifyTargetStudent['EMAIL'] || 'no email on file') + ')';
-  else if (role === 'Agent') txt.textContent = 'To channel partner: ' + (notifyTargetStudent['AGENT'] || 'unknown agent');
-  else txt.textContent = 'To staff team';
+  const recipientText = document.getElementById('notify-recip-text');
+
+  if (!recipientText) return;
+
+  if (!notifyTargetStudent) {
+    recipientText.textContent = 'No student selected';
+    return;
+  }
+
+  if (role === 'Student') {
+    recipientText.textContent =
+      `To: ${notifyTargetStudent['STUDENT NAME'] || '—'} (${notifyTargetStudent['EMAIL'] || 'no email on file'})`;
+  } else if (role === 'Agent') {
+    recipientText.textContent = `To channel partner: ${notifyTargetStudent['AGENT'] || 'unknown agent'}`;
+  } else {
+    recipientText.textContent = 'To staff team';
+  }
 }
 
+/**
+ * Send notification email to selected recipient
+ */
 async function sendNotification() {
   const role = document.getElementById('notify-role')?.value;
   const subject = document.getElementById('notify-subject')?.value || '(no subject)';
   const message = document.getElementById('notify-message')?.value || '';
-  if (!message.trim()) { toast('Write a message first', 'error'); return; }
-  if (!notifyTargetStudent) { toast('No student selected', 'error'); return; }
+
+  if (!message.trim()) {
+    toast('Write a message first', 'error');
+    return;
+  }
+
+  if (!notifyTargetStudent) {
+    toast('No student selected', 'error');
+    return;
+  }
 
   const toEmail = role === 'Student' ? notifyTargetStudent['EMAIL'] : null;
-  if (!toEmail) { toast('No email available for this recipient — message logged only.', 'info'); closeDrawer('drw-notify'); return; }
 
-  const btn = document.getElementById('notify-send-btn');
-  if (btn) btn.disabled = true;
+  if (!toEmail) {
+    toast('No email available for this recipient — message logged only.', 'info');
+    if (typeof closeDrawer === 'function') {
+      closeDrawer('drw-notify');
+    }
+    return;
+  }
+
+  const sendButton = document.getElementById('notify-send-btn');
+  if (sendButton) sendButton.disabled = true;
+
   try {
-    await sendViaEmailJS({ to_email: toEmail, to_name: notifyTargetStudent['STUDENT NAME'] || '', subject, message });
-    if (typeof logActivity === 'function') logActivity('Send', 'Notification', notifyTargetStudent['STUDENT ID'] || notifyTargetStudent.id || null);
+    await sendViaEmailJS({
+      to_email: toEmail,
+      to_name: notifyTargetStudent['STUDENT NAME'] || '',
+      subject,
+      message
+    });
+
+    if (typeof logActivity === 'function') {
+      logActivity(
+        'Send',
+        'Notification',
+        notifyTargetStudent['STUDENT ID'] || notifyTargetStudent.id || null
+      );
+    }
+
     toast('Notification sent', 'success');
-    closeDrawer('drw-notify');
-  } catch (e) {
-    console.error('[sendNotification]', e);
-    toast(e.message || 'Could not send notification', 'error');
+    if (typeof closeDrawer === 'function') {
+      closeDrawer('drw-notify');
+    }
+  } catch (error) {
+    console.error('[sendNotification]', error);
+    toast(error.message || 'Could not send notification', 'error');
   } finally {
-    if (btn) btn.disabled = false;
+    if (sendButton) sendButton.disabled = false;
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   EMAIL PAGE (Direct Email)
-═══════════════════════════════════════════════════════ */
+// ==============================================================================
+// DIRECT EMAIL MODULE
+// ==============================================================================
+
 let emailSelectedStudent = null;
 let emailSearchDebounce = null;
 let emailHistory = [];
 
-function emailSearch(value) {
+const EMAIL_SEARCH_DEBOUNCE_DELAY = 250;
+const EMAIL_SEARCH_RESULT_LIMIT = 8;
+
+/**
+ * Search for students by name (debounced)
+ */
+function emailSearch(searchValue) {
   clearTimeout(emailSearchDebounce);
-  const box = document.getElementById('email-lookup');
-  if (!box) return;
-  const q = (value || '').trim();
-  if (!q) { box.innerHTML = ''; box.classList.remove('open'); return; }
-  emailSearchDebounce = setTimeout(() => emailSearchFirestore(q), 250);
+
+  const lookupBox = document.getElementById('email-lookup');
+  if (!lookupBox) return;
+
+  const query = (searchValue || '').trim();
+
+  if (!query) {
+    lookupBox.innerHTML = '';
+    lookupBox.classList.remove('open');
+    return;
+  }
+
+  emailSearchDebounce = setTimeout(() => emailSearchFirestore(query), EMAIL_SEARCH_DEBOUNCE_DELAY);
 }
 
-async function emailSearchFirestore(q) {
-  const box = document.getElementById('email-lookup');
-  if (!box) return;
-  box.innerHTML = '<div class="lookup-item" style="opacity:.6">Searching…</div>';
-  box.classList.add('open');
+/**
+ * Execute Firestore search for students
+ */
+async function emailSearchFirestore(query) {
+  const lookupBox = document.getElementById('email-lookup');
+  if (!lookupBox) return;
+
+  lookupBox.innerHTML = '<div class="lookup-item" style="opacity: 0.6">Searching...</div>';
+  lookupBox.classList.add('open');
+
   try {
-    const snap = await db.collection('students').orderBy('STUDENT NAME').startAt(q).endAt(q + '\uf8ff').limit(8).get();
-    if (snap.empty) { box.innerHTML = '<div class="lookup-item" style="opacity:.6">No matches</div>'; return; }
-    box.innerHTML = '';
-    snap.docs.forEach(d => {
-      const s = d.data();
-      const id = s['STUDENT ID'] || d.id;
-      const item = document.createElement('div');
-      item.className = 'lookup-item';
-      item.innerHTML = `<div class="lookup-item-name">${escapeHtml(s['STUDENT NAME'] || '—')}</div><div class="lookup-item-sub">${escapeHtml(id)} · ${escapeHtml(s['EMAIL'] || 'no email')}</div>`;
-      item.addEventListener('click', () => emailSelect({ ...s, id }));
-      box.appendChild(item);
+    const snapshot = await db
+      .collection('students')
+      .orderBy('STUDENT NAME')
+      .startAt(query)
+      .endAt(query + '\uf8ff')
+      .limit(EMAIL_SEARCH_RESULT_LIMIT)
+      .get();
+
+    if (snapshot.empty) {
+      lookupBox.innerHTML = '<div class="lookup-item" style="opacity: 0.6">No matches</div>';
+      return;
+    }
+
+    lookupBox.innerHTML = '';
+
+    snapshot.docs.forEach((doc) => {
+      const student = doc.data();
+      const studentId = student['STUDENT ID'] || doc.id;
+
+      const resultItem = document.createElement('div');
+      resultItem.className = 'lookup-item';
+      resultItem.innerHTML = `
+        <div class="lookup-item-name">${escapeHtml(student['STUDENT NAME'] || '—')}</div>
+        <div class="lookup-item-sub">
+          ${escapeHtml(studentId)} · ${escapeHtml(student['EMAIL'] || 'no email')}
+        </div>
+      `;
+
+      resultItem.addEventListener('click', () =>
+        emailSelect({ ...student, id: studentId })
+      );
+
+      lookupBox.appendChild(resultItem);
     });
-  } catch (e) {
-    console.error('[emailSearchFirestore]', e);
-    box.innerHTML = '<div class="lookup-item" style="opacity:.6">Search failed</div>';
+  } catch (error) {
+    console.error('[emailSearchFirestore]', error);
+    lookupBox.innerHTML = '<div class="lookup-item" style="opacity: 0.6">Search failed</div>';
   }
 }
 
-function emailSelect(s) {
-  emailSelectedStudent = s;
+/**
+ * Select student as email recipient
+ */
+function emailSelect(student) {
+  emailSelectedStudent = student;
+
   document.getElementById('email-lookup').classList.remove('open');
-  document.getElementById('email-search').value = s['STUDENT NAME'] || '';
+  document.getElementById('email-search').value = student['STUDENT NAME'] || '';
   document.getElementById('email-sel').classList.add('show');
-  setText('email-sel-name', s['STUDENT NAME'] || '—');
-  setText('email-sel-sub', (s['STUDENT ID'] || s.id) + ' · ' + (s['EMAIL'] || 'no email'));
+
+  setText('email-sel-name', student['STUDENT NAME'] || '—');
+  setText(
+    'email-sel-sub',
+    `${student['STUDENT ID'] || student.id} · ${student['EMAIL'] || 'no email'}`
+  );
 }
 
+/**
+ * Clear selected recipient
+ */
 function emailClear() {
   emailSelectedStudent = null;
   document.getElementById('email-sel').classList.remove('show');
   document.getElementById('email-search').value = '';
 }
 
+/**
+ * Clear entire email form
+ */
 function emailClearForm() {
   emailClear();
-  ['email-subject', 'email-message'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
+  ['email-subject', 'email-message'].forEach((elementId) => {
+    const element = document.getElementById(elementId);
+    if (element) element.value = '';
+  });
 }
 
+/**
+ * Send direct email to selected recipient
+ */
 async function sendEmail() {
-  const role = document.getElementById('email-role')?.value;
   const subject = document.getElementById('email-subject')?.value || '';
   const message = document.getElementById('email-message')?.value || '';
-  if (!message.trim()) { toast('Write a message first', 'error'); return; }
-  if (!emailSelectedStudent) { toast('Search and select a recipient first', 'error'); return; }
+
+  if (!message.trim()) {
+    toast('Write a message first', 'error');
+    return;
+  }
+
+  if (!emailSelectedStudent) {
+    toast('Search and select a recipient first', 'error');
+    return;
+  }
 
   const toEmail = emailSelectedStudent['EMAIL'];
-  if (!toEmail) { toast('Selected student has no email on file', 'error'); return; }
+  if (!toEmail) {
+    toast('Selected student has no email on file', 'error');
+    return;
+  }
 
-  const lbl = document.getElementById('email-send-lbl');
-  if (lbl) lbl.innerHTML = 'Sending… <span class="spinner-sm"></span>';
+  const sendLabel = document.getElementById('email-send-lbl');
+  if (sendLabel) sendLabel.innerHTML = 'Sending... <span class="spinner-sm"></span>';
+
   try {
-    await sendViaEmailJS({ to_email: toEmail, to_name: emailSelectedStudent['STUDENT NAME'] || '', subject, message });
-    emailHistory.unshift({ to: emailSelectedStudent['STUDENT NAME'], email: toEmail, subject, time: nowStr() });
+    await sendViaEmailJS({
+      to_email: toEmail,
+      to_name: emailSelectedStudent['STUDENT NAME'] || '',
+      subject,
+      message
+    });
+
+    emailHistory.unshift({
+      to: emailSelectedStudent['STUDENT NAME'],
+      email: toEmail,
+      subject,
+      time: nowStr()
+    });
+
     renderEmailHistory();
-    toast('Email sent to ' + emailSelectedStudent['STUDENT NAME'], 'success');
+    toast(`Email sent to ${emailSelectedStudent['STUDENT NAME']}`, 'success');
     emailClearForm();
-  } catch (e) {
-    console.error('[sendEmail]', e);
-    toast(e.message || 'Could not send email', 'error');
+  } catch (error) {
+    console.error('[sendEmail]', error);
+    toast(error.message || 'Could not send email', 'error');
   } finally {
-    if (lbl) lbl.textContent = 'Send';
+    if (sendLabel) sendLabel.textContent = 'Send';
   }
 }
 
+/**
+ * Render email history
+ */
 function renderEmailHistory() {
-  const wrap = document.getElementById('email-history-wrap');
-  if (!wrap) return;
-  if (!emailHistory.length) { wrap.innerHTML = '<div class="empty-state">No messages sent yet</div>'; return; }
-  wrap.innerHTML = emailHistory.map(h => `
+  const historyContainer = document.getElementById('email-history-wrap');
+  if (!historyContainer) return;
+
+  if (!emailHistory.length) {
+    historyContainer.innerHTML = '<div class="empty-state">No messages sent yet</div>';
+    return;
+  }
+
+  historyContainer.innerHTML = emailHistory
+    .map(
+      (historyEntry) => `
     <div class="email-history-item">
-      <div class="email-avatar" style="background:${partnerColor(h.to)}">${partnerInitials(h.to)}</div>
-      <div style="flex:1">
-        <div style="font-weight:600;font-size:12px">${escapeHtml(h.to)} <span style="color:var(--text-muted);font-weight:400">· ${escapeHtml(h.email)}</span></div>
-        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${escapeHtml(h.subject || '(no subject)')}</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${escapeHtml(h.time)}</div>
+      <div class="email-avatar" style="background: ${partnerColor(historyEntry.to)}">
+        ${partnerInitials(historyEntry.to)}
       </div>
-    </div>`).join('');
+      <div style="flex: 1">
+        <div style="font-weight: 600; font-size: 12px">
+          ${escapeHtml(historyEntry.to)}
+          <span style="color: var(--text-muted); font-weight: 400">· ${escapeHtml(historyEntry.email)}</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px">
+          ${escapeHtml(historyEntry.subject || '(no subject)')}
+        </div>
+        <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px">
+          ${escapeHtml(historyEntry.time)}
+        </div>
+      </div>
+    </div>
+  `
+    )
+    .join('');
 }
 
-/* ═══════════════════════════════════════════════════════
-   MOCK PRE-CAS / FEEDBACK BUILDER
-═══════════════════════════════════════════════════════ */
+// ==============================================================================
+// MOCK PRE-CAS FEEDBACK MODULE
+// ==============================================================================
+
 const FB_DEFAULT_QUESTIONS = [
   'Why have you chosen this course?',
   'Why this university and this country?',
@@ -939,106 +1504,242 @@ const FB_DEFAULT_QUESTIONS = [
   'Why not study this course in your home country?',
   'Tell us about your academic background.'
 ];
+
+const PERFORMANCE_BADGE_CLASSES = {
+  'Excellent': 'perf-excellent',
+  'Good': 'perf-good',
+  'Satisfactory': 'perf-satisfactory',
+  'Needs Improvement': 'perf-needs'
+};
+
 let fbQA = [];
 let fbPerf = 'Excellent';
 let drwFeedbackTarget = null;
 
+/**
+ * Initialize feedback page on view switch
+ */
 function initFeedbackPage() {
   document.getElementById('fb-date').value = today();
-  if (!fbQA.length) fbQA = FB_DEFAULT_QUESTIONS.map(q => ({ q, good: null }));
+
+  if (!fbQA.length) {
+    fbQA = FB_DEFAULT_QUESTIONS.map((question) => ({ q: question, good: null }));
+  }
+
   renderFbQARows();
   fbPreview();
 }
 
+/**
+ * Render feedback questionnaire rows with scoring buttons
+ */
 function renderFbQARows() {
-  const wrap = document.getElementById('fb-qa-rows');
-  if (!wrap) return;
-  wrap.innerHTML = fbQA.map((row, i) => `
+  const container = document.getElementById('fb-qa-rows');
+  if (!container) return;
+
+  const goodCount = fbQA.filter((row) => row.good === true).length;
+  const weakCount = fbQA.filter((row) => row.good === false).length;
+  const unansweredCount = fbQA.filter((row) => row.good === null).length;
+
+  const rowsHTML = fbQA
+    .map(
+      (row, index) =>`
     <div class="qa-row">
-      <div class="qa-num">${i + 1}</div>
+      <div class="qa-num">${index + 1}</div>
       <div class="qa-q">${escapeHtml(row.q)}</div>
       <div class="qa-toggles">
-        <button class="qa-toggle${row.good === true ? ' sel-good' : ''}" onclick="fbSetQA(${i}, true)">Good</button>
-        <button class="qa-toggle${row.good === false ? ' sel-bad' : ''}" onclick="fbSetQA(${i}, false)">Weak</button>
+        <button class="qa-toggle${row.good === true ? ' sel-good' : ''}" onclick="fbSetQA(${index}, true)">
+          Good
+        </button>
+        <button class="qa-toggle${row.good === false ? ' sel-bad' : ''}" onclick="fbSetQA(${index}, false)">
+          Weak
+        </button>
       </div>
-    </div>`).join('') + `
+    </div>
+  `
+    )
+    .join('');
+
+  const summaryHTML = `
     <div class="qa-summary">
-      <span>Good: ${fbQA.filter(r => r.good === true).length}</span>
-      <span>Weak: ${fbQA.filter(r => r.good === false).length}</span>
-      <span>Unanswered: ${fbQA.filter(r => r.good === null).length}</span>
-    </div>`;
+      <span>Good: ${goodCount}</span>
+      <span>Weak: ${weakCount}</span>
+      <span>Unanswered: ${unansweredCount}</span>
+    </div>
+  `;
+
+  container.innerHTML = rowsHTML + summaryHTML;
 }
 
-function fbSetQA(i, val) {
-  fbQA[i].good = fbQA[i].good === val ? null : val;
+/**
+ * Toggle question answer status
+ */
+function fbSetQA(questionIndex, isGood) {
+  fbQA[questionIndex].good =
+    fbQA[questionIndex].good === isGood ? null : isGood;
   renderFbQARows();
   fbPreview();
 }
 
-function pickPerf(el) {
-  document.querySelectorAll('#fb-grid .perf-opt').forEach(o => o.classList.remove('sel'));
-  el.classList.add('sel');
-  fbPerf = el.dataset.val;
+/**
+ * Select performance level
+ */
+function pickPerf(performanceElement) {
+  document.querySelectorAll('#fb-grid .perf-opt').forEach((option) => {
+    option.classList.remove('sel');
+  });
+
+  performanceElement.classList.add('sel');
+  fbPerf = performanceElement.dataset.val;
   fbPreview();
 }
 
+/**
+ * Toggle manual student entry section
+ */
 function toggleFbManual() {
-  const wrap = document.getElementById('fb-manual');
-  const btn = document.getElementById('fb-manual-btn');
-  const show = wrap.style.display === 'none';
-  wrap.style.display = show ? 'block' : 'none';
-  btn.textContent = show ? '− Hide manual entry' : '+ Enter manually';
+  const manualSection = document.getElementById('fb-manual');
+  const toggleButton = document.getElementById('fb-manual-btn');
+
+  if (!manualSection || !toggleButton) return;
+
+  const isHidden = manualSection.style.display === 'none';
+
+  manualSection.style.display = isHidden ? 'block' : 'none';
+  toggleButton.textContent = isHidden ? '− Hide manual entry' : '+ Enter manually';
 }
 
+/**
+ * Get current student (from drawer target or manual input)
+ */
 function fbCurrentStudent() {
-  if (fbSelectedStudent) return { name: fbSelectedStudent['STUDENT NAME'], id: fbSelectedStudent['STUDENT ID'] || fbSelectedStudent.id };
-  const name = document.getElementById('fb-mname')?.value;
-  const id = document.getElementById('fb-mid')?.value;
-  if (name || id) return { name, id };
+  if (typeof fbSelectedStudent !== 'undefined' && fbSelectedStudent) {
+    return {
+      name: fbSelectedStudent['STUDENT NAME'],
+      id: fbSelectedStudent['STUDENT ID'] || fbSelectedStudent.id
+    };
+  }
+
+  const manualName = document.getElementById('fb-mname')?.value;
+  const manualId = document.getElementById('fb-mid')?.value;
+
+  if (manualName || manualId) {
+    return { name: manualName, id: manualId };
+  }
+
   return null;
 }
 
-const PERF_BADGE_CLASS = { Excellent: 'perf-excellent', Good: 'perf-good', Satisfactory: 'perf-satisfactory', 'Needs Improvement': 'perf-needs' };
-
+/**
+ * Generate HTML preview of feedback document
+ */
 function fbPreview() {
-  const preview = document.getElementById('fb-preview');
-  if (!preview) return;
+  const previewElement = document.getElementById('fb-preview');
+  if (!previewElement) return;
+
   const student = fbCurrentStudent();
+
   if (!student) {
-    preview.innerHTML = `<div style="text-align:center;padding:36px 20px;color:var(--text-muted)"><div style="font-size:12px;font-weight:500">Select a student to preview</div></div>`;
+    previewElement.innerHTML = `
+      <div style="text-align: center; padding: 36px 20px; color: var(--text-muted)">
+        <div style="font-size: 12px; font-weight: 500">Select a student to preview</div>
+      </div>
+    `;
     return;
   }
-  const date = document.getElementById('fb-date')?.value || today();
-  const stype = document.getElementById('fb-stype')?.value || '';
-  const uni = document.getElementById('fb-university')?.value || '';
-  const mockno = document.getElementById('fb-mockno')?.value || '1';
-  const text = document.getElementById('fb-text')?.value || '';
-  const recs = document.getElementById('fb-recs')?.value || '';
 
-  preview.innerHTML = `
+  const date = document.getElementById('fb-date')?.value || today();
+  const sessionType = document.getElementById('fb-stype')?.value || '';
+  const university = document.getElementById('fb-university')?.value || '';
+  const mockNumber = document.getElementById('fb-mockno')?.value || '1';
+  const feedbackText = document.getElementById('fb-text')?.value || '';
+  const recommendationsText = document.getElementById('fb-recs')?.value || '';
+
+  const answerRows = fbQA
+    .map(
+      (row, index) =>`
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(row.q)}</td>
+        <td class="${row.good === true ? 'qa-cell-good' : row.good === false ? 'qa-cell-bad' : ''}">
+          ${row.good === true ? 'Good' : row.good === false ? 'Weak' : '—'}
+        </td>
+      </tr>
+    `
+    )
+    .join('');
+
+  const badgeClass = PERFORMANCE_BADGE_CLASSES[fbPerf] || '';
+
+  previewElement.innerHTML = `
     <div class="doc-header">
-      <div class="doc-eyebrow">Route2Uni · ${escapeHtml(stype)}</div>
+      <div class="doc-eyebrow">Route2Uni · ${escapeHtml(sessionType)}</div>
       <div class="doc-title">${escapeHtml(student.name || '—')}</div>
       <div class="doc-meta-grid">
-        <div class="doc-meta-item"><div class="doc-meta-label">Student ID</div><div class="doc-meta-val">${escapeHtml(student.id || '—')}</div></div>
-        <div class="doc-meta-item"><div class="doc-meta-label">Date</div><div class="doc-meta-val">${escapeHtml(date)}</div></div>
-        <div class="doc-meta-item"><div class="doc-meta-label">University</div><div class="doc-meta-val">${escapeHtml(uni || '—')}</div></div>
-        <div class="doc-meta-item"><div class="doc-meta-label">Mock #</div><div class="doc-meta-val">${escapeHtml(mockno)}</div></div>
-        <div class="doc-meta-item"><div class="doc-meta-label">Performance</div><div class="doc-meta-val"><span class="perf-badge ${PERF_BADGE_CLASS[fbPerf] || ''}">${escapeHtml(fbPerf)}</span></div></div>
+        <div class="doc-meta-item">
+          <div class="doc-meta-label">Student ID</div>
+          <div class="doc-meta-val">${escapeHtml(student.id || '—')}</div>
+        </div>
+        <div class="doc-meta-item">
+          <div class="doc-meta-label">Date</div>
+          <div class="doc-meta-val">${escapeHtml(date)}</div>
+        </div>
+        <div class="doc-meta-item">
+          <div class="doc-meta-label">University</div>
+          <div class="doc-meta-val">${escapeHtml(university || '—')}</div>
+        </div>
+        <div class="doc-meta-item">
+          <div class="doc-meta-label">Mock #</div>
+          <div class="doc-meta-val">${escapeHtml(mockNumber)}</div>
+        </div>
+        <div class="doc-meta-item">
+          <div class="doc-meta-label">Performance</div>
+          <div class="doc-meta-val">
+            <span class="perf-badge ${badgeClass}">${escapeHtml(fbPerf)}</span>
+          </div>
+        </div>
       </div>
     </div>
+
     <div class="doc-section">
       <div class="doc-section-eyebrow">Questionnaire</div>
-      <table class="doc-qa-table"><thead><tr><th>#</th><th>Question</th><th>Result</th></tr></thead>
-      <tbody>${fbQA.map((r, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(r.q)}</td><td class="${r.good === true ? 'qa-cell-good' : r.good === false ? 'qa-cell-bad' : ''}">${r.good === true ? 'Good' : r.good === false ? 'Weak' : '—'}</td></tr>`).join('')}</tbody></table>
+      <table class="doc-qa-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Question</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${answerRows}
+        </tbody>
+      </table>
     </div>
-    <div class="doc-section"><div class="doc-section-eyebrow">Feedback</div><div class="doc-section-text">${escapeHtml(text || '—')}</div></div>
-    <div class="doc-section"><div class="doc-section-eyebrow">Recommendations</div><div class="doc-section-text">${escapeHtml(recs || '—')}</div></div>
-    <div class="doc-footer"><span>Generated by ${escapeHtml((window.staff && window.staff.name) || 'Staff')}</span><span>${escapeHtml(nowStr())}</span></div>`;
+
+    <div class="doc-section">
+      <div class="doc-section-eyebrow">Feedback</div>
+      <div class="doc-section-text">${escapeHtml(feedbackText || '—')}</div>
+    </div>
+
+    <div class="doc-section">
+      <div class="doc-section-eyebrow">Recommendations</div>
+      <div class="doc-section-text">${escapeHtml(recommendationsText || '—')}</div>
+    </div>
+
+    <div class="doc-footer">
+      <span>Generated by ${escapeHtml((window.staff && window.staff.name) || 'Staff')}</span>
+      <span>${escapeHtml(nowStr())}</span>
+    </div>
+  `;
 }
 
+/**
+ * Build feedback document object for storage
+ */
 function fbBuildDoc() {
   const student = fbCurrentStudent();
+
   return {
     studentName: student?.name || '',
     studentId: student?.id || '',
@@ -1055,54 +1756,97 @@ function fbBuildDoc() {
   };
 }
 
+/**
+ * Download feedback document as PDF
+ */
 function fbDownloadPDF() {
   const student = fbCurrentStudent();
-  if (!student) { toast('Select a student first', 'error'); return; }
-  if (!window.jspdf) { toast('PDF library not loaded', 'error'); return; }
+  if (!student) {
+    toast('Select a student first', 'error');
+    return;
+  }
+
+  if (!window.jspdf) {
+    toast('PDF library not loaded', 'error');
+    return;
+  }
+
   const doc = fbBuildDoc();
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
-  pdf.setFontSize(14); pdf.text('Route2Uni — ' + doc.type, 14, 16);
+
+  pdf.setFontSize(14);
+  pdf.text(`Route2Uni — ${doc.type}`, 14, 16);
+
   pdf.setFontSize(10);
   pdf.text(`Student: ${doc.studentName} (${doc.studentId})`, 14, 24);
-  pdf.text(`Date: ${doc.date}   University: ${doc.university}   Mock #: ${doc.mockNo}`, 14, 30);
+  pdf.text(
+    `Date: ${doc.date}   University: ${doc.university}   Mock #: ${doc.mockNo}`,
+    14,
+    30
+  );
   pdf.text(`Performance: ${doc.performance}`, 14, 36);
 
   if (pdf.autoTable) {
     pdf.autoTable({
       startY: 42,
       head: [['#', 'Question', 'Result']],
-      body: doc.qa.map((r, i) => [i + 1, r.q, r.good === true ? 'Good' : r.good === false ? 'Weak' : '—'])
+      body: doc.qa.map((row, index) => [
+        index + 1,
+        row.q,
+        row.good === true ? 'Good' : row.good === false ? 'Weak' : '—'
+      ])
     });
   }
+
   const afterTableY = pdf.lastAutoTable ? pdf.lastAutoTable.finalY + 10 : 50;
+
   pdf.text('Feedback:', 14, afterTableY);
   pdf.text(pdf.splitTextToSize(doc.feedback || '—', 180), 14, afterTableY + 6);
+
   pdf.text('Recommendations:', 14, afterTableY + 30);
-  pdf.text(pdf.splitTextToSize(doc.recommendations || '—', 180), 14, afterTableY + 36);
+  pdf.text(
+    pdf.splitTextToSize(doc.recommendations || '—', 180),
+    14,
+    afterTableY + 36
+  );
 
   pdf.save(`${doc.studentId || 'feedback'}_${doc.date}.pdf`);
 }
 
+/**
+ * Save feedback to Firestore and show success
+ */
 async function fbSave() {
   const student = fbCurrentStudent();
-  if (!student) { toast('Select a student first', 'error'); return; }
+  if (!student) {
+    toast('Select a student first', 'error');
+    return;
+  }
+
   const doc = fbBuildDoc();
-  showLoading('Saving feedback…');
+  showLoading('Saving feedback...');
+
   try {
-    const ref = await db.collection('mockFeedback').add(doc);
+    await db.collection('mockFeedback').add(doc);
     hideLoading();
-    document.getElementById('fb-success')?.classList.add('show');
-    setText('fb-success-title', 'Feedback saved for ' + doc.studentName);
-    const link = document.getElementById('fb-doc-link');
-    if (link) link.href = '#feedback/' + ref.id;
-    toast('Feedback saved', 'success');
-  } catch (e) {
+
+    const successElement = document.getElementById('fb-success');
+    if (successElement) {
+      successElement.classList.add('show');
+    }
+
+    toast('Feedback saved successfully', 'success');
+  } catch (error) {
     hideLoading();
-    console.error('[fbSave]', e);
+    console.error('[fbSave]', error);
     toast('Could not save feedback', 'error');
   }
 }
+    setText('fb-success-title', 'Feedback saved for ' + doc.studentName);
+    const link = document.getElementById('fb-doc-link');
+    if (link) link.href = '#feedback/' + ref.id;
+
 
 function resetFeedback() {
   document.getElementById('fb-success')?.classList.remove('show');
@@ -1139,10 +1883,6 @@ async function submitFeedbackDrawer() {
     toast('Could not save feedback', 'error');
   }
 }
-
-/* ═══════════════════════════════════════════════════════
-   CAS SHIELD
-═══════════════════════════════════════════════════════ */
 window.casRows = window.casRows || [];
 
 function loadCASShield() {
@@ -1247,9 +1987,6 @@ async function submitCASUpdate() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   STAGE PIPELINE — SAVE
-═══════════════════════════════════════════════════════ */
 async function saveStages() {
   if (!activeStudentId) return;
   const payload = {};
@@ -1277,9 +2014,6 @@ async function saveStages() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   DAILY FOLLOW-UP
-═══════════════════════════════════════════════════════ */
 function renderFollowUp() {
   const wrap = document.getElementById('followup-content');
   if (!wrap) return;
@@ -1305,9 +2039,6 @@ function renderFollowUp() {
     </div>`).join('');
 }
 
-/* ═══════════════════════════════════════════════════════
-   REPORTS
-═══════════════════════════════════════════════════════ */
 function renderReports() {
   const list = window.students || [];
   const total = list.length;
@@ -1344,12 +2075,9 @@ function renderReports() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-  /* ═══════════════════════════════════════════════════════
-   INTERNAL CHAT
-═══════════════════════════════════════════════════════ */
 
 let currentChatGroup = 'global';
+let currentChatRecipient = null; // { email, name, role } when currentChatGroup === 'direct'
 
 function switchChatGroup(group, btnEl) {
   currentChatGroup = group;
@@ -1359,7 +2087,107 @@ function switchChatGroup(group, btnEl) {
 
   if (btnEl) btnEl.classList.add('active');
 
-  initChatListener(group);
+  const recipientBar = document.getElementById('chat-recipient-bar');
+
+  if (group === 'direct') {
+    if (recipientBar) recipientBar.style.display = '';
+    populateChatRecipients();
+  } else {
+    if (recipientBar) recipientBar.style.display = 'none';
+    currentChatRecipient = null;
+  }
+
+  refreshChatView();
+}
+
+/**
+ * Deterministic Firestore "group" id for a 1:1 direct-message thread
+ * between the current user and another user (order-independent).
+ */
+function directGroupId(otherEmail) {
+  const me = (firebase.auth().currentUser?.email || '').toLowerCase();
+  const other = (otherEmail || '').toLowerCase();
+  return 'dm_' + [me, other].sort().join('__');
+}
+
+/**
+ * Fills the recipient dropdown with Admin/Staff users and Channel Partner
+ * users pulled from the 'users' collection (window.__allUsers).
+ */
+function populateChatRecipients() {
+  const select = document.getElementById('chat-recipient-select');
+  if (!select) return;
+
+  if (typeof initUsersListener === 'function' && !window.ListenerManager.has('users')) {
+    initUsersListener();
+  }
+
+  const myEmail = (firebase.auth().currentUser?.email || '').toLowerCase();
+  const users = (window.__allUsers || [])
+    .filter(u => (u.email || '').toLowerCase() !== myEmail && u.active !== false)
+    .sort((a, b) => (a.name || a.email || '').localeCompare(b.name || b.email || ''));
+
+  const adminUsers = users.filter(u => u.role !== 'Channel Partner');
+  const partnerUsers = users.filter(u => u.role === 'Channel Partner');
+
+  const optionHTML = (u) =>
+    `<option value="${escapeHtml((u.email || '').toLowerCase())}" data-name="${escapeHtml(u.name || u.email || '')}" data-role="${escapeHtml(u.role || '')}">${escapeHtml(u.name || u.email || '')}${u.role ? ' — ' + escapeHtml(u.role) : ''}</option>`;
+
+  const currentValue = currentChatRecipient ? currentChatRecipient.email : select.value;
+
+  select.innerHTML =
+    '<option value="">Select recipient…</option>' +
+    (adminUsers.length ? '<optgroup label="Admin / Staff">' + adminUsers.map(optionHTML).join('') + '</optgroup>' : '') +
+    (partnerUsers.length ? '<optgroup label="Channel Partners">' + partnerUsers.map(optionHTML).join('') + '</optgroup>' : '');
+
+  if (currentValue) {
+    select.value = currentValue;
+  }
+}
+
+/**
+ * Called when a recipient is picked from the Direct Message dropdown.
+ */
+function onChatRecipientChange(email) {
+  const select = document.getElementById('chat-recipient-select');
+  const opt = select?.selectedOptions?.[0];
+
+  if (!email || !opt) {
+    currentChatRecipient = null;
+    const container = document.getElementById('chat-messages');
+    if (container) {
+      container.innerHTML = '<div class="empty-state">Select a recipient to start a conversation.</div>';
+    }
+    return;
+  }
+
+  currentChatRecipient = {
+    email,
+    name: opt.getAttribute('data-name') || email,
+    role: opt.getAttribute('data-role') || ''
+  };
+
+  refreshChatView();
+}
+
+/**
+ * Re-attaches the chat listener for whatever is currently selected
+ * (Global / Staff Only / a specific Direct Message thread).
+ */
+function refreshChatView() {
+  if (currentChatGroup === 'direct') {
+    if (currentChatRecipient) {
+      initChatListener(directGroupId(currentChatRecipient.email));
+    } else {
+      const container = document.getElementById('chat-messages');
+      if (container) {
+        container.innerHTML = '<div class="empty-state">Select a recipient to start a conversation.</div>';
+      }
+    }
+    return;
+  }
+
+  initChatListener(currentChatGroup || 'global');
 }
 
 function initChatListener(group) {
@@ -1403,11 +2231,11 @@ function renderChatMessages(messages) {
     return;
   }
 
-  const myName = (window.staff && window.staff.name) || '';
+  const myEmail = (firebase.auth().currentUser?.email || '').toLowerCase();
 
   container.innerHTML = messages.map(msg => {
 
-    const mine = msg.senderName === myName;
+    const mine = (msg.senderEmail || '').toLowerCase() === myEmail;
 
     const time =
       msg.createdAt && msg.createdAt.toDate
@@ -1450,13 +2278,28 @@ async function sendChatMessage() {
 
   if (!text) return;
 
+  if (currentChatGroup === 'direct' && !currentChatRecipient) {
+    toast('Select a recipient first', 'error');
+    return;
+  }
+
+  const groupId =
+    currentChatGroup === 'direct'
+      ? directGroupId(currentChatRecipient.email)
+      : currentChatGroup;
+
   try {
 
     if (btn) btn.disabled = true;
 
     await db.collection('chatMessages').add({
 
-      group: currentChatGroup,
+      group: groupId,
+
+      isDirect: currentChatGroup === 'direct',
+
+      toEmail: currentChatGroup === 'direct' ? currentChatRecipient.email : null,
+      toName: currentChatGroup === 'direct' ? currentChatRecipient.name : null,
 
       senderName:
         (window.staff && window.staff.name) || 'Unknown',
@@ -1479,7 +2322,11 @@ async function sendChatMessage() {
         'Send',
         'Chat Message',
         null,
-        { group: currentChatGroup }
+        {
+          group: groupId,
+          direct: currentChatGroup === 'direct',
+          to: currentChatRecipient?.email || null
+        }
       );
     }
 
@@ -1511,9 +2358,7 @@ function chatInputKeydown(e) {
   }
 
 }
-/* ═══════════════════════════════════════════════════════
-   DRAWER HELPERS (generic open/close used across views)
-═══════════════════════════════════════════════════════ */
+
 function closeDrawer(id) {
   document.getElementById(id)?.classList.remove('open');
   document.getElementById('drawer-overlay')?.classList.remove('open');
@@ -1538,10 +2383,6 @@ function openStageDrawer(studentId) {
   stageEdits = {};
   openDrawerEl('drw-stage');
 }
-
-/* ═══════════════════════════════════════════════════════
-   PARTNER UNIVERSITIES — JSON LOADER
-═══════════════════════════════════════════════════════ */
 let UNI_DATA = {};
 let UNI_DATA_LOADED = false;
 
@@ -1578,14 +2419,6 @@ async function loadUniversitiesData() {
 
 document.addEventListener('DOMContentLoaded', loadUniversitiesData);
 
-/* ═══════════════════════════════════════════════════════
-   CHANNEL PARTNER — RESTRICTED VIEW
-   Channel Partner role le sidebar ma "Students" ra
-   "Partner Universities" matra dekhne; aafule onboard
-   gareko students matra (loadStudentsFromFirebase() le
-   partnerId scope garisakeko cha). Dashboard ko "all
-   partners" preview pani hide garincha.
-═══════════════════════════════════════════════════════ */
 function applyChannelPartnerRestrictions() {
   if (window.staff?.role !== 'Channel Partner') return;
 
@@ -1612,8 +2445,6 @@ function applyChannelPartnerRestrictions() {
     grp.style.display = hasAllowed ? '' : 'none';
   });
 
-  // Dashboard ko "Channel Partners" preview section (heading + grid) hide —
-  // partner le aru partner haru ko data dekhna pardaina
   document.querySelectorAll('#view-students .page-header').forEach(ph => {
     const heading = ph.querySelector('h2');
     if (heading && heading.textContent.trim() === 'Channel Partners') {
@@ -1623,7 +2454,6 @@ function applyChannelPartnerRestrictions() {
     }
   });
 
-  // Download Template / Upload Students buttons dekhaune (default hidden xan)
   const dlBtn = document.getElementById('cp-download-template-btn');
   const upBtn = document.getElementById('cp-upload-btn');
   if (dlBtn) dlBtn.style.display = '';
@@ -1635,10 +2465,6 @@ function applyChannelPartnerRestrictions() {
   if (addBtn) addBtn.style.display = 'none';
 }
 
-/* ═══════════════════════════════════════════════════════
-   CHANNEL PARTNER — Download template / Bulk upload with
-   automatic partnerId attachment
-═══════════════════════════════════════════════════════ */
 const CP_TEMPLATE_HEADERS = [
   'STUDENT NAME', 'DOB', 'LEVEL', 'COURSE', 'UNIVERSITY',
   'NATIONALITY', 'MOBILE', 'EMAIL', 'NOTES'
@@ -1724,11 +2550,6 @@ function handleChannelPartnerUpload(event) {
   });
 }
 
-/* ═══════════════════════════════════════════════════════
-   SAFE FALLBACK FOR checkAccess / guardView
-   (only used if firebase-auth.js failed to define them, so
-   the app doesn't hard-crash — but access defaults to DENY)
-═══════════════════════════════════════════════════════ */
 if (typeof window.checkAccess !== 'function') {
   window.checkAccess = function (allowedRoles) {
     console.warn('[checkAccess] fallback in use — firebase-auth.js did not define checkAccess()');
@@ -1747,9 +2568,6 @@ if (typeof window.guardView !== 'function') {
 
 console.log('[script-additions.js] loaded — RBAC view-guard, login, partners, notify/email, mock pre-CAS, CAS shield, reports, internal chat (chatMessages), and Channel Partner restricted view + template upload all included');
 
-/* ═══════════════════════════════════════════════════════
-   PIPELINE STAGES & UNIVERSITIES — detail render logic
-═══════════════════════════════════════════════════════ */
 
 const STAGE_DEFS = [
   {id:'app_submitted',label:'Application submitted',key:'APPLICATION SUBMITTED DATE',done:s=>!!(s['APPLICATION SUBMITTED DATE']),prevDone:s=>true,type:'date',desc:'Record the date the application was submitted to the university.'},
@@ -1815,7 +2633,7 @@ function renderStagePipeline(s) {
         MOCK_STAGES.forEach((ms, mi) => {
           const isSel = curVal === ms;
           const mockUnlocked = mi === 0 || curLevel >= mi-1;
-          contentHTML += `<div class="stage-opt${isSel ? ' selected' : ''}${!mockUnlocked ? ' locked-row' : ''}" onclick="pickMockStage(this,${i},'${escapeHtml(ms)}',${mi},${curLevel})" style="${!mockUnlocked ? 'opacity:.4;pointer-events:none' : ''}"><span class="stage-opt-icon">${isSel || curLevel >= mi ? '✅' : '⭕'}</span>Mock ${ms}</div>`;
+          contentHTML += `<div class="stage-opt${isSel ? ' selected' : ''}${!mockUnlocked ? ' locked-row' : ''}" onclick="pickMockStage(this,${i},'${escapeHtml(ms)}',${mi},${curLevel})" style="${!mockUnlocked ? 'opacity:.4;pointer-events:none' : ''}"><span class="stage-opt-icon">${isSel || curLevel >= mi ? '' : ''}</span>Mock ${ms}</div>`;
         });
         contentHTML += `</div>`;
       }
@@ -2078,9 +2896,6 @@ window.onboardToUniversity = function(key) {
   toast('Onboarding for ' + u.title, 'info');
 };
 
-/* ═══════════════════════════════════════════════════════
-   ADD STUDENT — Firestore-driven University/Course dropdowns
-═══════════════════════════════════════════════════════ */
 let UNIV_FIRESTORE_DATA = {};
 
 async function populateUniversityDropdown() {
@@ -2158,9 +2973,6 @@ function onUniversitySelected(uniId) {
   document.addEventListener('DOMContentLoaded', tryWrap);
 })();
 
-/* ═══════════════════════════════════════════════════════
-   MOCK PRE-CAS — real-time Firestore autocomplete
-═══════════════════════════════════════════════════════ */
 let fbSearchDebounce = null;
 let fbSelectedStudent = null;
 
@@ -2256,16 +3068,6 @@ document.addEventListener('click', (e) => {
 
 console.log('[script-additions.js] Firestore-driven university dropdown + student autocomplete loaded');
 
-/* ═══════════════════════════════════════════════════════
-   USER MANAGEMENT  ·  data-view="users"
-   Reactive listener on db.collection('users'), restricted
-   to Super Admin / Admin via VIEW_PERMISSIONS above.
-   Expected doc shape on 'users' collection:
-     { name, email, role, status, createdAt, lastLogin }
-   role  ∈ 'Super Admin' | 'Admin' | 'Documentation Officer' |
-           'Application User' | 'Channel Partner' | 'Branch Manager'
-   status ∈ 'Active' | 'Inactive'
-═══════════════════════════════════════════════════════ */
 window.__allUsers = window.__allUsers || [];
 window.__usersListenerStarted = false;
 let umCurrentPage = 1;
@@ -2447,9 +3249,6 @@ document.addEventListener('click', () => {
   document.querySelectorAll('#view-users .um-actions-menu.open').forEach(m => m.classList.remove('open'));
 });
 
-/* ───────────────────────────────────────────────────────
-   ADD / EDIT USER — real modal + Firestore writes
-─────────────────────────────────────────────────────── */
 let __editingUserId = null;
 
 function openAddUserModal(userId) {
@@ -2468,8 +3267,6 @@ function openAddUserModal(userId) {
   toggleUmPartnerRow();
 
   document.getElementById('user-modal-overlay').style.display = 'flex';
-
-  // Close any open row-action menu so it doesn't linger behind the modal
   document.querySelectorAll('#view-users .um-actions-menu.open').forEach(m => m.classList.remove('open'));
 }
 
@@ -2520,7 +3317,7 @@ async function submitUserForm() {
     if (__editingUserId) {
       await db.collection('users').doc(__editingUserId).set(payload, { merge: true });
       if (typeof logActivity === 'function') logActivity('Edit', 'User', __editingUserId);
-      toast('User updated ✅', 'success');
+      toast('User updated ', 'success');
     } else {
       // Duplicate-email guard
       const dup = await db.collection('users').where('email', '==', email).limit(1).get();
@@ -2541,7 +3338,7 @@ async function submitUserForm() {
           message: `${name} (${email}) was added as ${role} by ${window.staff?.name || 'CRM'}.`
         });
       }
-      toast('User created ✅', 'success');
+      toast('User created ', 'success');
     }
     // No manual re-render needed — the users onSnapshot listener in
     // initUsersListener() will pick up the change and call renderUsersTable().
