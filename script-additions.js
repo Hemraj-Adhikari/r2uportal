@@ -430,6 +430,10 @@ function filterTableStudents() {
     filteredList = filteredList.filter(
       (s) => (s['CAS STATUS'] || '').toLowerCase() === pillFilterValue.toLowerCase()
     );
+  } else if (pillFilterField === 'mock') {
+    filteredList = filteredList.filter(
+      (s) => (s['MOCK PRE-CAS'] || '').toLowerCase() === pillFilterValue.toLowerCase()
+    );
   }
 
   if (searchQuery) {
@@ -773,18 +777,18 @@ function renderFunnelChart(stageCounts) {
   const maxCount = Math.max(stageCounts.applied, 1);
 
   const stageRows = [
-    ['Applied & called', stageCounts.applied, 'var(--navy-600)'],
-    ['Conditional offer', stageCounts.conditional, 'var(--gold-500)'],
-    ['Mock / Pre-CAS', stageCounts.mock, 'var(--violet-500)'],
-    ['CAS in progress', stageCounts.cas, '#0EA5E9'],
-    ['Visa received', stageCounts.visa, 'var(--emerald-500)']
+    ['Applied & called', stageCounts.applied, 'var(--navy-600)', '', ''],
+    ['Conditional offer', stageCounts.conditional, 'var(--gold-500)', 'offer', 'Received'],
+    ['Mock / Pre-CAS', stageCounts.mock, 'var(--violet-500)', 'mock', 'Done'],
+    ['CAS in progress', stageCounts.cas, '#0EA5E9', 'cas', 'Pending'],
+    ['Visa received', stageCounts.visa, 'var(--emerald-500)', 'visa', 'Approved']
   ];
 
   funnelElement.innerHTML = stageRows
-    .map(([label, count, color]) => {
+    .map(([label, count, color, field, value]) => {
       const percentage = Math.round((count / maxCount) * 100);
       return `
-        <div style="margin-bottom: 10px">
+        <div class="funnel-row" onclick="goToStudentsFiltered('${field}','${value}')" title="View these students">
           <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px">
             <span style="color: var(--text-secondary)">${label}</span>
             <span style="font-weight: 700">${count}</span>
@@ -797,6 +801,39 @@ function renderFunnelChart(stageCounts) {
     })
     .join('');
 }
+
+// ==============================================================================
+// DASHBOARD DRILL-DOWN NAVIGATION (click-through to filtered records)
+// ==============================================================================
+
+/**
+ * Navigate from Dashboard to the Students table, pre-filtered to a segment.
+ * Reuses the existing seg-btn pill filter mechanism so the matching filter
+ * button (if one exists) lights up as active too.
+ */
+function goToStudentsFiltered(field, value) {
+  const link = document.querySelector('.sb-link[data-view="students"]');
+  switchView('students', link);
+
+  setTimeout(() => {
+    let matchedBtn = null;
+    document.querySelectorAll('#view-students .seg-btn').forEach((btn) => {
+      const attr = btn.getAttribute('onclick') || '';
+      if (attr.includes(`setPillFilterStudents('${field}','${value}'`)) matchedBtn = btn;
+    });
+    setPillFilterStudents(field, value, matchedBtn);
+  }, 0);
+}
+window.goToStudentsFiltered = goToStudentsFiltered;
+
+/**
+ * Navigate from Dashboard to the Channel Partners view.
+ */
+function goToPartners() {
+  const link = document.querySelector('.sb-link[data-view="partners"]');
+  switchView('partners', link);
+}
+window.goToPartners = goToPartners;
 
 // ==============================================================================
 // DASHBOARD RENDERING
@@ -890,7 +927,7 @@ function renderDashboardPartners() {
     return;
   }
 
-  grid.innerHTML = partners.slice(0, 6).map((partner) => partnerCardHTML(partner.id, partner)).join('');
+  grid.innerHTML = partners.slice(0, 6).map((partner) => partnerCardHTML(partner.id, partner, true)).join('');
 }
 
 // ==============================================================================
@@ -928,10 +965,11 @@ function partnerColor(seedString) {
 /**
  * Generate HTML for partner card
  */
-function partnerCardHTML(partnerId, partnerData) {
+function partnerCardHTML(partnerId, partnerData, clickable) {
   const color = partnerColor(partnerData.name || partnerId);
+  const clickAttr = clickable ? ` onclick="goToPartners()" title="View all channel partners"` : '';
   return `
-    <div class="cp-card">
+    <div class="cp-card"${clickAttr}>
       <div class="cp-card-head">
         <div class="cp-avatar" style="background: ${color}">${partnerInitials(partnerData.name)}</div>
         <div>
