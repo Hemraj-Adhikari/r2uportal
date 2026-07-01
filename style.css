@@ -483,6 +483,40 @@ tr:hover .row-actions{opacity:1}
 .stage-step.completed .stage-content .stage-current-val{font-size:11px;color:var(--emerald-700);font-weight:500;background:var(--emerald-50);border:1px solid var(--emerald-100);border-radius:var(--r-sm);padding:3px 8px;display:inline-block;margin-bottom:6px}
 .stage-step:not(.completed):not(.locked) .stage-current-val{font-size:11px;color:var(--amber-700);font-weight:500;background:var(--amber-50);border:1px solid var(--amber-100);border-radius:var(--r-sm);padding:3px 8px;display:inline-block;margin-bottom:6px}
 
+/* Mock-interview sub-stage options that aren't unlocked yet (JS also sets
+   inline opacity/pointer-events — this backs it up + gives a proper cursor) */
+.stage-opt.locked-row{cursor:not-allowed;opacity:.45;pointer-events:none}
+
+/* ── STAGE DOCUMENT UPLOAD (per-stage required documents) ── */
+.stage-docs{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-subtle)}
+.stage-doc-chip{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:var(--emerald-50);border:1px solid var(--emerald-100);border-radius:var(--r-md);
+  padding:6px 10px;margin-bottom:5px;font-size:11.5px;
+}
+.stage-doc-chip a{
+  color:var(--emerald-700);font-weight:600;text-decoration:none;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;
+}
+.stage-doc-chip a:hover{text-decoration:underline}
+.stage-doc-chip a::before{content:'📄';margin-right:6px}
+.stage-doc-remove{
+  background:none;border:none;cursor:pointer;color:var(--crimson-500);font-size:12px;
+  line-height:1;padding:2px 5px;border-radius:var(--r-sm);flex-shrink:0;transition:background .13s;
+}
+.stage-doc-remove:hover{background:var(--crimson-100);color:var(--crimson-700)}
+.stage-doc-empty{
+  font-size:11px;color:var(--amber-700);background:var(--amber-50);border:1px solid var(--amber-100);
+  border-radius:var(--r-sm);padding:6px 10px;margin-bottom:8px;font-style:italic;line-height:1.5;
+}
+.stage-doc-upload-btn{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  border:1px dashed var(--navy-300);border-radius:var(--r-md);background:var(--navy-50);
+  color:var(--navy-700);font-size:11.5px;font-weight:600;padding:7px 12px;
+  transition:all .13s;user-select:none;
+}
+.stage-doc-upload-btn:hover{background:var(--navy-100);border-color:var(--navy-400)}
+
 /* ── FORMS ── */
 .form-group{margin-bottom:12px}
 .form-label{display:block;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
